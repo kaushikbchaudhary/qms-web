@@ -1,5 +1,5 @@
 import apiClient from '../client';
-import {CreateComplaintPayload} from "@/lib/api/types/complaints";
+import {ComplaintQueryParams, CreateComplaintPayload} from "@/lib/api/types/complaints";
 
 export const complaintsApi = {
     createComplaint: (data: CreateComplaintPayload) =>
@@ -7,9 +7,15 @@ export const complaintsApi = {
     getComplaintType: (params?: any) =>
         apiClient.get('/api/v1/master/lookup', { params }),
     // PaginationParams
-    getComplaints: (params?: any) =>
-        apiClient.get('api/v1/complaint', { params }),
+    getComplaints: (data: ComplaintQueryParams) =>
+        apiClient.post('api/v1/complaint/list', data),
 
     getComplaintById: (id: string) =>
         apiClient.get(`api/v1/complaint/${id}`),
+    uploadComplaintAttachment: (formData: FormData) =>
+        apiClient.post('api/v1/complaint/complaint-attachment', formData, {
+            // headers: {
+            //     'Content-Type': 'multipart/form-data'
+            // }
+        }),
 };

@@ -81,3 +81,100 @@ export interface CreateComplaintPayload {
     replacement_details: ReplacementDetails;
     attachments: string[] | undefined;
 }
+
+// types/complaints.ts
+
+// Base config type used in several places
+export interface Config {
+    _id: string;
+    name: string;
+    type: string;
+}
+
+// Sub-types for the complaint
+export interface Customer {
+    name: string;
+    company: string;
+    contact_number: string;
+    email: string;
+}
+
+export interface ProductDetails {
+    model: string;
+    serial_number: string;
+    purchase_date: string;
+    unique_identifier?: string;
+}
+
+export interface ComplaintType {
+    name: string;
+    description: string | null;
+    config: Config;
+}
+
+export interface PreferredResolutionMethod {
+    name: string;
+    description: string | null;
+    config: Config;
+}
+
+// Main Complaint type
+export interface Complaint {
+    _id: string;
+    complaint_number: number;
+    submission_date: string;
+    created_on: string;
+    updated_on: string;
+    __v: number;
+    customer: Customer;
+    product_details: ProductDetails;
+    complaint_type: ComplaintType;
+    issue_details: IssueDetails;
+    previous_contact: PreviousContact;
+    customer_actions: CustomerActions;
+    preferred_resolution_method: PreferredResolutionMethod;
+    replacement_details?: ReplacementDetails;
+    customer_impact: string;
+    attachments: string[];
+}
+
+// API Response type
+export interface ComplaintsApiResponse  {
+        count: number;
+        list: Complaint[];
+}
+
+// Query params (you already had this)
+export interface Filter {
+    field: string;
+    operator: string;
+    value: string;
+}
+
+export interface ComplaintQueryParams {
+    page_size: number;
+    page_index: number;
+    global_value: string;
+    global_filter: string[];
+    filters: Filter[];
+    sort_by: string;
+    sort_order: number; // -1 for descending, 1 for ascending
+}
+// types/upload.ts
+export interface FileUploadResponse {
+    success: boolean;
+    message: string;
+    data: {
+        url: string;
+        fileName: string;
+        fileSize: number;
+        fileType: string;
+        uploadedAt: string;
+    };
+}
+
+export interface FileUploadParams {
+    file: File;
+    complaintId?: string;
+    metadata?: Record<string, any>;
+}

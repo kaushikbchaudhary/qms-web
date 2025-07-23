@@ -13,11 +13,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from '@radix-ui/react-icons'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-import {useComplaints, useCreateComplaint} from '@/hooks/api/useComplaints'
+import {useAttachmentUpload, useComplaints, useCreateComplaint} from '@/hooks/api/useComplaints'
 import { toast } from 'sonner'
 import {useMemo} from "react";
 import {Complaint} from "@/lib/api/types/complaints";
 import {RefinementCtx} from "zod";
+import FileUploadComponent from "@/components/shared/FileUploadComponent";
+import {complaintsApi} from "@/lib/api/endpoints/complaints";
 
 // Form validation schema
 const formSchema = z.object({
@@ -198,7 +200,6 @@ export function ComplaintForm() {
         complaintTypesFetch();
     },[])
 
-
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -358,7 +359,7 @@ export function ComplaintForm() {
                                                 console.log('Is Other:', isOther)
                                                 form.setValue("complaint_type", {
                                                     name: selected.name,
-                                                    description: isOther ? "" : selected.description || "",
+                                                    description: isOther ? "" : selected?.description || "",
                                                     config: {
                                                         _id: selected._id,
                                                         name: selected.name,
@@ -389,28 +390,28 @@ export function ComplaintForm() {
                     />
 
                     {/* Show only when "Other" is selected */}
-                    {(data && data.find(item => item._id === form.watch("complaint_type.config._id"))?.name.toLowerCase() === "other") && (
-                        <FormField
-                            control={form.control}
-                            name="complaint_type.description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-foreground">Please specify*</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Describe your specific complaint type..."
-                                            {...field}
-                                            className="mt-1"
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
+                    {/*{(data && data.find(item => item._id === form.watch("complaint_type.config._id"))?.name.toLowerCase() === "other") && (*/}
+                    {/*    <FormField*/}
+                    {/*        control={form.control}*/}
+                    {/*        name="complaint_type.description"*/}
+                    {/*        render={({ field }) => (*/}
+                    {/*            <FormItem>*/}
+                    {/*                <FormLabel className="text-foreground">Please specify*</FormLabel>*/}
+                    {/*                <FormControl>*/}
+                    {/*                    <Input*/}
+                    {/*                        placeholder="Describe your specific complaint type..."*/}
+                    {/*                        {...field}*/}
+                    {/*                        className="mt-1"*/}
+                    {/*                    />*/}
+                    {/*                </FormControl>*/}
+                    {/*                <FormMessage />*/}
+                    {/*            </FormItem>*/}
+                    {/*        )}*/}
+                    {/*    />*/}
+                    {/*)}*/}
 
                     {/* Regular description for non-"Other" types */}
-                    {!form.watch("complaint_type.isOther") && form.watch("complaint_type.config._id") && (
+                    {!form.watch("complaint_type.isOther") && form.watch("complaint_type.config._id") ? (
                         <FormField
                             control={form.control}
                             name="complaint_type.description"
@@ -422,6 +423,24 @@ export function ComplaintForm() {
                                             placeholder="Provide details about the issue..."
                                             className="min-h-[80px]"
                                             {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    ):(
+                        <FormField
+                            control={form.control}
+                            name="complaint_type.description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-foreground">Please specify*</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder="Describe your specific complaint type..."
+                                            {...field}
+                                            className="mt-1"
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -787,6 +806,21 @@ export function ComplaintForm() {
                             )}
                         />
                     )}
+                </div>
+
+                <div className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Preferred Resolution Method</h3>
+
+                    <FileUploadComponent
+                        uploadApiHook={useAttachmentUpload}
+                        label="Upload Documents"
+                        description="PDFs and Word documents only"
+                        // accept=".pdf,.doc,.docx"
+                        multiple={true}
+                        maxFiles={10}
+                        showPreview={false}
+                        className="custom-uploader"
+                    />
                 </div>
 
                 <Button type="submit" disabled={isPending}>
