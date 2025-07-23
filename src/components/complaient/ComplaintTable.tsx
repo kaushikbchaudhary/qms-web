@@ -12,7 +12,7 @@ import {ColumnsComplaints} from "@/components/complaient/ColumnsComplaints";
 
 export function ComplaintsTable() {
     const tableState = useTableState()
-    const { pagination, sorting } = tableState
+    const { pagination, sorting ,columnVisibility, rowSelection} = tableState
     const [globalFilter, setGlobalFilter] = useState("")
     const [globalFilterFields] = useState<string[]>([
         "customer.name",
@@ -53,6 +53,7 @@ const fil = {
     const {data, isLoading, error, refetch } = useGetComplaints(queryParams);
 
     console.log('data', data)
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
@@ -84,7 +85,10 @@ const fil = {
                     manualSorting: true,
                     manualFiltering: true,
                 }}
-                {...tableState}
+                sorting={sorting}
+                pagination={pagination}
+                columnVisibility={columnVisibility}
+                rowSelection={rowSelection}
             />
         </div>
     )

@@ -185,11 +185,10 @@ export function ComplaintForm() {
         }
         createComplaint(payload, {
             onSuccess: () => {
-                toast.success("Complaint created successfully")
                 form.reset()
             },
             onError: (error) => {
-                toast.error(error.message)
+                // error handling here
             }
         })
     }

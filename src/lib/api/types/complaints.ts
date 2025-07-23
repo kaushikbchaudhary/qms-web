@@ -178,3 +178,53 @@ export interface FileUploadParams {
     complaintId?: string;
     metadata?: Record<string, any>;
 }
+
+//
+export interface ComplaintCreateResponse {
+    success: boolean;
+    message: string;
+    data: Complaint;
+}
+
+export interface ComplaintData {
+    customer: Customer;
+    product_details: ProductDetails;
+    complaint_type: ComplaintType;
+    issue_details: IssueDetails;
+    customer_impact: string;
+    previous_contact: PreviousContact;
+    customer_actions: CustomerActions;
+    preferred_resolution_method: ResolutionMethod;
+    attachments: any[]; // or a more specific type if available
+    _id: string;
+    submission_date: string; // ISO string
+    complaint_number: number;
+    created_on: string;
+    updated_on: string;
+    __v: number;
+}
+
+export interface Customer {
+    name: string;
+    company: string;
+    contact_number: string;
+    email: string;
+}
+
+export interface ProductDetails {
+    model: string;
+    serial_number: string;
+    purchase_date: string; // ISO string
+}
+
+export interface ResolutionMethod {
+    name: string;
+    description: string;
+    config: Config;
+}
+
+export interface Config {
+    _id: string;
+    name: string;
+    type: string;
+}

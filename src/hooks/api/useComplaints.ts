@@ -7,13 +7,15 @@ import {
     CreateComplaintPayload
 } from '@/lib/api/types/complaints'
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
+import {toast} from "sonner";
+import axios from "axios";
+import {ApiErrorResponse} from "@/lib/api/types/errors";
 
 export function useComplaints(params?: any) {
     return useQuery({
         queryKey: ['complaints', params],
         queryFn: async () => {
             const {data} = await complaintsApi.getComplaintType(params);
-            // const { data } = await apiClient.get('/complaints', { params })
             return data as Complaint[]
         },
     })
@@ -24,16 +26,24 @@ export function useCreateComplaint() {
     return useMutation({
         mutationFn: (complaintData: CreateComplaintPayload) =>
         {
-            console.log('complaintData',complaintData)
             return complaintsApi.createComplaint(complaintData);
-            // return apiClient.post('/complaints', complaintData);
         },
-        onSuccess: () => {
+        onSuccess: (response) => {
+            console.log('complaintData',response)
             // Invalidate queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['complaints'] })
+            toast.success('Complaint created successfully!');
         },
         onError: (error) => {
-            console.error('Error creating complaint:', error);
+            if (axios.isAxiosError(error) && error.response?.data) {
+                const errData = error.response.data as ApiErrorResponse;
+                console.log('errData',errData)
+                let message = errData.message || 'Something went wrong';
+                Object.keys(errData.errors).forEach((key) => {
+                    message = errData.errors[key].message;
+                    toast.error(message);
+                })
+            }
         }
     })
 }

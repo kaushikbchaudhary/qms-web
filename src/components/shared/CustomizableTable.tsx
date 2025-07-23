@@ -237,7 +237,7 @@ export default function CustomizableTable<TData, TValue>({
 
     // Default loading component
     const defaultLoadingComponent = (
-        <div className="space-y-2">
+        <div className="space-y-2 w-screen container">
             {Array.from({ length: actualPagination.pageSize }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
             ))}
@@ -248,7 +248,7 @@ export default function CustomizableTable<TData, TValue>({
     const defaultErrorComponent = (
         <TableRow>
             <TableCell colSpan={columns.length} className="h-24 text-center text-red-500">
-                Error loading data: {error?.message}
+                Error loading data: {'error?.message'}
             </TableCell>
         </TableRow>
     )
@@ -263,19 +263,19 @@ export default function CustomizableTable<TData, TValue>({
     )
 
     return (
-        <div className="w-full space-y-4">
+        <div className="w-screen container space-y-4">
             {/* Filter and column visibility controls */}
             <div className="flex items-center justify-between gap-4">
-                {filterComponent || (
-                    <Input
-                        placeholder="Filter data..."
-                        value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-                        onChange={(event) =>
-                            table.getColumn("email")?.setFilterValue(event.target.value)
-                        }
-                        className="max-w-sm"
-                    />
-                )}
+                {/*{filterComponent || (*/}
+                {/*    <Input*/}
+                {/*        placeholder="Filter data..."*/}
+                {/*        value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}*/}
+                {/*        onChange={(event) =>*/}
+                {/*            table.getColumn("email")?.setFilterValue(event.target.value)*/}
+                {/*        }*/}
+                {/*        className="max-w-sm"*/}
+                {/*    />*/}
+                {/*)}*/}
 
                 {showColumnVisibilityToggle && (
                     <DropdownMenu>
@@ -307,6 +307,9 @@ export default function CustomizableTable<TData, TValue>({
 
             {/* Table */}
             <div className="rounded-md border">
+                {isLoading ? (
+                    loadingComponent || defaultLoadingComponent
+                ) : (
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -324,10 +327,9 @@ export default function CustomizableTable<TData, TValue>({
                             </TableRow>
                         ))}
                     </TableHeader>
+
                     <TableBody>
-                        {isLoading ? (
-                            loadingComponent || defaultLoadingComponent
-                        ) : error ? (
+                        { error ? (
                             errorComponent || defaultErrorComponent
                         ) : table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
@@ -347,9 +349,10 @@ export default function CustomizableTable<TData, TValue>({
                             ))
                         ) : (
                             emptyStateComponent || defaultEmptyStateComponent
-                        )}
+                            )}
                     </TableBody>
                 </Table>
+                )}
             </div>
 
             {/* Pagination and row selection info */}
@@ -376,7 +379,10 @@ export default function CustomizableTable<TData, TValue>({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => table.nextPage()}
+                            onClick={() => {
+                               const nextPage = table.nextPage();
+                                console.log('w-screen container', table ,nextPage);
+                            }}
                             disabled={!table.getCanNextPage()}
                         >
                             Next

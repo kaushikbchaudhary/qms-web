@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/providers/theme-provider'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import {QueryProvider} from "@/providers/query-provider";
+import {Toaster} from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -31,7 +32,10 @@ export default function RootLayout({
         >
           <div className="flex flex-col min-h-screen px-2 mx-auto">
             <Header />
-            <main className="flex-1 container py-8 mx-auto">{children}</main>
+            <main className="flex-1 container py-8 mx-auto">
+                {children}
+                <Toaster position={'top-right'} duration={3000} closeButton={true} theme={'system'}/>
+            </main>
             <Footer />
           </div>
         </ThemeProvider>
