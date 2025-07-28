@@ -17,6 +17,8 @@ export function useLookup(params: { type: string }) {
             const data = await complaintsApi.getLookupType(params);
             return data as MasterLookupItem[];
         },
+        gcTime: 10 * 60 * 1000, // 10 minutes
+        staleTime: 10 * 60 * 1000, // 10 minutes
     })
 }
 
@@ -28,7 +30,6 @@ export function useCreateComplaint() {
             return complaintsApi.createComplaint(complaintData);
         },
         onSuccess: (response) => {
-            console.log('complaintData',response)
             // Invalidate queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['complaints'] })
             toast.success('Complaint created successfully!');

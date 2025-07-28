@@ -158,7 +158,7 @@ export default function CustomizableTable<TData, TValue>({
                                              onColumnVisibilityChange,
                                              rowSelection,
                                              onRowSelectionChange,
-                                             defaultPageSize = 10,
+                                             defaultPageSize = 100,
                                              showColumnVisibilityToggle = true,
                                              showPagination = true,
                                              showRowSelection = false,
@@ -277,32 +277,32 @@ export default function CustomizableTable<TData, TValue>({
                 {/*    />*/}
                 {/*)}*/}
 
-                {showColumnVisibilityToggle && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="ml-auto">
-                                Columns <ChevronDown className="ml-2 h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {table
-                                .getAllColumns()
-                                .filter((column) => column.getCanHide())
-                                .map((column) => (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) =>
-                                            column.toggleVisibility(!!value)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
+                {/*{showColumnVisibilityToggle && (*/}
+                {/*    <DropdownMenu>*/}
+                {/*        <DropdownMenuTrigger asChild>*/}
+                {/*            <Button variant="outline" className="ml-auto">*/}
+                {/*                Columns <ChevronDown className="ml-2 h-4 w-4" />*/}
+                {/*            </Button>*/}
+                {/*        </DropdownMenuTrigger>*/}
+                {/*        <DropdownMenuContent align="end">*/}
+                {/*            {table*/}
+                {/*                .getAllColumns()*/}
+                {/*                .filter((column) => column.getCanHide())*/}
+                {/*                .map((column) => (*/}
+                {/*                    <DropdownMenuCheckboxItem*/}
+                {/*                        key={column.id}*/}
+                {/*                        className="capitalize"*/}
+                {/*                        checked={column.getIsVisible()}*/}
+                {/*                        onCheckedChange={(value) =>*/}
+                {/*                            column.toggleVisibility(!!value)*/}
+                {/*                        }*/}
+                {/*                    >*/}
+                {/*                        {column.id}*/}
+                {/*                    </DropdownMenuCheckboxItem>*/}
+                {/*                ))}*/}
+                {/*        </DropdownMenuContent>*/}
+                {/*    </DropdownMenu>*/}
+                {/*)}*/}
             </div>
 
             {/* Table */}
@@ -379,10 +379,7 @@ export default function CustomizableTable<TData, TValue>({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                               const nextPage = table.nextPage();
-                                console.log('w-screen container', table ,nextPage);
-                            }}
+                            onClick={()=> table.nextPage()}
                             disabled={!table.getCanNextPage()}
                         >
                             Next
@@ -395,7 +392,7 @@ export default function CustomizableTable<TData, TValue>({
 }
 
 // Utility hook to use with your API calls
-export function useTableState(defaultPageSize = 10) {
+export function useTableState(defaultPageSize = 100) {
     const [pagination, setPagination] = React.useState<PaginationState>({
         pageIndex: 0,
         pageSize: defaultPageSize,

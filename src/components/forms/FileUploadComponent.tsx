@@ -12,7 +12,6 @@ export const FileUploadComponent = ({addAttachmentPath}: {addAttachmentPath:any}
     useEffect(() => {
         addAttachmentPath([]);
         // Update form state with current attachments
-        console.log('attachments____', attachments);
         addAttachmentPath(attachments.map((attachment) => attachment.path));
 
         // Clean up object URLs when component unmounts

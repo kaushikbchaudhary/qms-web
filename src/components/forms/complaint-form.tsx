@@ -13,14 +13,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from '@radix-ui/react-icons'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-        import {useAttachmentUpload, useCreateComplaint, useLookup} from '@/hooks/api/useComplaints'
-import {useEffect, useMemo, useState} from "react";
+import { useCreateComplaint, useLookup} from '@/hooks/api/useComplaints'
+import { useMemo, useState} from "react";
 import { MasterLookupItem} from "@/lib/api/types/complaints";
 import {FileUploadComponent} from "@/components/forms/FileUploadComponent";
-import {useAttachmentManager} from "@/components/forms/AttachmentManager";
-// import {useAttachmentManager} from "@/components/forms/AttachmentManager";
-// import {FileUploadComponent} from "@/components/shared/FileUploadComponent";
-
 // Form validation schema
 const formSchema = z.object({
     customer: z.object({
@@ -135,37 +131,15 @@ export function ComplaintForm() {
             attachments: [],
         },
     })
-
     const [pathsAttachments, setPathsAttachments] = useState<string[]>([]);
     const [complaintType, preferredResolution] = useWatch({
         control: form.control,
         name: ["complaint_type", "preferred_resolution_method"],
     });
-// console.log('Complaint Type:', complaintType);
     const { mutate: createComplaint, isPending } = useCreateComplaint()
-    // const attachmentManager = useAttachmentManager();
-    // const { attachments, getSuccessfulAttachments } = attachmentManager;
-    // const attachmentManager = useAttachmentManager();
-    // const { attachments, getSuccessfulAttachments } = attachmentManager;
-    // const attachmentManager = useAttachmentManager();
-    // const { attachments } = attachmentManager;
-    // console.log('Current attachments:', attachments);
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-
-        // const successfulAttachments = getSuccessfulAttachments();
-        // console.log('successfulAttachments:', successfulAttachments);
-
-        // if (successfulAttachments.length === 0) {
-        //     alert('Please upload at least one file');
-        //     return;
-        // }
         try {
-            // Upload all files and get their paths
-            // const validAttachments = attachments.filter(
-            //     a => a.status === 'success' && a.path
-            // );
-            // console.log('Valid attachments:', validAttachments);
-            // Prepare the payload with attachment paths
+        // Prepare the payload with attachment paths
         const payload = {
             ...values,
             issue_details: {
@@ -190,7 +164,6 @@ export function ComplaintForm() {
             },
             attachments: pathsAttachments
         }
-        console.log('payload:', payload);
         createComplaint(payload, {
             onSuccess: () => {
                 form.reset()
@@ -214,7 +187,6 @@ export function ComplaintForm() {
         refetch_Resolution_method();
     },[])
     const attachemntfiles = form.watch('attachments');
-    console.log('attachemntfiles', attachemntfiles);
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -797,14 +769,6 @@ export function ComplaintForm() {
 
                     <div className="max-w-[1200px] mx-auto">
                         <FileUploadComponent addAttachmentPath={setPathsAttachments}/>
-                        {/*<FileUploadComponent*/}
-                        {/*    onFilesChange={setFiles}*/}
-                        {/*    multiple*/}
-                        {/*    accept="image/jpeg,image/png,application/pdf"*/}
-                        {/*    label="Upload documents"*/}
-                        {/*    description="Supports JPG, PNG, and PDF files"*/}
-                        {/*    className="my-4"*/}
-                        {/*/>*/}
                     </div>
                 </div>
 

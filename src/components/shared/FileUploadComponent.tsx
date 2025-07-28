@@ -45,7 +45,6 @@ const FileUploadComponent = React.forwardRef<HTMLDivElement, FileUploadComponent
         const [files, setFiles] = useState<FileWithPreview[]>([]);
         const [isDragging, setIsDragging] = useState(false);
         const fileInputRef = useRef<HTMLInputElement>(null);
-// console.log()
         // Use useEffect to notify parent of file changes after render
         useEffect(() => {
             if (onFilesChange) {

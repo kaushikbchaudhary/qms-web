@@ -3,7 +3,7 @@ import {useAttachmentDelete, useAttachmentUpload} from "@/hooks/api/useComplaint
 
 export const useAttachmentManager = () => {
     const [attachments, setAttachments] = useState<any[]>([]);
-    const uploadMutation = useAttachmentUpload();
+    const { mutateAsync: uploadFile }  = useAttachmentUpload();
 
     // Use ref to track current attachments without closures
     const attachmentsRef = useRef(attachments);
@@ -20,39 +20,30 @@ export const useAttachmentManager = () => {
 
         // Update state immediately
         setAttachments(prev => [...prev, ...newAttachments]);
-
-        await setTimeout(() => '', 2000);
-
-        // Process each upload with proper attachment reference
-        newAttachments.forEach((newAttachment:any) => {
-              uploadMutation.mutate(newAttachment.file, {
-                onSuccess: (data) => {
-                    setAttachments(current =>
-                        current.map(a => {
-                            return (
-                                a.id === newAttachment.id
-                                    ? {...a, status: 'success', path: data.path}
-                                    : a)
-                            }
-                        )
-                    );
-                },
-                onError: (error) => {
-                    setAttachments(current =>
-                        current.map(a =>
-                            a.id === newAttachment.id
-                                ? {
-                                    ...a,
-                                    status: 'error',
-                                    error: error instanceof Error ? error.message : 'Upload failed'
-                                }
-                                : a
-                        )
-                    );
-                }
-            });
-        });
-    }, [uploadMutation]);
+        // Process each upload with its own mutation
+        await Promise.all(newAttachments.map(async (attachment) => {
+            // Check if the file is already uploaded
+            try {
+                const result = await uploadFile(attachment.file);
+                setAttachments(current => current.map(a => {
+                        return (a.id === attachment.id
+                            ? {...a, status: 'success', path: result.path}
+                            : a)
+                    }
+                ));
+            } catch (error) {
+                setAttachments(current => current.map(a =>
+                    a.id === attachment.id
+                        ? {
+                            ...a,
+                            status: 'error',
+                            error: error instanceof Error ? error.message : 'Upload failed'
+                        }
+                        : a
+                ));
+            }
+        }));
+    }, [uploadFile]);
     const {mutate :deleteAttachment} = useAttachmentDelete();
     const removeFile = useCallback((id: string) => {
         setAttachments((prev:any) => {

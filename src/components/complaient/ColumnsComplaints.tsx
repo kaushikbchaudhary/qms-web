@@ -11,7 +11,88 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import {useState} from "react";
 //
+const TruncatedText = ({
+                           text,
+                           maxLength = 20,
+                           maxWidth = 300,
+                           maxHeight = 500
+                       }: {
+    text: string;
+    maxLength?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+}) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    if (!text) return <span className="text-muted-foreground">-</span>;
+
+    return (
+        <div className="flex flex-col gap-1">
+            {/* Truncated view */}
+            <div
+                className={`transition-all duration-200 ${isExpanded ? 'hidden' : 'block'}`}
+                style={{ maxWidth: `${maxWidth}px` }}
+            >
+        <span className="truncate">
+          {text.length > maxLength ? `${text.substring(0, maxLength)}...` : text}
+        </span>
+            </div>
+
+            {/* Expanded card view */}
+            {/*className={`transition-all duration-200 ${isExpanded ? 'whitespace-normal' : 'whitespace-nowrap'}`}*/}
+            {/**/}
+            {isExpanded && (
+                <div
+                    className="relative p-3  rounded-lg border border-gray-200  shadow-sm transition-all duration-300"
+                    style={{
+                        maxWidth: `${maxWidth}px`,
+                        height:'auto',
+                        maxHeight: `${maxHeight}px`,
+                        overflowY: 'auto'
+                    }}
+                >
+                    <div className="break-words text-sm whitespace-normal">
+                        {text}
+                    </div>
+                    <div className="absolute -bottom-2 right-2">
+                        <div className=" px-1">
+                            <button
+                                onClick={() => setIsExpanded(false)}
+                                className="text-primary hover:text-primary-dark text-xs flex items-center gap-1 focus:outline-none"
+                            >
+                                <span>Collapse</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="m18 15-6-6-6 6"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Show more/less button */}
+            {text.length > maxLength && (
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-primary hover:text-primary-dark focus:outline-none text-xs flex items-center gap-1 transition-colors duration-200"
+                >
+                    {isExpanded ? null : (
+                        <>
+                            <span>Show more</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                        </>
+                    )}
+                </button>
+            )}
+        </div>
+    );
+};
+
+
 export type Complaint = {
     _id: string
     complaint_number: number
@@ -229,7 +310,8 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
                 <div className="flex flex-col">
                     <span className="font-medium">{type.name}</span>
                     {type.description && (
-                        <span className="text-xs text-muted-foreground">{type.description}</span>
+                        <TruncatedText text={type.description} />
+                        // <span className="text-xs text-muted-foreground">{type.description}</span>
                     )}
                 </div>
             )
@@ -242,7 +324,8 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
             const issue = row.original.issue_details
             return (
                 <div className="flex flex-col">
-                    <span className="line-clamp-1">{issue.description}</span>
+                    <TruncatedText text={issue.description} maxLength={30} />
+                    {/*<span className="line-clamp-1">{issue.description}</span>*/}
                     <span className="text-xs text-muted-foreground">
                         Started: {new Date(issue.problem_start_date).toLocaleDateString()}
                     </span>
@@ -310,11 +393,12 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         header: "Customer Impact",
         cell: ({ row }) => {
             const impact:string = row.getValue("customer_impact")
-            return (
-                <div className="line-clamp-2">
-                    {impact || "-"}
-                </div>
-            )
+            return impact ? <TruncatedText text={impact} /> : <span>-</span>;
+            // return (
+            //     <div className="line-clamp-2">
+            //         {impact || "-"}
+            //     </div>
+            // )
         },
     },
     {

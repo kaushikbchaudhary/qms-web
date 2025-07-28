@@ -10,6 +10,7 @@ import CustomizableTable, {useTableState} from "@/components/shared/Customizable
 import {useGetComplaints} from "@/hooks/api/useComplaints";
 import {ColumnsComplaints} from "@/components/complaient/ColumnsComplaints";
 import {showApiErrorToast} from "@/lib/utils";
+import {useDebounce} from "@/hooks/debounceHook";
 
 export function ComplaintsTable() {
     const tableState = useTableState()
@@ -22,6 +23,8 @@ export function ComplaintsTable() {
         "product_details.serial_number",
         "complaint_type.name",
     ])
+
+    const debouncedGlobalFilterValue = useDebounce(globalFilter, 500); // 500ms delay
 const fil = {
     page_size: 10,
     page_index: 1,
@@ -44,7 +47,7 @@ const fil = {
     const queryParams: ComplaintQueryParams = {
         page_size: pagination.pageSize,
         page_index: pagination.pageIndex,
-        global_value: globalFilter,
+        global_value: debouncedGlobalFilterValue,
         global_filter: globalFilterFields,
         sort_by: sorting[0]?.id || "submission_date",
         sort_order: sorting[0]?.desc ? -1 : 1,
