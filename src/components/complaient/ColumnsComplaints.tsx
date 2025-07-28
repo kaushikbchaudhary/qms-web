@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import {useState} from "react";
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
+import {ComplaintDetailsDialog} from "@/components/complaient/ComplaintDetailsDialog";
 //
 const TruncatedText = ({
                            text,
@@ -427,8 +428,19 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         id: "actions",
         cell: ({ row }) => {
             const complaint = row.original
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const [dialogOpen, setDialogOpen] = useState(false);
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const [isLoading, setIsLoading] = useState(false)
 
+            const handleViewDetails = async () => {
+                setIsLoading(true)
+                // You could fetch additional data here if needed
+                setDialogOpen(true)
+                setIsLoading(false)
+            }
             return (
+                <>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -438,9 +450,12 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/complaints/${complaint._id}`}>View details</Link>
+                        <DropdownMenuItem onClick={handleViewDetails} disabled={isLoading}>
+                            {isLoading ? 'Loading...' : 'View details'}
                         </DropdownMenuItem>
+                        {/*<DropdownMenuItem asChild>*/}
+                        {/*    <Link href={`/dashboard/complaints/${complaint._id}`}>View details</Link>*/}
+                        {/*</DropdownMenuItem>*/}
                         <DropdownMenuItem
                             onClick={() => navigator.clipboard.writeText(complaint.complaint_number.toString())}
                         >
@@ -450,7 +465,15 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
                         <DropdownMenuItem>Change status</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+            <ComplaintDetailsDialog
+                open={dialogOpen}
+                onOpenChange={setDialogOpen}
+                complaint={complaint}
+            />
+            </>
             )
         },
     },
 ]
+
