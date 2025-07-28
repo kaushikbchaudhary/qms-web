@@ -1,4 +1,4 @@
-import apiClient from '../client';
+import {apiClient, apiFileClient} from '../client';
 import {
     ComplaintCreateResponse,
     ComplaintQueryParams,
@@ -20,5 +20,13 @@ export const complaintsApi = {
             headers: {
                 'Content-Type': 'multipart/form-data',
             }
+        }),
+    getAttachment: (params: { path: string }): Promise<{ url: string; blob: Blob }> =>
+        apiFileClient.get('api/v1/complaint/complaint-attachment', {
+            params,
+            responseType: 'blob'
+        }).then((response:any) => {
+            const url = URL.createObjectURL(response.data);
+            return { url, blob: response.data };
         }),
 };

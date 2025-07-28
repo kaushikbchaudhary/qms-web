@@ -1,5 +1,5 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Dialog,
     DialogContent,
@@ -7,7 +7,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileIcon, ImageIcon, VideoIcon, Cross2Icon, DownloadIcon } from "@radix-ui/react-icons";
+import { FileIcon, ImageIcon, VideoIcon, Cross2Icon, DownloadIcon, ReloadIcon } from "@radix-ui/react-icons";
+import {complaintsApi} from "@/lib/api/endpoints/complaints";
 
 const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -18,49 +19,65 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
         attachment !== null && attachment.trim() !== ''
     );
 
-    const getFileType = (url: string) => {
-        try {
-            const extension = url.split('.').pop()?.toLowerCase();
-            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
-                return 'image';
-            } else if (extension === 'pdf') {
-                return 'pdf';
-            } else if (['mp4', 'webm', 'mov'].includes(extension || '')) {
-                return 'video';
-            }
-            return 'other';
-        } catch {
-            return 'other';
+    // Query to fetch attachment data
+    const { data: attachmentData, isLoading, error, refetch } = useQuery({
+        queryKey: ['complaint-attachment', currentAttachment],
+        queryFn: async () => {
+            if (!currentAttachment) return null;
+
+            const response = await complaintsApi.getAttachment({ path: currentAttachment });
+            console.log('response',response);
+            return {
+                url: response.url,
+                type: getFileType(currentAttachment),
+                blob: response.blob
+            };
+        },
+        enabled: !!currentAttachment && isOpen,
+        gcTime: 10 * 60 * 1000, // 10 minutes cache
+        staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    });
+
+    const getFileType = (path: string) => {
+        const extension = path.split('.').pop()?.toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+            return 'image';
+        } else if (extension === 'pdf') {
+            return 'pdf';
+        } else if (['mp4', 'webm', 'mov'].includes(extension || '')) {
+            return 'video';
         }
+        return 'other';
     };
 
-    const getFileIcon = (url: string) => {
-        const type = getFileType(url);
+    const getFileIcon = (path: string) => {
+        const type = getFileType(path);
         switch (type) {
-            case 'image':
-                return <ImageIcon className="w-4 h-4 mr-2" />;
-            case 'pdf':
-                return <FileIcon className="w-4 h-4 mr-2" />;
-            case 'video':
-                return <VideoIcon className="w-4 h-4 mr-2" />;
-            default:
-                return <FileIcon className="w-4 h-4 mr-2" />;
+            case 'image': return <ImageIcon className="w-4 h-4 mr-2" />;
+            case 'pdf': return <FileIcon className="w-4 h-4 mr-2" />;
+            case 'video': return <VideoIcon className="w-4 h-4 mr-2" />;
+            default: return <FileIcon className="w-4 h-4 mr-2" />;
         }
     };
 
-    const getFileNameFromUrl = (url: string) => {
-        try {
-            return url.split('/').pop() || 'file';
-        } catch {
-            return 'file';
-        }
+    const getFileNameFromUrl = (path: string) => {
+        return path.split('/').pop() || 'file';
     };
 
-    const openAttachment = (url: string) => {
-        setCurrentAttachment(url);
+    const openAttachment = (path: string) => {
+        setCurrentAttachment(path);
         setIsOpen(true);
     };
 
+    useEffect(() => {
+        return () => {
+            // Clean up object URLs when component unmounts
+            if (attachmentData?.url) {
+                URL.revokeObjectURL(attachmentData.url);
+            }
+        };
+    }, [attachmentData]);
+console.log('attachmentData',attachmentData)
     if (validAttachments.length === 0) {
         return <span className="text-muted-foreground">None</span>;
     }
@@ -76,25 +93,21 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
                 >
           <span className="flex items-center">
             {getFileIcon(validAttachments[0])}
-              {validAttachments.length === 1 ? (
-                  'View attachment'
-              ) : (
-                  `View ${validAttachments.length} attachments`
-              )}
+              {validAttachments.length === 1 ? 'View attachment' : `View ${validAttachments.length} attachments`}
           </span>
                 </Button>
 
                 {validAttachments.length > 1 && (
                     <div className="flex flex-wrap gap-1">
-                        {validAttachments.slice(1).map((url, index) => (
+                        {validAttachments.slice(1).map((path, index) => (
                             <Button
                                 key={index}
                                 variant="outline"
                                 size="sm"
                                 className="h-8 px-2"
-                                onClick={() => openAttachment(url)}
+                                onClick={() => openAttachment(path)}
                             >
-                                {getFileIcon(url)}
+                                {getFileIcon(path)}
                                 File {index + 2}
                             </Button>
                         ))}
@@ -106,68 +119,76 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
                 <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-auto">
                     <DialogHeader>
                         <div className="flex justify-between items-center">
-                            <DialogTitle>
-                                {currentAttachment ? getFileNameFromUrl(currentAttachment) : 'Attachment Preview'}
-                            </DialogTitle>
+
                             <div className="flex gap-2">
-                                {currentAttachment && (
+                                {attachmentData?.url && (
                                     <a
-                                        href={currentAttachment}
-                                        download
-                                        className="text-primary hover:text-primary-dark"
+                                        href={attachmentData.url}
+                                        download={getFileNameFromUrl(currentAttachment || '')}
+                                        className="text-primary hover:text-primary-dark mx-1"
                                     >
                                         <DownloadIcon className="w-5 h-5" />
                                     </a>
                                 )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsOpen(false)}
-                                >
-                                    <Cross2Icon className="h-4 w-4" />
-                                </Button>
                             </div>
+                            <DialogTitle>
+                                {currentAttachment ? getFileNameFromUrl(currentAttachment) : 'Attachment Preview'}
+                            </DialogTitle>
                         </div>
                     </DialogHeader>
 
-                    {currentAttachment ? (
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <ReloadIcon className="w-8 h-8 animate-spin" />
+                        </div>
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center h-64 p-4">
+                            <FileIcon className="w-16 h-16 text-gray-400 mb-4" />
+                            <p className="text-lg text-center">Failed to load attachment</p>
+                            <Button
+                                variant="outline"
+                                className="mt-4"
+                                onClick={() => refetch()}
+                            >
+                                <ReloadIcon className="w-4 h-4 mr-2" />
+                                Retry
+                            </Button>
+                        </div>
+                    ) : attachmentData ? (
                         <div className="mt-4 flex justify-center items-center">
-                            {getFileType(currentAttachment) === 'image' && (
+                            {attachmentData.type === 'image' && (
                                 <img
-                                    src={currentAttachment}
+                                    src={attachmentData.url}
                                     alt="Attachment preview"
                                     className="max-w-full max-h-[70vh] object-contain mx-auto rounded-md shadow-sm"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).src = '/path-to-fallback-image.png';
-                                    }}
                                 />
                             )}
 
-                            {getFileType(currentAttachment) === 'pdf' && (
+                            {attachmentData.type === 'pdf' && (
                                 <iframe
-                                    src={currentAttachment}
+                                    src={attachmentData.url}
                                     className="w-full h-[70vh] border rounded"
                                     title="PDF Viewer"
                                 />
                             )}
 
-                            {getFileType(currentAttachment) === 'video' && (
+                            {attachmentData.type === 'video' && (
                                 <video
                                     controls
                                     className="w-full max-h-[70vh] mx-auto rounded-md"
                                 >
-                                    <source src={currentAttachment} type={`video/${currentAttachment.split('.').pop()}`} />
+                                    <source src={attachmentData.url} type={`video/${currentAttachment?.split('.').pop()}`} />
                                     Your browser does not support the video tag.
                                 </video>
                             )}
 
-                            {getFileType(currentAttachment) === 'other' && (
+                            {attachmentData.type === 'other' && (
                                 <div className="flex flex-col items-center justify-center h-64 p-4 border rounded-lg">
                                     <FileIcon className="w-16 h-16 text-gray-400 mb-4" />
                                     <p className="text-lg text-center">Preview not available for this file type</p>
                                     <a
-                                        href={currentAttachment}
-                                        download
+                                        href={attachmentData.url}
+                                        download={getFileNameFromUrl(currentAttachment || '')}
                                         className="mt-4 text-primary hover:underline flex items-center gap-2"
                                     >
                                         <DownloadIcon className="w-4 h-4" />
@@ -187,4 +208,6 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
         </div>
     );
 };
+
+
 export default AttachmentViewer;

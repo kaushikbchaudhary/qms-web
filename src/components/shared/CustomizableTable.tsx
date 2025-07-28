@@ -392,7 +392,7 @@ export default function CustomizableTable<TData, TValue>({
 }
 
 // Utility hook to use with your API calls
-export function useTableState(defaultPageSize = 100) {
+export function useTableState(defaultPageSize = 10) {
     const [pagination, setPagination] = React.useState<PaginationState>({
         pageIndex: 0,
         pageSize: defaultPageSize,

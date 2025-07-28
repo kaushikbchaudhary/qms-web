@@ -1,37 +1,50 @@
-import axios from 'axios';
-import {toast} from "sonner";
+// lib/api/client.ts
+import axios, {AxiosInstance} from 'axios';
+import { toast } from "sonner";
 
+// Your existing client (unchanged)
 const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
     timeout: 10000,
 });
 
-// Request interceptor
-apiClient.interceptors.request.use(
-    (config:any) => {
-        // Add auth token if exists
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        if (config.data instanceof FormData) {
-            config.headers['Content-Type'] = 'multipart/form-data';
-        }
-        return config;
-    },
-    (error:any) => Promise.reject(error)
-);
+// New client specifically for file downloads
+const apiFileClient = axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    timeout: 10000,
+    responseType: 'blob', // Important for file downloads
+});
 
-// Response interceptor
-apiClient.interceptors.response.use(
-    (response:any) => response.data,
-    (error:any) => {
-        if (error?.code === 'ERR_NETWORK') {
-            toast.error('No Internet Connection!');
-            return Promise.reject(new Error('No Internet Connection!'));
-        }
-        return Promise.reject(error);
-    }
-);
+// Shared request interceptor
+const setupInterceptors = ({client, directResponse = false
+}:{client:  AxiosInstance,directResponse?:boolean}) => {
+    client.interceptors.request.use(
+        (config: any) => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+            if (config.data instanceof FormData) {
+                config.headers['Content-Type'] = 'multipart/form-data';
+            }
+            return config;
+        },
+        (error: any) => Promise.reject(error)
+    );
 
-export default apiClient;
+    client.interceptors.response.use(
+        (response: any) => directResponse ? response : response.data, // Return full response for file client
+        (error: any) => {
+            if (error?.code === 'ERR_NETWORK') {
+                toast.error('No Internet Connection!');
+                return Promise.reject(new Error('No Internet Connection!'));
+            }
+            return Promise.reject(error);
+        }
+    );
+};
+
+setupInterceptors({client:apiClient});
+setupInterceptors({client:apiFileClient,directResponse: true});
+
+export { apiClient, apiFileClient };
