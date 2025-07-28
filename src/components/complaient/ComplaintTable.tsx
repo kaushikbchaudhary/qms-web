@@ -1,7 +1,7 @@
 // complaints-table.tsx
 "use client"
 
-import { useState } from "react"
+import {useEffect, useState} from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
@@ -9,6 +9,7 @@ import {ComplaintQueryParams} from "@/lib/api/types/complaints";
 import CustomizableTable, {useTableState} from "@/components/shared/CustomizableTable";
 import {useGetComplaints} from "@/hooks/api/useComplaints";
 import {ColumnsComplaints} from "@/components/complaient/ColumnsComplaints";
+import {showApiErrorToast} from "@/lib/utils";
 
 export function ComplaintsTable() {
     const tableState = useTableState()
@@ -50,9 +51,12 @@ const fil = {
         filters: [], // Add any specific filters here
     }
 
-    const {data, isLoading, error, refetch } = useGetComplaints(queryParams);
-
-    console.log('data', data)
+    const {data, isLoading,isError, error, refetch } = useGetComplaints(queryParams);
+    useEffect(() => {
+        if (isError && error) {
+            showApiErrorToast(error);
+        }
+    }, [isError, error]);
 
     return (
         <div className="space-y-4">

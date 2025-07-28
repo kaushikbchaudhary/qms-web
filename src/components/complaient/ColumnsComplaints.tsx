@@ -204,10 +204,10 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         accessorKey: "product_details.model",
         header: "Product Model",
     },
-    {
-        accessorKey: "product_details.unique_identifier",
-        header: "Unique ID",
-    },
+    // {
+    //     accessorKey: "product_details.unique_identifier",
+    //     header: "Unique ID",
+    // },
     {
         accessorKey: "product_details.serial_number",
         header: "Serial Number",

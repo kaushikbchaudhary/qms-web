@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import {useForm, useWatch} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -13,13 +13,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from '@radix-ui/react-icons'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-import {useAttachmentUpload, useComplaints, useCreateComplaint} from '@/hooks/api/useComplaints'
-import { toast } from 'sonner'
-import {useMemo} from "react";
-import {Complaint} from "@/lib/api/types/complaints";
-import {RefinementCtx} from "zod";
-import FileUploadComponent from "@/components/shared/FileUploadComponent";
-import {complaintsApi} from "@/lib/api/endpoints/complaints";
+        import {useAttachmentUpload, useCreateComplaint, useLookup} from '@/hooks/api/useComplaints'
+import {useEffect, useMemo, useState} from "react";
+import { MasterLookupItem} from "@/lib/api/types/complaints";
+import {FileUploadComponent} from "@/components/forms/FileUploadComponent";
+import {useAttachmentManager} from "@/components/forms/AttachmentManager";
+// import {useAttachmentManager} from "@/components/forms/AttachmentManager";
+// import {FileUploadComponent} from "@/components/shared/FileUploadComponent";
 
 // Form validation schema
 const formSchema = z.object({
@@ -34,33 +34,14 @@ const formSchema = z.object({
         serial_number: z.string().min(1, "Serial number is required"),
         purchase_date: z.string(),
     }),
-    // complaint_type: z.object({
-    //     name: z.string(),
-    //     description: z.string().nullable(),
-    //     config: z.object({
-    //         _id: z.string(),
-    //         name: z.string(),
-    //         type: z.string(),
-    //     }),
-    // }),
     complaint_type: z.object({
         name: z.string(),
-        description: z.string().superRefine((val, ctx:any) => {
-            // Only validate if parent has isOther (added temporarily)
-            if (ctx.parent?.isOther && !val) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "Please specify your complaint type",
-                });
-            }
-        }),
+        description: z.string().nullable(),
         config: z.object({
             _id: z.string(),
             name: z.string(),
             type: z.string(),
         }),
-        // Temporary field for UI logic (won't be submitted)
-        isOther: z.boolean().optional()
     }),
     issue_details: z.object({
         description: z.string().min(10, "Description must be at least 10 characters"),
@@ -119,7 +100,6 @@ export function ComplaintForm() {
                     name: "Performance Issue",
                     type: "COMPLAINT_TYPE",
                 },
-                isOther: false
             },
             issue_details: {
                 description: "",
@@ -156,22 +136,49 @@ export function ComplaintForm() {
         },
     })
 
+    const [pathsAttachments, setPathsAttachments] = useState<string[]>([]);
+    const [complaintType, preferredResolution] = useWatch({
+        control: form.control,
+        name: ["complaint_type", "preferred_resolution_method"],
+    });
+// console.log('Complaint Type:', complaintType);
     const { mutate: createComplaint, isPending } = useCreateComplaint()
+    // const attachmentManager = useAttachmentManager();
+    // const { attachments, getSuccessfulAttachments } = attachmentManager;
+    // const attachmentManager = useAttachmentManager();
+    // const { attachments, getSuccessfulAttachments } = attachmentManager;
+    // const attachmentManager = useAttachmentManager();
+    // const { attachments } = attachmentManager;
+    // console.log('Current attachments:', attachments);
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
 
-    const onSubmit = (values: z.infer<typeof formSchema>) => {
-        console.log('Submitting complaint with values:', values)
-        // Remove the temporary isOther field before submission
-        const { isOther, ...complaintType } = values.complaint_type;
+        // const successfulAttachments = getSuccessfulAttachments();
+        // console.log('successfulAttachments:', successfulAttachments);
+
+        // if (successfulAttachments.length === 0) {
+        //     alert('Please upload at least one file');
+        //     return;
+        // }
+        try {
+            // Upload all files and get their paths
+            // const validAttachments = attachments.filter(
+            //     a => a.status === 'success' && a.path
+            // );
+            // console.log('Valid attachments:', validAttachments);
+            // Prepare the payload with attachment paths
         const payload = {
             ...values,
             issue_details: {
                 ...values.issue_details,
                 replication_steps: values.issue_details.replication_steps ?? null,
             },
-            complaint_type: {
-                ...complaintType,
-                // If "Other" was selected, use description as name
-                name: isOther ? values.complaint_type.description : complaintType.name
+            complaint_type:{
+                ...values.complaint_type,
+                description: values.complaint_type.description ?? null,
+            },
+            preferred_resolution_method: {
+                ...values.preferred_resolution_method,
+                description: values.preferred_resolution_method.description ?? null,
             },
             replacement_details:{
                 ...values.replacement_details,
@@ -181,8 +188,9 @@ export function ComplaintForm() {
                     mfg_date: values.replacement_details.mfg_date ? new Date(values.replacement_details.mfg_date).toISOString() : undefined,
                 } : {})
             },
-            attachments: values.attachments,
+            attachments: pathsAttachments
         }
+        console.log('payload:', payload);
         createComplaint(payload, {
             onSuccess: () => {
                 form.reset()
@@ -190,15 +198,23 @@ export function ComplaintForm() {
             onError: (error) => {
                 // error handling here
             }
-        })
+        });
+        } catch (error) {
+            console.error('Error uploading attachments:', error);
+            // Handle attachment upload errors
+        }
     }
 
-    const {refetch:complaintTypesFetch,isFetching,isLoading,data} = useComplaints({ type: 'COMPLAINT_TYPE' }) // Example usage of useComplaints hook
+    const {refetch:refetch_complaint_type,isFetching:isFetching_complaint_type,isLoading:isLoading_complaint_type,data:data_complaint_type} = useLookup({ type: 'COMPLAINT_TYPE' });
+    // type=RESOLUTION_METHOD
+    const {refetch:refetch_Resolution_method,isFetching:isFetching_Resolution_method,isLoading:isLoading_Resolution_method,data:data_resolution_method} = useLookup({ type: 'RESOLUTION_METHOD' })
 
     useMemo(()=>{
-        complaintTypesFetch();
+        refetch_complaint_type();
+        refetch_Resolution_method();
     },[])
-
+    const attachemntfiles = form.watch('attachments');
+    console.log('attachemntfiles', attachemntfiles);
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -350,28 +366,23 @@ export function ComplaintForm() {
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={(value) => {
-                                            console.log('Selected complaint type ID:', value)
-                                            const selected  = data && data.find((item:Complaint) => item._id === value);
-                                            console.log('Selected complaint type:', selected)
+                                            const selected  = data_complaint_type?.length && data_complaint_type.find((item:MasterLookupItem) => item._id === value);
                                             if (selected) {
-                                                const isOther = selected.name.toLowerCase() === "other";
-                                                console.log('Is Other:', isOther)
                                                 form.setValue("complaint_type", {
                                                     name: selected.name,
-                                                    description: isOther ? "" : selected?.description || "",
+                                                    description:  selected.description ?? null,
                                                     config: {
                                                         _id: selected._id,
                                                         name: selected.name,
                                                         type: selected.type
-                                                    },
-                                                    isOther // We'll add this temporary field for UI logic
+                                                    }
                                                 });
                                             }
                                         }}
                                         value={field.value?.config?._id}
                                         className="flex flex-col space-y-2"
                                     >
-                                        {data && data.map((type:Complaint) => (
+                                        {data_complaint_type && data_complaint_type.map((type:MasterLookupItem,i) => (
                                             <FormItem key={type._id} className="flex items-center space-x-3 space-y-0">
                                                 <FormControl>
                                                     <RadioGroupItem value={type._id} />
@@ -388,47 +399,8 @@ export function ComplaintForm() {
                         )}
                     />
 
-                    {/* Show only when "Other" is selected */}
-                    {/*{(data && data.find(item => item._id === form.watch("complaint_type.config._id"))?.name.toLowerCase() === "other") && (*/}
-                    {/*    <FormField*/}
-                    {/*        control={form.control}*/}
-                    {/*        name="complaint_type.description"*/}
-                    {/*        render={({ field }) => (*/}
-                    {/*            <FormItem>*/}
-                    {/*                <FormLabel className="text-foreground">Please specify*</FormLabel>*/}
-                    {/*                <FormControl>*/}
-                    {/*                    <Input*/}
-                    {/*                        placeholder="Describe your specific complaint type..."*/}
-                    {/*                        {...field}*/}
-                    {/*                        className="mt-1"*/}
-                    {/*                    />*/}
-                    {/*                </FormControl>*/}
-                    {/*                <FormMessage />*/}
-                    {/*            </FormItem>*/}
-                    {/*        )}*/}
-                    {/*    />*/}
-                    {/*)}*/}
-
                     {/* Regular description for non-"Other" types */}
-                    {!form.watch("complaint_type.isOther") && form.watch("complaint_type.config._id") ? (
-                        <FormField
-                            control={form.control}
-                            name="complaint_type.description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Provide details about the issue..."
-                                            className="min-h-[80px]"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    ):(
+                    {complaintType?.config?.name === "Other" && (
                         <FormField
                             control={form.control}
                             name="complaint_type.description"
@@ -439,6 +411,7 @@ export function ComplaintForm() {
                                         <Input
                                             placeholder="Describe your specific complaint type..."
                                             {...field}
+                                            value={field.value ?? ""}
                                             className="mt-1"
                                         />
                                     </FormControl>
@@ -549,7 +522,7 @@ export function ComplaintForm() {
                             name="issue_details.replication_steps"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Replication Steps</FormLabel>
+                                    <FormLabel>Steps to replicate the issue (if applicable)</FormLabel>
                                     <FormControl>
                                         <Textarea
                                             placeholder="Steps to reproduce the issue..."
@@ -749,56 +722,68 @@ export function ComplaintForm() {
                 </div>
 
                 {/* Preferred Resolution Section */}
+                {/* method Section */}
                 <div className="space-y-4 p-6 border rounded-lg">
                     <h3 className="font-medium">Preferred Resolution Method</h3>
+
                     <FormField
                         control={form.control}
-                        name="preferred_resolution_method.name"
+                        name="preferred_resolution_method"
                         render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Resolution Method</FormLabel>
+                            <FormItem className="space-y-3">
+                                <FormLabel>Select Resolution Method</FormLabel>
                                 <FormControl>
-                                    <Input
-                                        placeholder="Replacement"
-                                        {...field}
-                                        readOnly // Assuming this is selected from a predefined list
-                                    />
+                                    <RadioGroup
+                                        onValueChange={(value) => {
+                                            const selected  = data_resolution_method && data_resolution_method.find((item:MasterLookupItem) => item._id === value);
+                                            if (selected) {
+                                                form.setValue("preferred_resolution_method", {
+                                                        name: selected.name,
+                                                        description: selected.description ?? null,
+                                                        config:{
+                                                            _id: selected._id,
+                                                            name: selected.name,
+                                                            type: selected.type
+                                                        }
+                                                });
+                                            }
+                                        }}
+                                        // onChange={field.onChange}
+                                        value={field.value?.config?._id}
+                                        className="flex flex-col space-y-2"
+                                    >
+                                        {data_resolution_method && data_resolution_method.map((type:MasterLookupItem,i) => (
+                                            <FormItem key={type._id} className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                    <RadioGroupItem value={type._id} />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">
+                                                    {type.name}
+                                                </FormLabel>
+                                            </FormItem>
+                                        ))}
+                                    </RadioGroup>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    {form.watch("preferred_resolution_method.name") === "Replacement" && (
+
+                    {/* Regular description for non-"Other" methods */}
+                    {preferredResolution?.config?.name === "Other" && (
                         <FormField
                             control={form.control}
-                            name="attachments"
+                            name="preferred_resolution_method.description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Attachments (URLs)</FormLabel>
+                                    <FormLabel className="text-foreground">Please specify*</FormLabel>
                                     <FormControl>
-                                        <div className="space-y-2">
-                                            {field.value?.map((url, index) => (
-                                                <Input
-                                                    key={index}
-                                                    value={url}
-                                                    onChange={(e) => {
-                                                        const newAttachments = [...(field.value || [])]
-                                                        newAttachments[index] = e.target.value
-                                                        field.onChange(newAttachments)
-                                                    }}
-                                                    placeholder="https://example.com/image.jpg"
-                                                />
-                                            ))}
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    field.onChange([...(field.value || []), ""])
-                                                }
-                                            >
-                                                Add Attachment
-                                            </Button>
-                                        </div>
+                                        <Input
+                                            placeholder="Describe your specific resolution method..."
+                                            {...field}
+                                            value={field.value ?? ""}
+                                            className="mt-1"
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -806,23 +791,24 @@ export function ComplaintForm() {
                         />
                     )}
                 </div>
-
                 <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Preferred Resolution Method</h3>
+                    <h3 className="font-medium">Attachments (if any)</h3>
+                    <p>Attach supporting documents/images: [Attach files if needed, such as photos of the product or error messages]</p>
 
-                    <FileUploadComponent
-                        uploadApiHook={useAttachmentUpload}
-                        label="Upload Documents"
-                        description="PDFs and Word documents only"
-                        // accept=".pdf,.doc,.docx"
-                        multiple={true}
-                        maxFiles={10}
-                        showPreview={false}
-                        className="custom-uploader"
-                    />
+                    <div className="max-w-[1200px] mx-auto">
+                        <FileUploadComponent addAttachmentPath={setPathsAttachments}/>
+                        {/*<FileUploadComponent*/}
+                        {/*    onFilesChange={setFiles}*/}
+                        {/*    multiple*/}
+                        {/*    accept="image/jpeg,image/png,application/pdf"*/}
+                        {/*    label="Upload documents"*/}
+                        {/*    description="Supports JPG, PNG, and PDF files"*/}
+                        {/*    className="my-4"*/}
+                        {/*/>*/}
+                    </div>
                 </div>
 
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending} className="align-right">
                     {isPending ? "Submitting..." : "Submit Complaint"}
                 </Button>
             </form>

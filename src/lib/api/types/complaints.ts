@@ -24,7 +24,7 @@ export interface ComplaintProductDetails {
     config?: Record<string, unknown>;
 }
 
-export interface ComplaintType {
+export interface LookupType {
     name: string;
     description: string | null;
     config: {
@@ -33,6 +33,20 @@ export interface ComplaintType {
         type: string;
     };
 }
+
+export interface MasterLookupItem {
+    _id: string;
+    name: string;
+    description?: string | null;
+    type: 'RESOLUTION_METHOD' | 'ROOT_CAUSE' | 'FINAL_DISPOSITION' | 'CUSTOMER_COMMUNICATION' | 'COMPLAINT_TYPE' | string;
+}
+
+export interface MasterLookupResponse {
+    success: boolean;
+    message: string;
+    data: MasterLookupItem[];
+}
+
 
 export interface IssueDetails {
     description: string;
@@ -72,7 +86,7 @@ export interface ReplacementDetails {
 export interface CreateComplaintPayload {
     customer: ComplaintCustomer;
     product_details: ComplaintProductDetails;
-    complaint_type: ComplaintType;
+    complaint_type: LookupType;
     issue_details: IssueDetails;
     customer_impact: string;
     previous_contact: PreviousContact;
@@ -106,12 +120,6 @@ export interface ProductDetails {
     unique_identifier?: string;
 }
 
-export interface ComplaintType {
-    name: string;
-    description: string | null;
-    config: Config;
-}
-
 export interface PreferredResolutionMethod {
     name: string;
     description: string | null;
@@ -128,7 +136,7 @@ export interface Complaint {
     __v: number;
     customer: Customer;
     product_details: ProductDetails;
-    complaint_type: ComplaintType;
+    complaint_type: LookupType;
     issue_details: IssueDetails;
     previous_contact: PreviousContact;
     customer_actions: CustomerActions;
@@ -189,7 +197,7 @@ export interface ComplaintCreateResponse {
 export interface ComplaintData {
     customer: Customer;
     product_details: ProductDetails;
-    complaint_type: ComplaintType;
+    complaint_type: LookupType;
     issue_details: IssueDetails;
     customer_impact: string;
     previous_contact: PreviousContact;

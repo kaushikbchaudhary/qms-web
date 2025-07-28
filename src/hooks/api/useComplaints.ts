@@ -4,19 +4,18 @@ import {
     Complaint,
     ComplaintQueryParams,
     ComplaintsApiResponse,
-    CreateComplaintPayload
+    CreateComplaintPayload, MasterLookupItem
 } from '@/lib/api/types/complaints'
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
 import {toast} from "sonner";
-import axios from "axios";
-import {ApiErrorResponse} from "@/lib/api/types/errors";
+import {showApiErrorToast} from "@/lib/utils";
 
-export function useComplaints(params?: any) {
-    return useQuery({
-        queryKey: ['complaints', params],
+export function useLookup(params: { type: string }) {
+    return useQuery<MasterLookupItem[], Error>({
+        queryKey: ['lookup', params.type],
         queryFn: async () => {
-            const {data} = await complaintsApi.getComplaintType(params);
-            return data as Complaint[]
+            const data = await complaintsApi.getLookupType(params);
+            return data as MasterLookupItem[];
         },
     })
 }
@@ -34,17 +33,7 @@ export function useCreateComplaint() {
             queryClient.invalidateQueries({ queryKey: ['complaints'] })
             toast.success('Complaint created successfully!');
         },
-        onError: (error) => {
-            if (axios.isAxiosError(error) && error.response?.data) {
-                const errData = error.response.data as ApiErrorResponse;
-                console.log('errData',errData)
-                let message = errData.message || 'Something went wrong';
-                Object.keys(errData.errors).forEach((key) => {
-                    message = errData.errors[key].message;
-                    toast.error(message);
-                })
-            }
-        }
+        onError: showApiErrorToast
     })
 }
 
@@ -53,7 +42,6 @@ export function useGetComplaints(payload: ComplaintQueryParams) {
         queryKey: ['complaints', payload],
         queryFn: async () => {
             const { data } = await complaintsApi.getComplaints(payload);
-            console.log('complaints',data)
             return data as ComplaintsApiResponse;
         },
         // select: (response) => {
@@ -70,18 +58,48 @@ export function useGetComplaints(payload: ComplaintQueryParams) {
 
 // complaints-hooks.ts
 export function useAttachmentUpload() {
-    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (file: File) => {
+        mutationFn: async (file: File) => {
             const formData = new FormData();
-            formData.append('file', file);
-            return complaintsApi.uploadComplaintAttachment(formData);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['complaints'] });
+            // formData.append('file', file);
+            formData.append('attachment', file); // 'attachment' must match
+            const response = await complaintsApi.uploadComplaintAttachment(formData);
+            return response.data; // Assuming your API returns { path: string }
+            // try {
+            //     const response = await apiClient.post('api/v1/complaint/complaint-attachment', file);
+            //     return response.data;
+            // } catch (error) {
+            //     console.error('Upload failed:', error);
+            //     throw error;
+            // }
         },
         onError: (error) => {
             console.error('Error uploading attachment:', error);
         }
     });
 }
+
+export function useAttachmentDelete() {
+    return useMutation({
+        mutationFn: async (path: string) => {
+            // await complaintsApi.deleteComplaintAttachment({ path });
+            await new Promise((resolve => setTimeout(resolve, 1000))); // Simulate API call)
+        }
+    });
+}
+// export function useAttachmentUpload() {
+//     const queryClient = useQueryClient();
+//     return useMutation({
+//         mutationFn: (file: File) => {
+//             const formData = new FormData();
+//             formData.append('file', file);
+//             return complaintsApi.uploadComplaintAttachment(formData);
+//         },
+//         onSuccess: () => {
+//             queryClient.invalidateQueries({ queryKey: ['complaints'] });
+//         },
+//         onError: (error) => {
+//             console.error('Error uploading attachment:', error);
+//         }
+//     });
+// }
