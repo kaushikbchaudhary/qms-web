@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import {useState} from "react";
+import AttachmentViewer from "@/components/complaient/AttachmentViewer";
 //
 const TruncatedText = ({
                            text,
@@ -405,14 +406,23 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         accessorKey: "attachments",
         header: "Attachments",
         cell: ({ row }) => {
+            console.log('row',row.original)
             const attachments = row.original.attachments
-            return attachments.length > 0 ? (
-                <Badge variant="secondary">{attachments.length} files</Badge>
-            ) : (
-                <span className="text-muted-foreground">None</span>
-            )
+            return  <AttachmentViewer attachments={attachments} />
+            // return attachments.length > 0 ? (
+            //     <Badge variant="secondary">{attachments.length} files</Badge>
+            // ) : (
+            //     <span className="text-muted-foreground">None</span>
+            // )
         },
     },
+    // {
+    //     accessorKey: "attachments",
+    //     header: "Attachments",
+    //     cell: ({ row }) => (
+    //         <AttachmentViewer attachments={row.original.attachments} />
+    //     ),
+    // },
     {
         id: "actions",
         cell: ({ row }) => {
