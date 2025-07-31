@@ -72,6 +72,7 @@ export const useAttachmentManager = () => {
         attachments,
         addFiles,
         removeFile,
+        setAttachments,
         // Helper to get only successful attachments
         getSuccessfulAttachments: useCallback(() => (
             attachments.filter((a:any) => a.status === 'success' && a.path)

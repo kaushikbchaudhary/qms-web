@@ -17,6 +17,7 @@ import { useCreateComplaint, useLookup} from '@/hooks/api/useComplaints'
 import { useMemo, useState} from "react";
 import { MasterLookupItem} from "@/lib/api/types/complaints";
 import {FileUploadComponent} from "@/components/forms/FileUploadComponent";
+import {useAttachmentManager} from "@/components/forms/AttachmentManager";
 // Form validation schema
 const formSchema = z.object({
     customer: z.object({
@@ -72,6 +73,7 @@ const formSchema = z.object({
     }).optional(),
     attachments: z.array(z.string().url("Invalid URL")).optional(),
 })
+
 
 export function ComplaintForm() {
     const form = useForm<z.infer<typeof formSchema>>({
@@ -132,6 +134,8 @@ export function ComplaintForm() {
         },
     })
     const [pathsAttachments, setPathsAttachments] = useState<string[]>([]);
+    const { attachments, addFiles, removeFile ,setAttachments} = useAttachmentManager();
+
     const [complaintType, preferredResolution] = useWatch({
         control: form.control,
         name: ["complaint_type", "preferred_resolution_method"],
@@ -167,6 +171,8 @@ export function ComplaintForm() {
         createComplaint(payload, {
             onSuccess: () => {
                 form.reset()
+                setAttachments([]); // Clear attachments after successful submission
+                setPathsAttachments([]); // Clear paths after successful submission
             },
             onError: (error) => {
                 // error handling here
@@ -768,7 +774,7 @@ export function ComplaintForm() {
                     <p>Attach supporting documents/images: [Attach files if needed, such as photos of the product or error messages]</p>
 
                     <div className="max-w-[1200px] mx-auto">
-                        <FileUploadComponent addAttachmentPath={setPathsAttachments}/>
+                        <FileUploadComponent addAttachmentPath={setPathsAttachments} attachments={attachments} addFiles={addFiles} removeFile={removeFile}/>
                     </div>
                 </div>
 

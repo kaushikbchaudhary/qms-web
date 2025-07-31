@@ -26,7 +26,6 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
             if (!currentAttachment) return null;
 
             const response = await complaintsApi.getAttachment({ path: currentAttachment });
-            console.log('response',response);
             return {
                 url: response.url,
                 type: getFileType(currentAttachment),

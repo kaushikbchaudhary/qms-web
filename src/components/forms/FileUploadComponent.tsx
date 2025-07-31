@@ -1,22 +1,22 @@
 // components/FileUploadComponent.tsx
-import { useAttachmentManager} from './AttachmentManager';
+// import { useAttachmentManager} from './AttachmentManager';
 import {useEffect, useState} from "react";
 import {useDropzone} from "react-dropzone";
 import {UploadCloud, X} from "lucide-react";
 import {Button} from "@/components/ui/button";
 
-export const FileUploadComponent = ({addAttachmentPath}: {addAttachmentPath:any}) => {
-    const { attachments, addFiles, removeFile } = useAttachmentManager();
+export const FileUploadComponent = ({addAttachmentPath,attachments, addFiles, removeFile}: {addAttachmentPath:any,attachments:any,addFiles:any,removeFile:any}) => {
+    // const { attachments, addFiles, removeFile } = useAttachmentManager();
     const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
         addAttachmentPath([]);
         // Update form state with current attachments
-        addAttachmentPath(attachments.map((attachment) => attachment.path));
+        addAttachmentPath(attachments.map((attachment:any) => attachment.path));
 
         // Clean up object URLs when component unmounts
         return () => {
-            attachments.forEach((attachment) => {
+            attachments.forEach((attachment:any) => {
                 if (attachment.preview) {
                     URL.revokeObjectURL(attachment.preview);
                 }
@@ -30,11 +30,11 @@ export const FileUploadComponent = ({addAttachmentPath}: {addAttachmentPath:any}
         },
         onDragEnter: () => setIsDragging(true),
         onDragLeave: () => setIsDragging(false),
-        accept: {
-            'image/*': ['.jpeg', '.jpg', '.png'],
-            'application/pdf': ['.pdf']
-        },
-        maxSize: 10 * 1024 * 1024, // 10MB
+        // accept: {
+        //     'image/*': ['.jpeg', '.jpg', '.png'],
+        //     'application/pdf': ['.pdf']
+        // },
+        // maxSize: 10 * 1024 * 1024, // 10MB
         multiple: true
     });
 
@@ -60,7 +60,7 @@ export const FileUploadComponent = ({addAttachmentPath}: {addAttachmentPath:any}
             </div>
 
             <div className="space-y-2">
-                {attachments.map((attachment) => (
+                {attachments.map((attachment:any) => (
                     <AttachmentItem
                         key={attachment.id}
                         attachment={attachment}

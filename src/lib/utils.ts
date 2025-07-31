@@ -25,3 +25,4 @@ export const showApiErrorToast = (error: unknown) => {
     toast.error('Unexpected error occurred.');
   }
 };
+

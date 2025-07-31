@@ -6,6 +6,7 @@ import { toast } from "sonner";
 const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
     timeout: 10000,
+    withCredentials: true,
 });
 
 // New client specifically for file downloads

@@ -3,7 +3,6 @@ import {
     ComplaintCreateResponse,
     ComplaintQueryParams,
     CreateComplaintPayload, MasterLookupItem,
-    MasterLookupResponse
 } from "@/lib/api/types/complaints";
 
 export const complaintsApi = {
