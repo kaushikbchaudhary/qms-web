@@ -8,10 +8,6 @@ const PUBLIC_ROUTES = ['/auth/login', '/register', '/about'];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
-    console.log('ALL COOKIES:', {
-        jwt: request.cookies.get('jwt')?.value,
-        allCookies: request.cookies.getAll()
-    });
 
     // Allow public routes
     if (PUBLIC_ROUTES.includes(pathname)) {
