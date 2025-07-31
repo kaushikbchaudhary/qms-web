@@ -1,4 +1,4 @@
-// components/user-form.tsx
+'use client';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -23,15 +23,19 @@ import {
 import { MultiSelect } from "@/components/ui/multi-select";
 // import { useToast } from "@/components/ui/use-toast";
 import {roles as role} from "@/config/roles";
-import {toast} from "sonner";
+// import {toast} from "sonner";
 import {userFormSchema, UserFormValues} from "@/components/users/schemas/user";
 import {Loader2} from "lucide-react";
+import {DeleteConfirmDialog} from "@/components/auth/delete-confirm-dialog";
+import {useState} from "react";
+import {useDeleteUser} from "@/hooks/api/useUser";
 
 interface UserFormProps {
-    defaultValues?: Partial<UserFormValues>;
+    defaultValues?: Partial<UserFormValues> | any;
     onSubmit: (values: UserFormValues) => Promise<void>;
     isSubmitting: boolean;
     mode?: "create" | "edit";
+    id?: string;
 }
 
 export function UserForm({
@@ -39,9 +43,10 @@ export function UserForm({
                              onSubmit,
                              isSubmitting,
                              mode = "create",
+                                id = "",
                          }: UserFormProps) {
-    // const { toast } = useToast();
-
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const { mutate: deleteUser, isPending } = useDeleteUser();
     const form = useForm<UserFormValues>({
         resolver: zodResolver(userFormSchema),
         defaultValues: {
@@ -60,13 +65,13 @@ export function UserForm({
     const handleSubmit = async (values: UserFormValues) => {
         try {
             await onSubmit(values);
-            toast(`User ${mode === "create" ? "created" : "updated"} successfully`)
+            // toast(`User ${mode === "create" ? "created" : "updated"} successfully`)
             // toast({
             //     title: "Success",
             //     description: `User ${mode === "create" ? "created" : "updated"} successfully`,
             // });
         } catch (error:any) {
-            toast( error.message)
+            // toast( error.message)
             // toast(`User ${mode === "create" ? "created" : "updated"} failed`)
             // toast({
             //     title: "Error",
@@ -162,10 +167,11 @@ export function UserForm({
                     <FormField
                         control={form.control}
                         name="countryCode"
+                        disabled={mode === "edit"}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Country Code</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={mode === "edit"}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select country code" />
@@ -229,6 +235,37 @@ export function UserForm({
                     )}
                 </Button>
             </form>
+            {
+                mode === "edit" && (
+                    <>
+                    <p className="mt-4 text-sm text-gray-500">
+                        Note: You cannot change the email or contact number once the user is created.
+                    </p>
+                <div className="container mx-auto py-4">
+                <h1 className="text-2xl font-bold mb-4">Delete user</h1>
+
+            {/* Profile content here */}
+
+            <Button
+                variant="destructive"
+                className="mt-8"
+                onClick={() => setShowDeleteDialog(true)}
+            >
+                Delete My Account
+            </Button>
+
+            <DeleteConfirmDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+                title="Delete Your Account"
+                description="This will permanently delete your account and all associated data. This action cannot be undone."
+                onConfirm={async () => { await deleteUser(id); }}
+                redirectAfterDelete="/"
+            />
+        </div>
+                    </>
+                )
+            }
         </Form>
     );
 }

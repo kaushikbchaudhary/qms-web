@@ -3,6 +3,7 @@ import {toast} from "sonner";
 import {showApiErrorToast} from "@/lib/utils";
 import {authApi} from "@/lib/api/endpoints/auth";
 import {AuthPayload, AuthResponse} from "@/lib/api/types/authTypes";
+import {useRouter} from "next/navigation";
 
 export function useRequestOtp() {
     const queryClient = useQueryClient();
