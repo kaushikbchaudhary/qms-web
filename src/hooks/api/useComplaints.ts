@@ -66,13 +66,6 @@ export function useAttachmentUpload() {
             formData.append('attachment', file); // 'attachment' must match
             const response = await complaintsApi.uploadComplaintAttachment(formData);
             return response.data; // Assuming your API returns { path: string }
-            // try {
-            //     const response = await apiClient.post('api/v1/complaint/complaint-attachment', file);
-            //     return response.data;
-            // } catch (error) {
-            //     console.error('Upload failed:', error);
-            //     throw error;
-            // }
         },
         onError: (error) => {
             console.error('Error uploading attachment:', error);
@@ -88,19 +81,3 @@ export function useAttachmentDelete() {
         }
     });
 }
-// export function useAttachmentUpload() {
-//     const queryClient = useQueryClient();
-//     return useMutation({
-//         mutationFn: (file: File) => {
-//             const formData = new FormData();
-//             formData.append('file', file);
-//             return complaintsApi.uploadComplaintAttachment(formData);
-//         },
-//         onSuccess: () => {
-//             queryClient.invalidateQueries({ queryKey: ['complaints'] });
-//         },
-//         onError: (error) => {
-//             console.error('Error uploading attachment:', error);
-//         }
-//     });
-// }

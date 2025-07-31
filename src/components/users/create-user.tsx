@@ -1,6 +1,5 @@
 'use client';
 import { useState } from "react";
-import axios from "axios";
 import {UserForm} from "@/components/forms/user-form";
 import {useCreateUser} from "@/hooks/api/useUser";
 
@@ -20,10 +19,6 @@ export default function CreateUserPage() {
                     // error handling here
                 }
             });
-
-            // await axios.post("/api/v1/users", values, {
-            //     withCredentials: true,
-            // });
         } finally {
             setIsSubmitting(false);
         }
