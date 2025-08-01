@@ -58,7 +58,6 @@ export const userColumns: ColumnDef<any>[] = [
     {
         id: "actions",
         cell: ({ row }) => (
-            console.log("Row data:", row.original),
             <Button
                 variant="ghost"
                 size="sm"

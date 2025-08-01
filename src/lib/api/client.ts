@@ -13,7 +13,8 @@ const apiClient = axios.create({
 const apiFileClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
     timeout: 10000,
-    responseType: 'blob', // Important for file downloads
+    responseType: 'blob',
+    withCredentials: true,
 });
 
 // Shared request interceptor

@@ -27,7 +27,7 @@ export const mainNav: NavItem[] = [
   {
     title: "My Complaints",
     href: "/dashboard/complaints",
-    roles: [ roles.SUPPORT],
+    roles: [ roles.SUPPORT, roles.SUPER_ADMIN ],
   },
   {
     title: "QA Dashboard",

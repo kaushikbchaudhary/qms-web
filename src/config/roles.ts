@@ -9,7 +9,7 @@ export enum roles {
 
 export const ROLE_ACCESS = {
     [roles.SUPER_ADMIN]: {
-        routes: ['/admin/users', '/admin/users/edit-user/[id]'],
+        routes: ['/admin/users', '/admin/users/edit-user/[id]','/dashboard/complaints'],
         redirect: '/admin/users'
     },
     [roles.SUPPORT]: {
