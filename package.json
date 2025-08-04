@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "build-start": "next build && next start",
-    "startssl": "concurrently \"next start -p 3000\" \"local-ssl-proxy --key key.pem --cert cert.pem --source 3001 --target 3000\""
+    "startssl": "concurrently \"next start -p 3000 -H 0.0.0.0\" \"node proxy.js\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "http-proxy": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.525.0",
     "next": "15.4.2",
