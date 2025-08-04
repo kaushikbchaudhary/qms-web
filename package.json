@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "build-start": "next build && next start",
-    "startssl": "concurrently \"next start -p 3000 -H 0.0.0.0\" \"node proxy.js\""
+    "startssl": "concurrently \"next start -p 3000 -H 191.169.1.30\" \"node proxy.js\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
