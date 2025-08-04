@@ -3,7 +3,6 @@ import {toast} from "sonner";
 import {showApiErrorToast} from "@/lib/utils";
 import {authApi} from "@/lib/api/endpoints/auth";
 import {AuthPayload, AuthResponse} from "@/lib/api/types/authTypes";
-import {useRouter} from "next/navigation";
 
 export function useRequestOtp() {
     const queryClient = useQueryClient();
@@ -43,6 +42,7 @@ export function useLogout() {
     return useMutation({
         mutationFn: async () => {
             const response = await authApi.logout();
+            console.log('Logout response:', response);
             if (!response?.data) throw new Error("Logout failed");
             toast.success(response.message);
             window.location.href = '/auth/login'  + '?t=' + Date.now();

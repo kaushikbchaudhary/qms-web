@@ -41,6 +41,11 @@ const setupInterceptors = ({client, directResponse = false
                 toast.error('No Internet Connection!');
                 return Promise.reject(new Error('No Internet Connection!'));
             }
+            if(error.status === 401){
+                toast.error('Unauthorized access. Please log in again.');
+                window.location.href = '/auth/login' + '?t=' + Date.now();
+                return Promise.reject(new Error('Unauthorized access'));
+            }
             return Promise.reject(error);
         }
     );

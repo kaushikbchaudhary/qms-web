@@ -50,7 +50,7 @@ const fil = {
         global_value: debouncedGlobalFilterValue,
         global_filter: globalFilterFields,
         sort_by: sorting[0]?.id || "submission_date",
-        sort_order: sorting[0]?.desc ? -1 : 1,
+        sort_order: -1, // sorting[0]?.desc ? -1 : 1,
         filters: [], // Add any specific filters here
     }
 

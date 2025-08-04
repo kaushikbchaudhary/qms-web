@@ -1,6 +1,4 @@
 import {apiClient} from '../client';
-import {ComplaintQueryParams} from "@/lib/api/types/complaints";
-// import {AuthPayload, AuthResponse} from "@/lib/api/types/authTypes";
 
 export const userApi = {
     createUser: (data: any):Promise<any> =>

@@ -14,6 +14,7 @@ import Link from "next/link"
 import {useState} from "react";
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
 import {ComplaintDetailsDialog} from "@/components/complaient/ComplaintDetailsDialog";
+import {useRouter} from "next/navigation";
 //
 const TruncatedText = ({
                            text,
@@ -433,10 +434,13 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
             // eslint-disable-next-line react-hooks/rules-of-hooks
             const [isLoading, setIsLoading] = useState(false)
 
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            const router = useRouter()
             const handleViewDetails = async () => {
                 setIsLoading(true)
                 // You could fetch additional data here if needed
-                setDialogOpen(true)
+                // setDialogOpen(true)
+                router.push(`/dashboard/complaints/${complaint._id}`)
                 setIsLoading(false)
             }
             return (

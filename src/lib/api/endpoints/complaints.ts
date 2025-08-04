@@ -1,5 +1,6 @@
 import {apiClient, apiFileClient} from '../client';
 import {
+    Complaint,
     ComplaintCreateResponse,
     ComplaintQueryParams,
     CreateComplaintPayload, MasterLookupItem,
@@ -28,4 +29,34 @@ export const complaintsApi = {
             const url = URL.createObjectURL(response.data);
             return { url, blob: response.data };
         }),
+    // Workflow Status Transition
+    transitionComplaintStatus: (complaintId: string, data: any) =>
+        apiClient.put(`/api/v1/complaints/${complaintId}/status`, data),
+
+    // Received Info
+    updateReceivedInfo: (complaintId: string, data: {
+        receiver_name: string;
+        receiver_role: string;
+        received_date: string;
+    }) => apiClient.put(`/api/complaint/${complaintId}/received-info`, data),
+
+    // Investigation
+    updateInvestigation: (complaintId: string, data: any) =>
+        apiClient.put(`/api/v1/complaint/${complaintId}/investigation`, data),
+
+    // Customer Communication
+    updateCustomerCommunication: (complaintId: string, data: any) =>
+        apiClient.put(`/api/v1/complaint/${complaintId}/customer-communication`, data),
+
+    // Risk Management
+    updateRiskManagement: (complaintId: string, data: any) =>
+        apiClient.put(`/api/v1/complaint/${complaintId}/risk-management`, data),
+
+    // Closure
+    updateClosure: (complaintId: string, data: any) =>
+        apiClient.put(`/api/v1/complaint/${complaintId}/closure`, data),
+
+    // Get full complaint details with workflow data
+    getComplaintWithWorkflow: (complaintId: any) =>
+        apiClient.get<any>(`/api/v1/complaint/${complaintId}/workflow`),
 };

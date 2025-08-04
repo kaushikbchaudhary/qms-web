@@ -81,3 +81,59 @@ export function useAttachmentDelete() {
         }
     });
 }
+
+// Status Transition Hook
+export function useTransitionComplaintStatus(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: any) =>
+            complaintsApi.transitionComplaintStatus(complaintId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            queryClient.invalidateQueries({ queryKey: ['complaints'] });
+            toast.success('Status updated successfully');
+        },
+        onError: showApiErrorToast
+    });
+}
+
+// Investigation Hook
+export function useUpdateInvestigation(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: any) =>
+            complaintsApi.updateInvestigation(complaintId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({queryKey: ['complaint', complaintId]});
+            toast.success('Investigation updated successfully');
+        },
+        onError: showApiErrorToast
+    });
+}
+
+// Customer Communication Hook
+export function useUpdateCustomerCommunication(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: any) =>
+            complaintsApi.updateCustomerCommunication(complaintId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId]});
+            toast.success('Customer communication updated successfully');
+        },
+        onError: showApiErrorToast
+    });
+}
+
+// Full Complaint with Workflow Data Hook
+export function useComplaintWithWorkflow(complaintId: string) {
+    return useQuery({
+        queryKey: ['complaint', complaintId, 'workflow'],
+        queryFn: () => complaintsApi.getComplaintWithWorkflow(complaintId),
+        enabled: !!complaintId,
+        staleTime: 5 * 60 * 1000 // 5 minutes
+    });
+}

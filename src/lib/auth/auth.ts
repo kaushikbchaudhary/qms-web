@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const SECRET = process.env.JWT_SECRET; // match backend
+// const SECRET = process.env.JWT_SECRET; // match backend
 
 export function verifyJwt(token: string) {
     try {

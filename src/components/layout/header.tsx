@@ -33,7 +33,6 @@ export function Header() {
     const userData = useAuthStore.getState().user;
     setUser(userData);
 
-    console.log('user', userData);
     // Filter navigation items
     const filtered = mainNav.filter((navItem) => {
       if (currentPath === '/auth/login') return navItem.href === '/auth/login';

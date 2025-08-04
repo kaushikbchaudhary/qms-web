@@ -2,8 +2,6 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {toast} from "sonner";
 import {showApiErrorToast} from "@/lib/utils";
 import {userApi} from "@/lib/api/endpoints/users";
-import {ComplaintQueryParams, ComplaintsApiResponse} from "@/lib/api/types/complaints";
-import {complaintsApi} from "@/lib/api/endpoints/complaints";
 import {useRouter} from "next/navigation";
 
 export function useCreateUser() {

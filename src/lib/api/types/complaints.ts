@@ -144,7 +144,98 @@ export interface Complaint {
     replacement_details?: ReplacementDetails;
     customer_impact: string;
     attachments: string[];
+
+    // Workflow fields
+    status: ComplaintStatus;
+    status_history: StatusHistoryItem[];
+
+    // Received Info
+    received_info?: {
+        receiver_name: string;
+        receiver_role: string;
+        received_date: string;
+    };
+
+    // Investigation
+    investigation?: {
+        investigation_date: string;
+        investigating_officers: InvestigatingOfficer[];
+        root_cause: {
+            identified: 'Device Failure' | 'Manufacturing Issue' | 'Labeling/IFU'
+                | 'Customer Misuse' | 'No Fault Found' | 'Other';
+            description?: string;
+        };
+        corrective_action: string;
+        capa: {
+            initiated: boolean;
+            number?: string;
+            details?: string;
+        };
+        action_taken: string;
+        completion_details: {
+            name: string;
+            signature: string;
+            date: string;
+        };
+    };
+
+    // Customer Communication
+    customer_communication?: {
+        response_date: string;
+        mode: 'Email' | 'Call' | 'Letter' | 'Other';
+        summary: string;
+        attachments?: string[];
+    };
+
+    // Risk Management
+    risk_management?: {
+        update_required: boolean;
+        details?: string;
+    };
+
+    // Closure
+    closure?: {
+        final_disposition: 'Confirmed Device Defect' | 'No Fault Found'
+            | 'Customer Misuse' | 'Duplicate' | 'Other';
+        reviewed_by: {
+            sr_no: number;
+            name: string;
+            designation: string;
+            signature: string;
+        }[];
+        approved_by: {
+            qa_head_name: string;
+            signature: string;
+            date: string;
+        };
+        closure_comments?: string;
+    };
 }
+
+// Supporting interfaces
+export interface StatusHistoryItem {
+    status: ComplaintStatus;
+    changed_by: string | { _id: string, name: string }; // Can be ObjectId or populated user
+    changed_at: string;
+    comments?: string;
+}
+
+// Your existing interfaces remain the same:
+export interface Customer {
+    name: string;
+    company: string;
+    contact_number: string;
+    email: string;
+}
+
+export interface ProductDetails {
+    model: string;
+    serial_number: string;
+    purchase_date: string;
+    config?: any;
+}
+
+
 
 // API Response type
 export interface ComplaintsApiResponse  {
@@ -236,3 +327,54 @@ export interface Config {
     name: string;
     type: string;
 }
+
+// lib/api/types/complaints.ts
+export type ComplaintStatus =
+    | 'SUBMITTED'
+    | 'UNDER_INVESTIGATION'
+    | 'RESOLVED'
+    | 'REJECTED'
+    | 'CLOSED';
+
+export interface StatusTransitionPayload {
+    newStatus: ComplaintStatus;
+    comments?: string;
+}
+
+export interface InvestigatingOfficer {
+    sr_no: number;
+    name: string;
+    designation: string;
+    signature: string;
+}
+
+export interface RootCause {
+    identified:
+        | 'Device Failure'
+        | 'Manufacturing Issue'
+        | 'Labeling/IFU'
+        | 'Customer Misuse'
+        | 'No Fault Found'
+        | 'Other';
+    description?: string;
+}
+
+export interface InvestigationData {
+    investigation_date: string;
+    investigating_officers: InvestigatingOfficer[];
+    root_cause: RootCause;
+    corrective_action: string;
+    capa: {
+        initiated: boolean;
+        number?: string;
+        details?: string;
+    };
+    action_taken: string;
+    completion_details: {
+        name: string;
+        signature: string;
+        date: string;
+    };
+}
+
+// Add similar interfaces for other sections...

@@ -1,4 +1,3 @@
-// lib/config/roles.ts
 
 export enum roles {
     SUPER_ADMIN = 'super-admin',
@@ -9,11 +8,11 @@ export enum roles {
 
 export const ROLE_ACCESS = {
     [roles.SUPER_ADMIN]: {
-        routes: ['/admin/users', '/admin/users/edit-user/[id]','/dashboard/complaints'],
+        routes: ['/admin/users', '/admin/users/edit-user/[id]','/dashboard/complaints','/dashboard/complaints/[id]'],
         redirect: '/admin/users'
     },
     [roles.SUPPORT]: {
-        routes: ['/', '/dashboard', '/dashboard/complaints', '/dashboard/complaints/new',],
+        routes: ['/', '/dashboard', '/dashboard/complaints', '/dashboard/complaints/new','/dashboard/complaints/[id]'],
         redirect: '/dashboard/complaints'
     },
     [roles.QA]: {
