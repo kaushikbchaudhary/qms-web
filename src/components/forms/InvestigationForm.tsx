@@ -40,6 +40,26 @@ export function InvestigationForm({
         mutate(data);
     }
 
+    const handleFileUpload = async (file: File, index: number) => {
+        try {
+            // const imageUrl = await uploadImage(file);
+            // form.setValue(`investigating_officers.${index}.signature`, imageUrl);
+        } catch (error) {
+            console.error("Error uploading file:", error);
+        }
+    };
+
+    const handleRemove = async (index: number) => {
+        const sig = form.getValues(`investigating_officers.${index}.signature`);
+        if (sig) {
+            try {
+                // await deleteImage(sig);
+            } catch (e) {
+                console.warn("Signature deletion failed", e);
+            }
+        }
+        remove(index);
+    };
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -128,6 +148,7 @@ export function InvestigationForm({
                                     </FormItem>
                                 )}
                             />
+                            {/* Signature Field: Upload + Preview */}
                             <FormField
                                 control={form.control}
                                 name={`investigating_officers.${index}.signature`}
@@ -135,17 +156,48 @@ export function InvestigationForm({
                                     <FormItem>
                                         <FormLabel>Signature</FormLabel>
                                         <FormControl>
-                                            <Input {...field} />
+                                            <div>
+                                                {field.value && (
+                                                    <img
+                                                        src={field.value}
+                                                        alt="Signature"
+                                                        className="w-24 h-auto mb-2 border rounded"
+                                                    />
+                                                )}
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) handleFileUpload(file, index);
+                                                    }}
+                                                />
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+
+                            {/*<FormField*/}
+                            {/*    control={form.control}*/}
+                            {/*    name={`investigating_officers.${index}.signature`}*/}
+                            {/*    render={({ field }) => (*/}
+                            {/*        <FormItem>*/}
+                            {/*            <FormLabel>Signature</FormLabel>*/}
+                            {/*            <FormControl>*/}
+                            {/*                <Input {...field} />*/}
+                            {/*            </FormControl>*/}
+                            {/*            <FormMessage />*/}
+                            {/*        </FormItem>*/}
+                            {/*    )}*/}
+                            {/*/>*/}
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => remove(index)}
+                                // onClick={() => remove(index)}
+                                onClick={() => handleRemove(index)}
                             >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>

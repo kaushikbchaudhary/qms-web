@@ -8,7 +8,7 @@ export default function AuthInitializer() {
     useEffect(() => {
         // Check for existing auth on page load
         if (!isAuthenticated) {
-            const token = document.cookie.match(/jwt=([^;]+)/)?.[1];
+            const token = document.cookie.match(/jwt_qms=([^;]+)/)?.[1];
             if (token) {
                 console.log('Token found:', token);
                 // Verify token and fetch user data

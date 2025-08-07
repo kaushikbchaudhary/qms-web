@@ -17,18 +17,18 @@ export function middleware(request: NextRequest) {
         return response;
     }
 
-    const token = request.cookies.get('jwt');
+    const token = request.cookies.get('jwt_qms');
     if (!token) {
         return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
     const user:any = verifyJwt(token?.value);
-    if (!user) {
+    if (!user || typeof user.role === 'undefined') {
         return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
     // Handle roles array (your token shows role as array)
-    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+    const userRoles = typeof user.role !== 'undefined' && Array.isArray(user.role) ? user.role : [user.role];
 
     const redirectPath = getRedirectPath(userRoles);
     const redirectUrl = new URL(
