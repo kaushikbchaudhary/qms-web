@@ -23,7 +23,6 @@ export function StatusTransitionDropdown({
     currentStatus: ComplaintStatus
     userRole: string[]
 }) {
-    // const [isLoading, setIsLoading] = useState(false)
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
@@ -42,24 +41,6 @@ export function StatusTransitionDropdown({
                 });
             }
         });
-        // setIsLoading(true)
-        // try {
-        //     const res = await fetch(`/api/complaints/${complaintId}/status`, {
-        //         method: "PUT",
-        //         body: JSON.stringify({ newStatus })
-        //     })
-        //
-        //     if (!res.ok) throw new Error(await res.text())
-        //     window.location.reload()
-        // } catch (error) {
-        //     // toast({
-        //     //     title: "Error",
-        //     //     description: error.message,
-        //     //     variant: "destructive"
-        //     // })
-        // } finally {
-        //     setIsLoading(false)
-        // }
     }
 
     return (

@@ -3,6 +3,8 @@ import React from 'react';
 import {RoleBasedFormSection} from "@/providers/RoleBasedFormSection";
 import {InvestigationForm} from "@/components/forms/InvestigationForm";
 import {roles} from "@/config/roles";
+import ComplaintWorkflowSystem from "@/components/complaient/ComplaintManagement";
+import ComplaintDetailPage from "@/components/complaient/ComplaintDetailPage";
 
 
 export default function page({ params }: { params: Promise<{ id: string }> }) {
@@ -20,9 +22,12 @@ export default function page({ params }: { params: Promise<{ id: string }> }) {
         <div className=" items-center justify-center">
             {/*<h1 className="text-2xl font-bold mb-4">Complaints Page</h1>*/}
             {/*<p className="text-gray-600">This is the complaints page.</p>*/}
-            <RoleBasedFormSection requiredRoles={[roles.SUPER_ADMIN,roles.QA,roles.SUPPORT]}>
-                <InvestigationForm {...props} />
-            </RoleBasedFormSection>
+            <ComplaintDetailPage {...props}/>
+            {/*<ComplaintWorkflowSystem/>*/}
+            {/*<RoleBasedFormSection requiredRoles={[roles.SUPER_ADMIN,roles.QA,roles.SUPPORT]}>*/}
+            {/*    <InvestigationForm {...props} />*/}
+            {/*</RoleBasedFormSection>*/}
+
         </div>
     );
 }

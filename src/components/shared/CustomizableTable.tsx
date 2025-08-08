@@ -16,19 +16,8 @@ import {
     OnChangeFn,
     RowSelectionState,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import {
     Table,
     TableBody,
@@ -315,7 +304,7 @@ export default function CustomizableTable<TData, TValue>({
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id}>
+                                    <TableHead key={header.id} className={header.column.columnDef.meta?.className ?? header.column.columnDef.meta?.actionClassName ?? "" }>
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
@@ -336,9 +325,11 @@ export default function CustomizableTable<TData, TValue>({
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    // className={row.column.columnDef.meta?.className ?? ""}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        // className={row.column.columnDef.meta?.className ?? ""}
+                                        <TableCell key={cell.id} className={cell.column.columnDef.meta?.className ?? cell.column.columnDef.meta?.actionClassName ?? ""}>
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()

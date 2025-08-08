@@ -1,14 +1,15 @@
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
+import {useQuery, useMutation, useQueryClient, UseQueryResult} from '@tanstack/react-query'
 import {apiClient} from '@/lib/api/client'
 import {
-    Complaint,
+    Complaint, ComplaintCreateResponse,
     ComplaintQueryParams,
     ComplaintsApiResponse,
     CreateComplaintPayload, MasterLookupItem
 } from '@/lib/api/types/complaints'
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
 import {toast} from "sonner";
-import {showApiErrorToast} from "@/lib/utils";
+import {getFileType, showApiErrorToast} from "@/lib/utils";
+import {AxiosResponse} from "axios";
 
 export function useLookup(params: { type: string }) {
     return useQuery<MasterLookupItem[], Error>({
@@ -76,23 +77,81 @@ export function useAttachmentUpload() {
 export function useAttachmentDelete() {
     return useMutation({
         mutationFn: async (path: string) => {
-            // await complaintsApi.deleteComplaintAttachment({ path });
-            await new Promise((resolve => setTimeout(resolve, 1000))); // Simulate API call)
+            await complaintsApi.deleteComplaintAttachment({ path });
         }
     });
 }
 
+export function useSignatureUpload() {
+    return useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            // formData.append('file', file);
+            formData.append('signature', file); // 'attachment' must match
+            const response = await complaintsApi.uploadInvestigatorSignature(formData);
+            console.log('Signature upload response:', response);
+            return response.data; // Assuming your API returns { path: string }
+        },
+        onError: (error) => {
+            console.error('Error uploading Signature:', error);
+        }
+    });
+}
+
+export function useGetAttachment(params: {
+    path: string | null;
+    isOpen: boolean
+}) {
+    return useQuery({
+        queryKey: ['complaint-attachment', params.path],
+        queryFn: async () => {
+            console.log('Get attachment:', params.path);
+            if (!params.path) return null;
+            console.log('Fetching attachment for path:', params.path);
+
+            const response = await complaintsApi.getAttachment({ path: params.path });
+            console.log('Response:', response);
+            return {
+                url: response.url,
+                type: getFileType(params.path),
+                blob: response.blob
+            };
+        },
+        enabled: !!params.path && params.isOpen,
+        gcTime: 10 * 60 * 1000, // 10 minutes cache
+        staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    });
+}
 // Status Transition Hook
 export function useTransitionComplaintStatus(complaintId: string) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: any) =>
+        mutationFn: (data: { newStatus:string, comments:string }) =>
             complaintsApi.transitionComplaintStatus(complaintId, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
             queryClient.invalidateQueries({ queryKey: ['complaints'] });
             toast.success('Status updated successfully');
+        },
+        onError: showApiErrorToast
+    });
+}
+
+// Received Info Hook
+export function useUpdateReceivedInfo(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: { receiver_name: string; receiver_role: string; received_date: string }) =>
+            complaintsApi.updateReceivedInfo(complaintId, data),
+        onSuccess: (response:any) => {
+            // response
+            console.log('Received info updated successfully',response);
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            toast.success(response.message);
+            toast.success(`status updated to under investigation successfully`);
+            // toast.success('Received info updated successfully');
         },
         onError: showApiErrorToast
     });
@@ -128,11 +187,13 @@ export function useUpdateCustomerCommunication(complaintId: string) {
     });
 }
 
-// Full Complaint with Workflow Data Hook
-export function useComplaintWithWorkflow(complaintId: string) {
-    return useQuery({
-        queryKey: ['complaint', complaintId, 'workflow'],
-        queryFn: () => complaintsApi.getComplaintWithWorkflow(complaintId),
+export function useComplaintWithWorkflow(
+    complaintId: string
+): UseQueryResult<AxiosResponse<ComplaintCreateResponse>> {
+    return useQuery<AxiosResponse<ComplaintCreateResponse>>({
+        queryKey: ['complaint', complaintId],
+        queryFn: () =>
+            complaintsApi.getComplaintWithWorkflow(complaintId),
         enabled: !!complaintId,
         staleTime: 5 * 60 * 1000 // 5 minutes
     });

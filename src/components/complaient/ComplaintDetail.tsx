@@ -1,4 +1,4 @@
-// app/complaints/[id]/page.tsx
+"use client"
 import { notFound } from "next/navigation"
 import { InvestigationForm } from "@/components/forms/InvestigationForm"
 import {ComplaintStatusBadge} from "@/components/complaient/ComplaintStatusBadge";

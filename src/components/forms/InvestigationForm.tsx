@@ -11,8 +11,11 @@ import { CalendarIcon, Plus, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Textarea} from "@/components/ui/textarea";
-import {useUpdateInvestigation} from "@/hooks/api/useComplaints";
+import {useAttachmentDelete, useSignatureUpload, useUpdateInvestigation} from "@/hooks/api/useComplaints";
 import {InvestigationData} from "@/lib/api/types/complaints";
+import {SignaturePreviewModal} from "@/components/forms/SignaturePreviewModal";
+import {Switch} from "@/components/ui/switch";
+import {cn} from "@/lib/utils";
 export const root_cause= ["Device Failure", "Manufacturing Issue", "Labeling/IFU", "Customer Misuse", "No Fault Found"];
 export function InvestigationForm({
                                       complaintId,
@@ -23,7 +26,6 @@ export function InvestigationForm({
     defaultValues?: Partial<InvestigationFormData>
     onSuccess: () => void
 }) {
-
     const form = useForm<InvestigationFormData>({
         resolver: zodResolver(investigationSchema),
         defaultValues
@@ -40,20 +42,35 @@ export function InvestigationForm({
         mutate(data);
     }
 
+    const {mutateAsync:uploadImageSign,isPending:isUploadingSign,isError} = useSignatureUpload();
     const handleFileUpload = async (file: File, index: number) => {
         try {
-            // const imageUrl = await uploadImage(file);
-            // form.setValue(`investigating_officers.${index}.signature`, imageUrl);
+            const imageUrl = await uploadImageSign(file);
+            console.log("Signature uploaded successfully:", imageUrl);
+            form.setValue(`investigating_officers.${index}.signature`, imageUrl.path);
         } catch (error) {
             console.error("Error uploading file:", error);
         }
     };
 
+    const handleSignatureUpload = async (file: File, fieldName: string) => {
+        try {
+            const imageUrl = await uploadImageSign(file);
+            console.log("Signature uploaded successfully:", imageUrl);
+            form.setValue(`completion_details.signature`, imageUrl.path);
+        } catch (error) {
+            console.error("Error uploading signature:", error);
+        }
+    }
+
+
+    const {mutate: deleteImage} = useAttachmentDelete();
     const handleRemove = async (index: number) => {
         const sig = form.getValues(`investigating_officers.${index}.signature`);
         if (sig) {
             try {
-                // await deleteImage(sig);
+                // Assuming you have a function to delete the image from your storage
+                await deleteImage(sig);
             } catch (e) {
                 console.warn("Signature deletion failed", e);
             }
@@ -158,11 +175,7 @@ export function InvestigationForm({
                                         <FormControl>
                                             <div>
                                                 {field.value && (
-                                                    <img
-                                                        src={field.value}
-                                                        alt="Signature"
-                                                        className="w-24 h-auto mb-2 border rounded"
-                                                    />
+                                                    <SignaturePreviewModal signaturePath={field.value} />
                                                 )}
                                                 <Input
                                                     type="file"
@@ -179,19 +192,7 @@ export function InvestigationForm({
                                 )}
                             />
 
-                            {/*<FormField*/}
-                            {/*    control={form.control}*/}
-                            {/*    name={`investigating_officers.${index}.signature`}*/}
-                            {/*    render={({ field }) => (*/}
-                            {/*        <FormItem>*/}
-                            {/*            <FormLabel>Signature</FormLabel>*/}
-                            {/*            <FormControl>*/}
-                            {/*                <Input {...field} />*/}
-                            {/*            </FormControl>*/}
-                            {/*            <FormMessage />*/}
-                            {/*        </FormItem>*/}
-                            {/*    )}*/}
-                            {/*/>*/}
+
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -252,6 +253,201 @@ export function InvestigationForm({
                         />
                     )}
                 </div>
+
+                {/* Corrective Action Section */}
+                <div className="space-y-4">
+                    <h3 className="font-medium">Corrective Action</h3>
+                    <FormField
+                        control={form.control}
+                        name="corrective_action"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        {...field}
+                                        placeholder="Describe the corrective action taken"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                {/* CAPA Section */}
+                <div className="space-y-4">
+                    <h3 className="font-medium">Corrective and Preventive Action (CAPA)</h3>
+                    <FormField
+                        control={form.control}
+                        name="capa.initiated"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <FormLabel className="text-base">CAPA Initiated</FormLabel>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+
+                    {form.watch("capa.initiated") && (
+                        <>
+                            <FormField
+                                control={form.control}
+                                name="capa.number"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>CAPA Number</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                placeholder="Enter CAPA number"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="capa.details"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>CAPA Details</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                {...field}
+                                                placeholder="Describe the CAPA details"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </>
+                    )}
+                </div>
+
+                {/* Action Taken Section */}
+                <div className="space-y-4">
+                    <h3 className="font-medium">Action Taken</h3>
+                    <FormField
+                        control={form.control}
+                        name="action_taken"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        {...field}
+                                        placeholder="Describe the action taken"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                {/* Completion Details Section */}
+                <div className="space-y-4">
+                    <h3 className="font-medium">Completion Details</h3>
+                    <FormField
+                        control={form.control}
+                        name="completion_details.name"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Completed By</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        placeholder="Enter name of person completing"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="completion_details.signature"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Signature</FormLabel>
+                                <FormControl>
+                                    <div>
+                                        {field.value && (
+                                            <SignaturePreviewModal signaturePath={field.value} />
+                                        )}
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    // Handle file upload and set field value
+                                                    handleSignatureUpload(file, 'completion');
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="completion_details.date"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Completion Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-[240px] pl-3 text-left font-normal",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                            >
+                                                {field.value ? (
+                                                    format(field.value, "PPP")
+                                                ) : (
+                                                    <span>Pick a date</span>
+                                                )}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                                date > new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
 
                 <Button type="submit" disabled={form.formState.isSubmitting || isPending}>
                     {form.formState.isSubmitting || isPending ? "Saving..." : "Save Investigation"}

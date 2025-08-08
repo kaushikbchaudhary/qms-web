@@ -207,7 +207,7 @@ export function ComplaintForm() {
                                 <FormItem>
                                     <FormLabel>Full Name</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Adam Weins" {...field} />
+                                        <Input placeholder="Customer fullname" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -220,7 +220,7 @@ export function ComplaintForm() {
                                 <FormItem>
                                     <FormLabel>Company</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Weins Sports LLP." {...field} />
+                                        <Input placeholder="kalimed technology pvt ltd" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -246,7 +246,7 @@ export function ComplaintForm() {
                                 <FormItem>
                                     <FormLabel>Email</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="adam@gmail.com" {...field} />
+                                        <Input placeholder="Customer@yopmail.com" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

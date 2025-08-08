@@ -1,7 +1,7 @@
 // columns.ts
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import {ArrowUpDown, Eye, MoreHorizontal} from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -245,12 +245,16 @@ export type Complaint = {
 export const ColumnsComplaints: ColumnDef<Complaint>[] = [
     {
         accessorKey: "complaint_number",
-        header: "Complaint #",
+        header: "# Complaint",
+        // fixed: "left",
         cell: ({ row }) => (
             <Link href={`/dashboard/complaints/${row.original._id}`} className="font-medium text-primary hover:underline">
                 {row.getValue("complaint_number")}
             </Link>
         ),
+        meta: {
+            className: "sticky left-0 z-10 bg-background", // Tailwind sticky styling
+        },
     },
     {
         accessorKey: "submission_date",
@@ -427,6 +431,7 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
     // },
     {
         id: "actions",
+        // fixed: "right",
         cell: ({ row }) => {
             const complaint = row.original
             // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -444,39 +449,46 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
                 setIsLoading(false)
             }
             return (
-                <>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={handleViewDetails} disabled={isLoading}>
-                            {isLoading ? 'Loading...' : 'View details'}
-                        </DropdownMenuItem>
-                        {/*<DropdownMenuItem asChild>*/}
-                        {/*    <Link href={`/dashboard/complaints/${complaint._id}`}>View details</Link>*/}
-                        {/*</DropdownMenuItem>*/}
-                        <DropdownMenuItem
-                            onClick={() => navigator.clipboard.writeText(complaint.complaint_number.toString())}
-                        >
-                            Copy complaint number
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>Assign to technician</DropdownMenuItem>
-                        <DropdownMenuItem>Change status</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-            <ComplaintDetailsDialog
-                open={dialogOpen}
-                onOpenChange={setDialogOpen}
-                complaint={complaint}
-            />
-            </>
+                    <Link href={`/dashboard/complaints/${complaint._id}`}>
+                <Eye />
+            </Link>
             )
+            {/*    <>*/}
+            {/*    <DropdownMenu>*/}
+            {/*        <DropdownMenuTrigger asChild>*/}
+            {/*            <Button variant="ghost" className="h-8 w-8 p-0">*/}
+            {/*                <span className="sr-only">Open menu</span>*/}
+            {/*                <MoreHorizontal className="h-4 w-4" />*/}
+            {/*            </Button>*/}
+            {/*        </DropdownMenuTrigger>*/}
+            {/*        <DropdownMenuContent align="end">*/}
+            {/*            <DropdownMenuLabel>Actions</DropdownMenuLabel>*/}
+            {/*            <DropdownMenuItem onClick={handleViewDetails} disabled={isLoading}>*/}
+            {/*                {isLoading ? 'Loading...' : 'View details'}*/}
+            {/*            </DropdownMenuItem>*/}
+            {/*            /!*<DropdownMenuItem asChild>*!/*/}
+            {/*            /!*    <Link href={`/dashboard/complaints/${complaint._id}`}>View details</Link>*!/*/}
+            {/*            /!*</DropdownMenuItem>*!/*/}
+            {/*            <DropdownMenuItem*/}
+            {/*                onClick={() => navigator.clipboard.writeText(complaint.complaint_number.toString())}*/}
+            {/*            >*/}
+            {/*                Copy complaint number*/}
+            {/*            </DropdownMenuItem>*/}
+            {/*            <DropdownMenuItem>Assign to technician</DropdownMenuItem>*/}
+            {/*            <DropdownMenuItem>Change status</DropdownMenuItem>*/}
+            {/*        </DropdownMenuContent>*/}
+            {/*    </DropdownMenu>*/}
+
+            {/*<ComplaintDetailsDialog*/}
+            {/*    open={dialogOpen}*/}
+            {/*    onOpenChange={setDialogOpen}*/}
+            {/*    complaint={complaint}*/}
+            {/*/>*/}
+            {/*</>*/}
+            // )
+        },
+        meta: {
+            actionClassName: "sticky right-0 z-10 bg-background", // Tailwind sticky styling for actions
         },
     },
 ]

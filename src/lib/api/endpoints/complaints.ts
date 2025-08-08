@@ -21,6 +21,16 @@ export const complaintsApi = {
                 'Content-Type': 'multipart/form-data',
             }
         }),
+    uploadInvestigatorSignature: (formData: FormData) =>
+        apiClient.post('api/v1/complaint/investigator-signatures', formData,{
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            }
+        }),
+    deleteComplaintAttachment: (params: { path: string }) =>
+        apiClient.delete('api/v1/complaint/delete-file', {
+            params
+        }).then(response => response.data),
     getAttachment: (params: { path: string }): Promise<{ url: string; blob: Blob }> =>
         apiFileClient.get('api/v1/complaint/complaint-attachment', {
             params,
@@ -29,9 +39,17 @@ export const complaintsApi = {
             const url = URL.createObjectURL(response.data);
             return { url, blob: response.data };
         }),
+    getSignature: (params: { path: string }): Promise<{ url: string; blob: Blob }> =>
+        apiFileClient.get('api/v1/complaint/investigator-signatures', {
+            params,
+            responseType: 'blob'
+        }).then((response:any) => {
+            const url = URL.createObjectURL(response.data);
+            return { url, blob: response.data };
+        }),
     // Workflow Status Transition
-    transitionComplaintStatus: (complaintId: string, data: any) =>
-        apiClient.put(`/api/v1/complaints/${complaintId}/status`, data),
+    transitionComplaintStatus: (complaintId: string, data: { newStatus:string, comments:string }) =>
+        apiClient.put(`/api/v1/complaint/${complaintId}/status`, data),
 
     // Received Info
     updateReceivedInfo: (complaintId: string, data: {
@@ -58,5 +76,5 @@ export const complaintsApi = {
 
     // Get full complaint details with workflow data
     getComplaintWithWorkflow: (complaintId: any) =>
-        apiClient.get<any>(`/api/v1/complaint/${complaintId}/workflow`),
+        apiClient.get<any>(`/api/v1/complaint/${complaintId}`),
 };

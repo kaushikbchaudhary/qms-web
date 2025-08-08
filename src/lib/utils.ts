@@ -26,3 +26,14 @@ export const showApiErrorToast = (error: unknown) => {
   }
 };
 
+export const getFileType = (path: string) => {
+  const extension = path.split('.').pop()?.toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) {
+    return 'image';
+  } else if (extension === 'pdf') {
+    return 'pdf';
+  } else if (['mp4', 'webm', 'mov'].includes(extension || '')) {
+    return 'video';
+  }
+  return 'other';
+};
