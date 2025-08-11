@@ -412,7 +412,6 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         accessorKey: "attachments",
         header: "Attachments",
         cell: ({ row }) => {
-            console.log('row',row.original)
             const attachments = row.original.attachments
             return  <AttachmentViewer attachments={attachments} />
             // return attachments.length > 0 ? (

@@ -24,7 +24,6 @@ export function SignaturePreviewModal({
     const [isOpen, setIsOpen] = useState(false)
     const [imageUrl, setImageUrl] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
-    console.log('signaturePath', signaturePath)
     const { data: attachmentData, isLoading:imageFetching, error, refetch } = useGetAttachment({
         path: signaturePath,
         isOpen: isOpen
@@ -32,7 +31,6 @@ export function SignaturePreviewModal({
     const fetchSignature = async () => {
         try {
             setIsLoading(true)
-            console.log('Fetching signature for path:', signaturePath)
             await refetch();
             attachmentData?.url && setImageUrl(attachmentData.url )
         } catch (error) {

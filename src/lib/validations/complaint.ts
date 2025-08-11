@@ -62,8 +62,50 @@ export const investigationSchema = z.object({
     completion_details: completionDetailsSchema
 });
 
+export const customerCommunicationSchema = z.object({
+    response_date: z.date({
+        message: "Response date is required"
+    }),
+    mode: z.enum(["Email", "Call", "Letter", "Other"], {
+        message: "Communication mode is required"
+    }),
+    summary: z.string().min(10, "Summary must be at least 10 characters long"),
+    attachments: z.array(z.string())
+})
+
+export type CustomerCommunicationFormData = z.infer<typeof customerCommunicationSchema>
+
+
 export type InvestigationFormData = z.infer<typeof investigationSchema>;
 
+
+export const complaintClosureSchema = z.object({
+    final_disposition: z.enum([
+        "Confirmed Device Defect",
+        "No Fault Found",
+        "Customer Misuse",
+        "Duplicate",
+        "Other"
+    ], {
+        message: "Final disposition is required"
+    }),
+    reviewed_by: z.array(z.object({
+        sr_no: z.number().min(1, "Serial number is required"),
+        name: z.string().min(2, "Reviewer name is required"),
+        designation: z.string().min(2, "Designation is required"),
+        signature: z.string().optional()
+    })).min(1, "At least one reviewer is required"),
+    approved_by: z.object({
+        qa_head_name: z.string().min(2, "QA Head name is required"),
+        signature: z.string().min(1, "QA Head signature is required"),
+        date: z.date({
+            message: "Approval date is required"
+        })
+    }),
+    closure_comments: z.string().optional()
+})
+
+export type ComplaintClosureFormData = z.infer<typeof complaintClosureSchema>
 // lib/validations/complaint.ts
 // import { z } from "zod"
 //

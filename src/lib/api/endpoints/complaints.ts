@@ -56,8 +56,7 @@ export const complaintsApi = {
         receiver_name: string;
         receiver_role: string;
         received_date: string;
-    }) => apiClient.put(`/api/complaint/${complaintId}/received-info`, data),
-
+    }) => apiClient.put(`/api/v1/complaint/${complaintId}/received-info`, data),
     // Investigation
     updateInvestigation: (complaintId: string, data: any) =>
         apiClient.put(`/api/v1/complaint/${complaintId}/investigation`, data),

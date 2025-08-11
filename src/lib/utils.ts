@@ -37,3 +37,12 @@ export const getFileType = (path: string) => {
   }
   return 'other';
 };
+
+export const formatDate = (dateString:any) => {
+  return new Date(dateString).toLocaleDateString();
+};
+
+export const formatDateTime = (dateString:any) => {
+  const date = new Date(dateString);
+  return `${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
+};

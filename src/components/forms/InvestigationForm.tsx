@@ -38,7 +38,6 @@ export function InvestigationForm({
     const { mutate, isPending } = useUpdateInvestigation(complaintId);
 
     async function onSubmit(data: InvestigationFormData) {
-        console.log(data)
         mutate(data);
     }
 
@@ -46,7 +45,6 @@ export function InvestigationForm({
     const handleFileUpload = async (file: File, index: number) => {
         try {
             const imageUrl = await uploadImageSign(file);
-            console.log("Signature uploaded successfully:", imageUrl);
             form.setValue(`investigating_officers.${index}.signature`, imageUrl.path);
         } catch (error) {
             console.error("Error uploading file:", error);
@@ -56,7 +54,6 @@ export function InvestigationForm({
     const handleSignatureUpload = async (file: File, fieldName: string) => {
         try {
             const imageUrl = await uploadImageSign(file);
-            console.log("Signature uploaded successfully:", imageUrl);
             form.setValue(`completion_details.signature`, imageUrl.path);
         } catch (error) {
             console.error("Error uploading signature:", error);

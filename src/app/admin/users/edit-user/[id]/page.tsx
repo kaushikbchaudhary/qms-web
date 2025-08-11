@@ -7,7 +7,6 @@ import {useParams, useRouter} from "next/navigation";
 export default function EditUserPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [defaultValues, setDefaultValues] = useState(null);
-    console.log('defaultValues', defaultValues);
     const router = useRouter();
     const { id } = useParams();
 

@@ -271,11 +271,9 @@ export default function LoginPage() {
 
     const handleVerifyOTP = (otpCode:any) => {
         const contactInfo = loginMethod === 'email' ? email : `${countryCode}${phone}`;
-        console.log('OTP verified:', { contactInfo, otp: otpCode });
         // Handle successful verification - redirect to dashboard
         otpVerify({email: contactInfo, otp: otpCode },{
             onSuccess: (user:any) => {
-                console.log('OTP verification successful:', user);
                 // Save to Zustand store
                 useAuthStore.getState().login(user.data);
 
@@ -296,7 +294,6 @@ export default function LoginPage() {
 
     const handleResendOTP = () => {
         const contactInfo = loginMethod === 'email' ? email : `${countryCode}${phone}`;
-        console.log('Resending OTP to:', contactInfo);
         handleSendOTP();
         // Handle OTP resend logic
     };

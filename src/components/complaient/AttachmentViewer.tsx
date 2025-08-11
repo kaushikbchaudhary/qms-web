@@ -76,7 +76,6 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
             }
         };
     }, [attachmentData]);
-console.log('attachmentData',attachmentData)
     if (validAttachments.length === 0) {
         return <span className="text-muted-foreground">None</span>;
     }

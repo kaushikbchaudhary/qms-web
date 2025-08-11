@@ -15,7 +15,6 @@ export default function page({ params }: { params: Promise<{ id: string }> }) {
         defaultValues: {}, // Fetch or set default values as needed
         onSuccess: () => {
             // Handle success, e.g., redirect or show a success message
-            console.log("Investigation form submitted successfully");
         },
     };
     return (

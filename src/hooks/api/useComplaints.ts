@@ -89,7 +89,6 @@ export function useSignatureUpload() {
             // formData.append('file', file);
             formData.append('signature', file); // 'attachment' must match
             const response = await complaintsApi.uploadInvestigatorSignature(formData);
-            console.log('Signature upload response:', response);
             return response.data; // Assuming your API returns { path: string }
         },
         onError: (error) => {
@@ -105,12 +104,9 @@ export function useGetAttachment(params: {
     return useQuery({
         queryKey: ['complaint-attachment', params.path],
         queryFn: async () => {
-            console.log('Get attachment:', params.path);
             if (!params.path) return null;
-            console.log('Fetching attachment for path:', params.path);
 
             const response = await complaintsApi.getAttachment({ path: params.path });
-            console.log('Response:', response);
             return {
                 url: response.url,
                 type: getFileType(params.path),
@@ -146,8 +142,6 @@ export function useUpdateReceivedInfo(complaintId: string) {
         mutationFn: (data: { receiver_name: string; receiver_role: string; received_date: string }) =>
             complaintsApi.updateReceivedInfo(complaintId, data),
         onSuccess: (response:any) => {
-            // response
-            console.log('Received info updated successfully',response);
             queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
             toast.success(response.message);
             toast.success(`status updated to under investigation successfully`);
@@ -196,5 +190,19 @@ export function useComplaintWithWorkflow(
             complaintsApi.getComplaintWithWorkflow(complaintId),
         enabled: !!complaintId,
         staleTime: 5 * 60 * 1000 // 5 minutes
+    });
+}
+
+export function useUpdateComplaintClosure(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: any) =>
+            complaintsApi.updateClosure(complaintId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            toast.success('Closure section updated successfully');
+        },
+        onError: showApiErrorToast
     });
 }
