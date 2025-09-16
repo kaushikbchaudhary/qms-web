@@ -271,6 +271,14 @@ const ComplaintDetailPage = (params:Props) => {
                 })
             setStatusUpdateModal({ show: false, targetStatus: null, comments: '' });
         }
+        if(statusUpdateModal.targetStatus === COMPLAINT_STATUS.RESOLVED) {
+            // If status is RESOLVED, open the investigation form
+            // handleEditClick('kk');
+            console.log(statusUpdateModal.targetStatus);
+            // setStatusUpdateModal({ show: false, targetStatus: null, comments: '' });
+
+            return;
+        }
         if(statusUpdateModal.targetStatus === COMPLAINT_STATUS.REJECTED || statusUpdateModal.targetStatus === COMPLAINT_STATUS.CLOSED) {
             await statusTransition({
                 newStatus: statusUpdateModal.targetStatus,
@@ -306,6 +314,7 @@ const ComplaintDetailPage = (params:Props) => {
                         {/*    placeholder="Add comments about this status change..."*/}
                         {/*    rows={4}*/}
                         {/*/>*/}
+
                         <div className="flex space-x-3">
                             <Button
                                 // onClick={() => updateComplaintStatus(statusUpdateModal.targetStatus, statusUpdateModal.comments)}

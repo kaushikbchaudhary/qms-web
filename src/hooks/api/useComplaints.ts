@@ -181,6 +181,22 @@ export function useUpdateCustomerCommunication(complaintId: string) {
     });
 }
 
+// updateRiskManagement
+export function useUpdateRiskManagement(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+    mutationFn: (data: any) =>
+            complaintsApi.updateRiskManagement(complaintId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            toast.success('Risk management updated successfully');
+        },
+        onError: showApiErrorToast
+    });
+};
+
+
 export function useComplaintWithWorkflow(
     complaintId: string
 ): UseQueryResult<AxiosResponse<ComplaintCreateResponse>> {
