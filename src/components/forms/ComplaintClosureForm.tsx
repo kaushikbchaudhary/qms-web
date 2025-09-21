@@ -34,7 +34,7 @@ export function ComplaintClosureForm({
                                      }: {
     complaintId: string
     defaultValues?: Partial<ComplaintClosureFormData>
-    onSuccess: () => void
+    onSuccess?: () => void | Promise<void>
 }) {
     const form = useForm<ComplaintClosureFormData>({
         resolver: zodResolver(complaintClosureSchema),
@@ -63,8 +63,10 @@ export function ComplaintClosureForm({
     async function onSubmit(data: ComplaintClosureFormData) {
         console.log("Complaint Closure Data:", data)
         updateClosure(data, {
-            onSuccess: () => {
-                onSuccess()
+            onSuccess: async () => {
+                if (onSuccess) {
+                    await onSuccess()
+                }
             }
         })
     }

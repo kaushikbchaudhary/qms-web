@@ -76,4 +76,8 @@ export const complaintsApi = {
     // Get full complaint details with workflow data
     getComplaintWithWorkflow: (complaintId: any) =>
         apiClient.get<any>(`/api/v1/complaint/${complaintId}`),
+    downloadComplaintReport: (complaintId: string) =>
+        apiFileClient.get(`/api/v1/complaint/${complaintId}/pdf`, {
+            responseType: 'blob'
+        }).then(response => response.data as Blob),
 };

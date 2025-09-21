@@ -1,21 +1,34 @@
 // complaints-table.tsx
 "use client"
 
-import {useEffect, useState} from "react"
+import {useEffect, useMemo, useState} from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
-import {ComplaintQueryParams} from "@/lib/api/types/complaints";
+import {ComplaintQueryParams, ComplaintStatus} from "@/lib/api/types/complaints";
 import CustomizableTable, {useTableState} from "@/components/shared/CustomizableTable";
 import {useGetComplaints} from "@/hooks/api/useComplaints";
 import {ColumnsComplaints} from "@/components/complaient/ColumnsComplaints";
 import {showApiErrorToast} from "@/lib/utils";
 import {useDebounce} from "@/hooks/debounceHook";
+import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs";
+
+type StatusFilterValue = ComplaintStatus | 'ALL';
+
+const STATUS_FILTERS: { value: StatusFilterValue; label: string }[] = [
+    { value: 'ALL', label: 'All' },
+    { value: 'SUBMITTED', label: 'Submitted' },
+    { value: 'UNDER_INVESTIGATION', label: 'Under Investigation' },
+    { value: 'RESOLVED', label: 'Resolved' },
+    { value: 'REJECTED', label: 'Rejected' },
+    { value: 'CLOSED', label: 'Closed' },
+];
 
 export function ComplaintsTable() {
     const tableState = useTableState()
     const { pagination, sorting ,columnVisibility, rowSelection} = tableState
     const [globalFilter, setGlobalFilter] = useState("")
+    const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('ALL');
     const [globalFilterFields] = useState<string[]>([
         "customer.name",
         "customer.company",
@@ -25,34 +38,29 @@ export function ComplaintsTable() {
     ])
 
     const debouncedGlobalFilterValue = useDebounce(globalFilter, 500); // 500ms delay
-const fil = {
-    page_size: 10,
-    page_index: 1,
-    global_value: "Performance Issue",
-    global_filter: [
-        "customer.name",
-        "complaint_type.name"
-    ],
-    filters: [
-        {
-            field: "preferred_resolution_method.name",
-            operator: "eq",
-            value: "Replacement"
-        }
-    ],
-    sort_by: "created_on",
-    sort_order: -1
-}
+    const statusFilters = useMemo(() => (
+        statusFilter === 'ALL'
+            ? []
+            : [{ field: 'status', operator: 'eq', value: statusFilter }]
+    ), [statusFilter]);
+
     // Prepare query params
-    const queryParams: ComplaintQueryParams = {
+    const queryParams: ComplaintQueryParams = useMemo(() => ({
         page_size: pagination.pageSize,
         page_index: pagination.pageIndex,
         global_value: debouncedGlobalFilterValue,
         global_filter: globalFilterFields,
         sort_by: sorting[0]?.id || "submission_date",
         sort_order: -1, // sorting[0]?.desc ? -1 : 1,
-        filters: [], // Add any specific filters here
-    }
+        filters: statusFilters,
+    }), [
+        pagination.pageSize,
+        pagination.pageIndex,
+        debouncedGlobalFilterValue,
+        globalFilterFields,
+        sorting,
+        statusFilters
+    ]);
 
     const {data, isLoading,isError, error, refetch } = useGetComplaints(queryParams);
     useEffect(() => {
@@ -63,13 +71,29 @@ const fil = {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-                <Input
-                    placeholder="Search complaints..."
-                    value={globalFilter}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
-                    className="max-w-sm"
-                />
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <Input
+                        placeholder="Search complaints..."
+                        value={globalFilter}
+                        onChange={(e) => setGlobalFilter(e.target.value)}
+                        className="w-full max-w-sm"
+                    />
+                    <Tabs
+                        value={statusFilter}
+                        onValueChange={(value) => setStatusFilter(value as StatusFilterValue)}
+                        className="w-full sm:w-auto"
+                    >
+                        <TabsList className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:gap-2">
+                            {STATUS_FILTERS.map(({ value, label }) => (
+                                <TabsTrigger key={value} value={value} className="text-xs sm:text-sm">
+                                    {label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                </div>
+
                 <Button
                     variant="outline"
                     size="sm"

@@ -27,7 +27,8 @@ import {
     Target,
     ClipboardList,
     ShieldCheck,
-    Info, PhoneCall, Paperclip
+    Info, PhoneCall, Paperclip,
+    Loader2
 } from 'lucide-react';
 
 // Import shadcn components (assuming they're available)
@@ -46,6 +47,8 @@ import {InvestigationForm} from "@/components/forms/InvestigationForm";
 import {formatDate, formatDateTime} from "@/lib/utils";
 import {CustomerCommunicationForm} from "@/components/forms/CustomerCommunicationForm";
 import {ComplaintClosureForm} from "@/components/forms/ComplaintClosureForm";
+import {complaintsApi} from "@/lib/api/endpoints/complaints";
+import {toast} from "sonner";
 interface Props {
     complaintId:any
 }
@@ -146,87 +149,17 @@ const ComplaintDetailPage = (params:Props) => {
     });
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeEditSection, setActiveEditSection] = useState<string | null>(null);
+    const [downloadingReport, setDownloadingReport] = useState(false);
 
-    const { data: complaintData, isLoading:loading,refetch } = useComplaintWithWorkflow(params.complaintId);
+    const { data: complaintData, isLoading:loading, refetch } = useComplaintWithWorkflow(params.complaintId);
 
     // API call to fetch complaint details
     useEffect(() => {
-        // This would be your actual API call
-        // fetchComplaintById(complaintId)
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        // refetch();
         if (complaintData?.data ) {
             setComplaint(complaintData.data);
         } else {
             setComplaint(null);
         }
-
-        // setTimeout(() => {
-        //     setComplaint({
-        //         _id: '507f1f77bcf86cd799439011',
-        //         complaint_number: 'CPL-2024-001',
-        //         submission_date: new Date('2024-01-15'),
-        //         customer: {
-        //             name: 'John Doe',
-        //             company: 'ABC Corporation Ltd.',
-        //             contact_number: '+1 (555) 123-4567',
-        //             email: 'john.doe@abccorp.com'
-        //         },
-        //         product_details: {
-        //             model: 'XYZ-100 Pro',
-        //             serial_number: 'SN123456789',
-        //             purchase_date: new Date('2023-12-01'),
-        //             config: { warranty: '2 years', color: 'Black' }
-        //         },
-        //         complaint_type: {
-        //             name: 'Hardware Malfunction',
-        //             description: 'Device hardware issue affecting normal operation'
-        //         },
-        //         issue_details: {
-        //             description: 'Device stops working after 2 hours of continuous use. The screen goes blank and device becomes unresponsive.',
-        //             problem_start_date: new Date('2024-01-10'),
-        //             occurred_before: 'No',
-        //             replication_steps: '1. Turn on device\n2. Use continuously for 2 hours\n3. Observe device shutdown\n4. Device becomes unresponsive'
-        //         },
-        //         customer_impact: 'High - Unable to use device for daily work operations',
-        //         preferred_resolution_method: {
-        //             name: 'Replacement',
-        //             description: 'Customer prefers device replacement over repair'
-        //         },
-        //         status: COMPLAINT_STATUS.SUBMITTED,
-        //         status_history: [
-        //             {
-        //                 status: COMPLAINT_STATUS.SUBMITTED,
-        //                 changed_by: '507f1f77bcf86cd799439012',
-        //                 changed_at: new Date('2024-01-15T10:30:00'),
-        //                 comments: 'Initial complaint submission via web portal'
-        //             }
-        //         ],
-        //         received_info: {
-        //             receiver_name: '',
-        //             receiver_role: '',
-        //             received_date: null
-        //         },
-        //         investigation: {
-        //             investigation_date: null,
-        //             investigating_officers: [],
-        //             root_cause: { identified: '', description: '' },
-        //             corrective_action: '',
-        //             action_taken: ''
-        //         },
-        //         customer_communication: {
-        //             response_date: null,
-        //             mode: '',
-        //             summary: '',
-        //             attachments: []
-        //         },
-        //         closure: {
-        //             final_disposition: '',
-        //             closure_comments: ''
-        //         }
-        //     });
-        //     setLoading(false);
-        // }, 1000);
     }, [complaintData]);
 
     // Helper functions
@@ -242,9 +175,9 @@ const ComplaintDetailPage = (params:Props) => {
 
     const props = {
         complaintId: complaint?._id,
-        defaultValues: complaint?.investigation, // Fetch or set default values as needed
-        onSuccess: () => {
-            // Handle success, e.g., redirect or show a success message
+        defaultValues: complaint?.investigation,
+        onSuccess: async () => {
+            await refetch();
         },
     };
 
@@ -257,47 +190,64 @@ const ComplaintDetailPage = (params:Props) => {
     };
 
     // API calls for status updates
-    const {mutateAsync:reciverInfo} = useUpdateReceivedInfo(params.complaintId);
-    const {mutateAsync: statusTransition} = useTransitionComplaintStatus(params.complaintId);
+    const {mutateAsync:reciverInfo, isPending:isUpdatingReceivedInfo} = useUpdateReceivedInfo(params.complaintId);
+    const {mutateAsync: statusTransition, isPending:isStatusTransitionPending} = useTransitionComplaintStatus(params.complaintId);
+    const isStatusUpdating = isUpdatingReceivedInfo || isStatusTransitionPending;
 
-    const handleStatusUpdate =async () => {
-        if (!statusUpdateModal.targetStatus) return;
-        // Call API to update status
-        if(statusUpdateModal.targetStatus === COMPLAINT_STATUS.UNDER_INVESTIGATION && currentUser) {
+    const handleReportDownload = async () => {
+        if (!complaint?._id) return;
+        try {
+            setDownloadingReport(true);
+            const blob = await complaintsApi.downloadComplaintReport(complaint._id);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `complaint-${complaint.complaint_number ?? complaint._id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to download complaint report', error);
+            toast.error('Failed to download complaint report. Please try again.');
+        } finally {
+            setDownloadingReport(false);
+        }
+    };
+
+    const handleStatusUpdate = async () => {
+        if (!statusUpdateModal.targetStatus || !complaint) return;
+
+        const targetStatus = statusUpdateModal.targetStatus;
+        const comments = statusUpdateModal.comments?.trim() || `Status updated to ${targetStatus}`;
+
+        try {
+            if (targetStatus === COMPLAINT_STATUS.UNDER_INVESTIGATION && currentUser) {
                 await reciverInfo({
-                    receiver_name: currentUser.firstName + ' ' + currentUser.lastName,
+                    receiver_name: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
                     receiver_role: getUserRole(currentUser),
                     received_date: new Date().toISOString()
-                })
-            setStatusUpdateModal({ show: false, targetStatus: null, comments: '' });
-        }
-        if(statusUpdateModal.targetStatus === COMPLAINT_STATUS.RESOLVED) {
-            // If status is RESOLVED, open the investigation form
-            // handleEditClick('kk');
-            console.log(statusUpdateModal.targetStatus);
-            // setStatusUpdateModal({ show: false, targetStatus: null, comments: '' });
+                });
+            } else {
+                await statusTransition({
+                    newStatus: targetStatus,
+                    comments
+                });
+            }
 
-            return;
-        }
-        if(statusUpdateModal.targetStatus === COMPLAINT_STATUS.REJECTED || statusUpdateModal.targetStatus === COMPLAINT_STATUS.CLOSED) {
-            await statusTransition({
-                newStatus: statusUpdateModal.targetStatus,
-                comments: `Transforming ${complaint?.status} to ${statusUpdateModal.targetStatus}` //statusUpdateModal.comments
-            })
             setStatusUpdateModal({ show: false, targetStatus: null, comments: '' });
+            await refetch();
+        } catch (error) {
+            console.error('Failed to update complaint status', error);
+            toast.error('Failed to update status. Please try again.');
         }
-    }
+    };
 
     // Status update modal
     const StatusUpdateModal = () => {
-        if (!statusUpdateModal.show) return null;
+        if (!statusUpdateModal.show || !statusUpdateModal.targetStatus) return null;
 
         const targetConfig = STAGE_CONFIG[statusUpdateModal.targetStatus];
-
-        if(targetConfig.targetStatus === COMPLAINT_STATUS.CLOSED){
-            handleEditClick(COMPLAINT_STATUS.CLOSED);
-            return null;
-        }
         return (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                 <Card className="w-full max-w-md mx-4">
@@ -320,8 +270,9 @@ const ComplaintDetailPage = (params:Props) => {
                                 // onClick={() => updateComplaintStatus(statusUpdateModal.targetStatus, statusUpdateModal.comments)}
                                 onClick={() => handleStatusUpdate()}
                                 variant={targetConfig.variant}
+                                disabled={isStatusUpdating}
                             >
-                                Update Status
+                                {isStatusUpdating ? 'Updating...' : 'Update Status'}
                             </Button>
                             <Button
                                 variant="outline"
@@ -379,7 +330,24 @@ const ComplaintDetailPage = (params:Props) => {
                 return <div className="p-4">History Notes Form</div>;
             case COMPLAINT_STATUS.CLOSED:
                 return <div className="container mx-auto flex-1 overflow-y-auto mb-2">
-                    <ComplaintClosureForm complaintId={complaint._id}/>
+                    <ComplaintClosureForm
+                        complaintId={complaint._id}
+                        defaultValues={complaint.closure}
+                        onSuccess={async () => {
+                            try {
+                                setDrawerOpen(false);
+                                setActiveEditSection(null);
+                                await statusTransition({
+                                    newStatus: COMPLAINT_STATUS.CLOSED,
+                                    comments: `Complaint closed by ${currentUser.firstName} ${currentUser.lastName}`.trim()
+                                });
+                                await refetch();
+                            } catch (error) {
+                                console.error('Failed to close complaint', error);
+                                toast.error('Failed to update complaint status to closed.');
+                            }
+                        }}
+                    />
                 </div>;
             default:
                 return null;
@@ -388,6 +356,10 @@ const ComplaintDetailPage = (params:Props) => {
 
     const currentStageConfig = STAGE_CONFIG[complaint.status];
     const availableTransitions = getAvailableTransitions();
+    const isReportDownloadAvailable = [
+        COMPLAINT_STATUS.RESOLVED,
+        COMPLAINT_STATUS.CLOSED
+    ].includes(complaint.status);
 
     return (
         <div className="container mx-auto p-6 space-y-6">
@@ -405,10 +377,33 @@ const ComplaintDetailPage = (params:Props) => {
                     <p className="text-muted-foreground">{currentStageConfig.description}</p>
                 </div>
 
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <User className="h-4 w-4" />
-                    <span>{currentUser.firstName} {currentUser.lastName}</span>
-                    <Badge variant="outline">{ROLE_PERMISSIONS[getUserRole(currentUser)]?.label}</Badge>
+                <div className="flex flex-col items-end space-y-3">
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span>{currentUser.firstName} {currentUser.lastName}</span>
+                        <Badge variant="outline">{ROLE_PERMISSIONS[getUserRole(currentUser)]?.label}</Badge>
+                    </div>
+                    {isReportDownloadAvailable && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleReportDownload}
+                            disabled={downloadingReport}
+                            className="flex items-center"
+                        >
+                            {downloadingReport ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Preparing Report...
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Download Report
+                                </>
+                            )}
+                        </Button>
+                    )}
                 </div>
             </div>
 
