@@ -12,6 +12,8 @@ import {ColumnsComplaints} from "@/components/complaient/ColumnsComplaints";
 import {showApiErrorToast} from "@/lib/utils";
 import {useDebounce} from "@/hooks/debounceHook";
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuthStore } from '@/stores/authStore';
 
 type StatusFilterValue = ComplaintStatus | 'ALL';
 
@@ -29,6 +31,7 @@ export function ComplaintsTable() {
     const { pagination, sorting ,columnVisibility, rowSelection} = tableState
     const [globalFilter, setGlobalFilter] = useState("")
     const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('ALL');
+    const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'assigned_to_me' | 'assigned_unread' | 'investigator' | 'investigator_unread'>('all');
     const [globalFilterFields] = useState<string[]>([
         "customer.name",
         "customer.company",
@@ -36,6 +39,7 @@ export function ComplaintsTable() {
         "product_details.serial_number",
         "complaint_type.name",
     ])
+    const currentUser = useAuthStore((state) => state.user);
 
     const debouncedGlobalFilterValue = useDebounce(globalFilter, 500); // 500ms delay
     const statusFilters = useMemo(() => (
@@ -53,13 +57,21 @@ export function ComplaintsTable() {
         sort_by: sorting[0]?.id || "submission_date",
         sort_order: -1, // sorting[0]?.desc ? -1 : 1,
         filters: statusFilters,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        assigned_to: !currentUser ? undefined : (assignmentFilter === 'assigned_to_me' || assignmentFilter === 'assigned_unread') ? currentUser._id : undefined,
+        assignee_read: assignmentFilter === 'assigned_unread' ? 'unread' : undefined,
+        investigator_user: !currentUser ? undefined : (assignmentFilter === 'investigator' || assignmentFilter === 'investigator_unread') ? currentUser._id : undefined,
+        investigator_read: assignmentFilter === 'investigator_unread' ? 'unread' : undefined,
     }), [
         pagination.pageSize,
         pagination.pageIndex,
         debouncedGlobalFilterValue,
         globalFilterFields,
         sorting,
-        statusFilters
+        statusFilters,
+        statusFilter,
+        assignmentFilter,
+        currentUser
     ]);
 
     const {data, isLoading,isError, error, refetch } = useGetComplaints(queryParams);
@@ -92,6 +104,21 @@ export function ComplaintsTable() {
                             ))}
                         </TabsList>
                     </Tabs>
+                    <Select
+                        value={assignmentFilter}
+                        onValueChange={(value) => setAssignmentFilter(value as typeof assignmentFilter)}
+                    >
+                        <SelectTrigger className="w-full sm:w-48" disabled={!currentUser}>
+                            <SelectValue placeholder="Assignment filter" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All complaints</SelectItem>
+                            <SelectItem value="assigned_to_me">Assigned to me</SelectItem>
+                            <SelectItem value="assigned_unread">My unread assignments</SelectItem>
+                            <SelectItem value="investigator">My investigation tasks</SelectItem>
+                            <SelectItem value="investigator_unread">My unread investigation tasks</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <Button

@@ -3,6 +3,7 @@ import {toast} from "sonner";
 import {showApiErrorToast} from "@/lib/utils";
 import {authApi} from "@/lib/api/endpoints/auth";
 import {AuthPayload, AuthResponse} from "@/lib/api/types/authTypes";
+import { useAuthStore } from "@/stores/authStore";
 
 export function useRequestOtp() {
     const queryClient = useQueryClient();
@@ -42,7 +43,10 @@ export function useLogout() {
             const response = await authApi.logout();
             if (!response?.data) throw new Error("Logout failed");
             toast.success(response.message);
-            window.location.href = '/auth/login'  + '?t=' + Date.now();
+            useAuthStore.getState().logout();
+            if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
+                window.location.replace('/auth/login');
+            }
             return response.data;
         },
     });

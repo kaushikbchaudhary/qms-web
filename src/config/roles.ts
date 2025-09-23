@@ -16,11 +16,11 @@ export const ROLE_ACCESS = {
         redirect: '/dashboard/complaints'
     },
     [roles.QA]: {
-        routes: ['/staff'],
+        routes: ['/staff', '/staff/patients'],
         redirect: '/staff/patients'
     },
     [roles.PRODUCTION]: {
-        routes: ['/profile'],
+        routes: ['/', '/profile'],
         redirect: '/'
     }
 } as const;

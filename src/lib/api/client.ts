@@ -1,6 +1,7 @@
 // lib/api/client.ts
 import axios, {AxiosInstance} from 'axios';
 import { toast } from "sonner";
+import { useAuthStore } from '@/stores/authStore';
 
 // Your existing client (unchanged)
 const apiClient = axios.create({
@@ -41,9 +42,12 @@ const setupInterceptors = ({client, directResponse = false
                 toast.error('No Internet Connection!');
                 return Promise.reject(new Error('No Internet Connection!'));
             }
-            if(error.status === 401){
+            if (error?.response?.status === 401) {
                 toast.error('Unauthorized access. Please log in again.');
-                window.location.href = '/auth/login' + '?t=' + Date.now();
+                useAuthStore.getState().logout();
+                if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
+                    window.location.replace('/auth/login');
+                }
                 return Promise.reject(new Error('Unauthorized access'));
             }
             return Promise.reject(error);

@@ -51,7 +51,7 @@ export function useDeleteUser() {
 
             // Redirect if it was a self-deletion
             if (!response.data?.id) {
-                router.push('/auth/login' + '?t=' + Date.now());
+                router.replace('/auth/login');
             }
         },
         onError: (error: Error) => {

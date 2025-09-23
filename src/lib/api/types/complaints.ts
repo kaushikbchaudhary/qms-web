@@ -83,6 +83,31 @@ export interface ReplacementDetails {
     mfg_date?: string;
 }
 
+export interface UserSummary {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    emailId?: string;
+    role?: string[];
+}
+
+export interface AssignmentHistoryItem {
+    assigned_to: string | UserSummary;
+    assigned_by?: string | UserSummary;
+    assigned_at: string;
+    note?: string;
+}
+
+export interface InvestigationAssignment {
+    user: string | UserSummary;
+    assigned_by?: string | UserSummary;
+    assigned_at: string;
+    read_at?: string;
+    accepted_at?: string;
+    status: 'pending' | 'accepted' | 'declined';
+    note?: string;
+}
+
 export interface CreateComplaintPayload {
     customer: ComplaintCustomer;
     product_details: ComplaintProductDetails;
@@ -149,6 +174,10 @@ export interface Complaint {
     // Workflow fields
     status: ComplaintStatus;
     status_history: StatusHistoryItem[];
+    assigned_to?: string | UserSummary | null;
+    assigned_at?: string;
+    assignee_read_at?: string | null;
+    assignment_history?: AssignmentHistoryItem[];
 
     // Received Info
     received_info?: {
@@ -161,6 +190,7 @@ export interface Complaint {
     investigation?: {
         investigation_date: string;
         investigating_officers: InvestigatingOfficer[];
+        assignments?: InvestigationAssignment[];
         root_cause: {
             identified: 'Device Failure' | 'Manufacturing Issue' | 'Labeling/IFU'
                 | 'Customer Misuse' | 'No Fault Found' | 'Other';
@@ -231,6 +261,7 @@ export interface Customer {
 
 export interface ProductDetails {
     model: string;
+    batch_number?: string;
     serial_number: string;
     purchase_date: string;
     config?: any;
@@ -259,6 +290,11 @@ export interface ComplaintQueryParams {
     filters: Filter[];
     sort_by: string;
     sort_order: number; // -1 for descending, 1 for ascending
+    assigned_to?: string;
+    assignee_read?: 'all' | 'unread';
+    investigator_user?: string;
+    investigator_read?: 'all' | 'unread';
+    status?: ComplaintStatus;
 }
 // types/upload.ts
 export interface FileUploadResponse {
@@ -363,6 +399,7 @@ export interface RootCause {
 export interface InvestigationData {
     investigation_date: string;
     investigating_officers: InvestigatingOfficer[];
+    assignments?: InvestigationAssignment[];
     root_cause: RootCause;
     corrective_action: string;
     capa: {

@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,38 +15,40 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ModeToggle from '@/components/ui/mode-toggle';
 import { mainNav, NavItem } from "@/config/navigation";
-import { usePathname } from "next/navigation";
 import { useLogout } from "@/hooks/api/useAuth";
 import { useAuthStore } from "@/stores/authStore";
-import { User, LogOut, Settings, Shield } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead } from '@/hooks/api/useNotifications';
+import { User, LogOut, Settings, Shield, Bell } from 'lucide-react';
+import { cn, formatDateTime } from '@/lib/utils';
 
 export function Header() {
   const currentPath = usePathname();
   const logoutMutation = useLogout();
+  const router = useRouter();
   const [isReady, setIsReady] = useState(false);
-  const [filteredNavItems, setFilteredNavItems] = useState<NavItem[]>([]);
-  const [showAuthSection, setShowAuthSection] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const user = useAuthStore((state) => state.user);
+  const { data: notifications = [], isFetching: notificationsLoading } = useNotifications('all', {
+    enabled: !!user
+  });
+  const unreadCount = notifications?.filter((notification) => !notification.read_at).length ?? 0;
+  const { mutateAsync: markNotificationRead } = useMarkNotificationRead();
+  const { mutateAsync: markAllNotificationsRead } = useMarkAllNotificationsRead();
 
   useEffect(() => {
-    // This effect runs only on client side after hydration
-    const userData = useAuthStore.getState().user;
-    setUser(userData);
+    setIsReady(true);
+  }, []);
 
-    // Filter navigation items
-    const filtered = mainNav.filter((navItem) => {
+  const filteredNavItems = useMemo<NavItem[]>(() => {
+    return mainNav.filter((navItem) => {
       if (currentPath === '/auth/login') return navItem.href === '/auth/login';
       if (navItem.href === '/auth/login') return false;
       if (!navItem.roles) return true;
-      if (!userData?.role?.[0]) return false;
-      return navItem.roles.includes(userData.role[0]);
+      if (!user?.role?.[0]) return false;
+      return navItem.roles.includes(user.role[0]);
     });
+  }, [currentPath, user]);
 
-    setFilteredNavItems(filtered);
-    setShowAuthSection(!!userData && currentPath !== '/auth/login');
-    setIsReady(true);
-  }, [currentPath]);
+  const showAuthSection = isReady && !!user && currentPath !== '/auth/login';
 
   const isActive = (href: string) => currentPath === href;
 
@@ -118,6 +121,72 @@ export function Header() {
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 flex items-center justify-center">
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async (event) => {
+                        event.preventDefault();
+                        await markAllNotificationsRead();
+                      }}
+                    >
+                      Mark all as read
+                    </Button>
+                  )}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {notificationsLoading ? (
+                  <DropdownMenuItem disabled>Loading notifications…</DropdownMenuItem>
+                ) : notifications.length ? (
+                  notifications.slice(0, 10).map((notification) => (
+                    <DropdownMenuItem
+                      key={notification._id}
+                      onSelect={async (event) => {
+                        event.preventDefault();
+                        await markNotificationRead(notification._id);
+                        if (notification.complaint) {
+                          router.push(`/dashboard/complaints/${notification.complaint}`);
+                        }
+                      }}
+                      className="flex items-start gap-3"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">
+                          {notification.payload?.complaint_number || 'Complaint update'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {notification.type === 'COMPLAINT_ASSIGNED'
+                            ? 'Complaint assigned to you'
+                            : notification.type === 'INVESTIGATION_ASSIGNED'
+                              ? 'Investigation task assigned'
+                              : 'Investigation updated'}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {formatDateTime(notification.created_at)}
+                        </div>
+                      </div>
+                      {!notification.read_at && <span className="mt-1 h-2 w-2 rounded-full bg-primary" />}
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {/* Navigation Links */}
             <nav className="hidden md:flex items-center space-x-1">
               {filteredNavItems.map((navItem) => (

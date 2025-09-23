@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     CheckCircle,
     Clock,
-    AlertCircle,
     XCircle,
-    Lock,
     User,
     FileText,
-    Eye,
     MessageSquare,
     Calendar,
     Phone,
@@ -15,19 +12,17 @@ import {
     Package,
     AlertTriangle,
     Edit3,
-    Save,
-    X,
-    ChevronRight,
     Building,
     Hash,
-    Settings,
     UserCheck,
     Search,
     Users,
     Target,
     ClipboardList,
     ShieldCheck,
-    Info, PhoneCall, Paperclip,
+    Info,
+    PhoneCall,
+    Paperclip,
     Loader2
 } from 'lucide-react';
 
@@ -40,15 +35,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {useAuthStore, UserData} from "@/stores/authStore";
 import {roles} from "@/config/roles";
-import {useComplaintWithWorkflow, useTransitionComplaintStatus, useUpdateReceivedInfo} from "@/hooks/api/useComplaints";
+import {
+    useAssignComplaint,
+    useAssignInvestigators,
+    useComplaintWithWorkflow,
+    useMarkComplaintAssignmentRead,
+    useMarkInvestigationAssignmentRead,
+    useTransitionComplaintStatus,
+    useUpdateReceivedInfo
+} from "@/hooks/api/useComplaints";
 import {Complaint} from "@/lib/api/types/complaints";
-import {Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer";
+import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer";
 import {InvestigationForm} from "@/components/forms/InvestigationForm";
-import {formatDate, formatDateTime} from "@/lib/utils";
+import {formatDate, formatDateTime, showApiErrorToast} from "@/lib/utils";
 import {CustomerCommunicationForm} from "@/components/forms/CustomerCommunicationForm";
 import {ComplaintClosureForm} from "@/components/forms/ComplaintClosureForm";
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
 import {toast} from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
+import { useGetUsers } from '@/hooks/api/useUser';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 interface Props {
     complaintId:any
 }
@@ -150,20 +158,137 @@ const ComplaintDetailPage = (params:Props) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeEditSection, setActiveEditSection] = useState<string | null>(null);
     const [downloadingReport, setDownloadingReport] = useState(false);
+    const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+    const [investigatorDialogOpen, setInvestigatorDialogOpen] = useState(false);
+    const [selectedAssignee, setSelectedAssignee] = useState('');
+    const [assignmentNote, setAssignmentNote] = useState('');
+    const [selectedInvestigators, setSelectedInvestigators] = useState<string[]>([]);
+    const [investigatorNote, setInvestigatorNote] = useState('');
+    const [hasMarkedAssigneeRead, setHasMarkedAssigneeRead] = useState(false);
+    const [hasMarkedInvestigatorRead, setHasMarkedInvestigatorRead] = useState(false);
 
-    const { data: complaintData, isLoading:loading, refetch } = useComplaintWithWorkflow(params.complaintId);
+    const {
+        data: complaintData,
+        isLoading,
+        isError,
+        isSuccess,
+        refetch
+    } = useComplaintWithWorkflow(params.complaintId);
+    console.log('fetched complaint data>>:', complaintData);
+
+    const { mutateAsync: assignComplaint, isPending: isAssigningComplaint } = useAssignComplaint(params.complaintId);
+    const { mutateAsync: assignInvestigators, isPending: isAssigningInvestigators } = useAssignInvestigators(params.complaintId);
+    const { mutate: markAssigneeRead } = useMarkComplaintAssignmentRead(params.complaintId);
+    const { mutate: markInvestigationRead } = useMarkInvestigationAssignmentRead(params.complaintId);
+
+    const userQueryPayload = useMemo(() => ({
+        page_size: 100,
+        page_index: 0,
+        global_value: '',
+        global_filter: [] as string[],
+        sort_by: 'firstName',
+        sort_order: 1,
+        filters: [] as any[]
+    }), []);
+
+    const { data: assignableUsersData, isLoading: isLoadingUsers } = useGetUsers(userQueryPayload);
+    const assignableUsers = useMemo(
+        () => assignableUsersData?.data?.list ?? assignableUsersData?.list ?? [],
+        [assignableUsersData]
+    );
+    const userOptions: MultiSelectOption[] = useMemo(
+        () =>
+            assignableUsers.map((user: any) => ({
+                value: user._id,
+                label: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.emailId || user._id
+            })),
+        [assignableUsers]
+    );
+    const investigatorOptions = userOptions;
 
     // API call to fetch complaint details
+    const investigatorAssignments = useMemo(
+        () => complaint?.investigation?.assignments ?? [],
+        [complaint?.investigation?.assignments]
+    );
+
+    const myInvestigationAssignment = useMemo(() => {
+        if (!currentUser?._id) return undefined;
+        return investigatorAssignments.find((assignment) => {
+            const assignmentUserId = typeof assignment.user === 'string'
+                ? assignment.user
+                : assignment.user?._id;
+            return assignmentUserId === currentUser._id;
+        });
+    }, [investigatorAssignments, currentUser?._id]);
+
     useEffect(() => {
-        if (complaintData?.data ) {
+        console.log('Complaint Data Effect:', complaintData, isSuccess);
+        if (isSuccess && complaintData?.data) {
+            console.log('Fetched Complaint Data:', complaintData);
             setComplaint(complaintData.data);
-        } else {
-            setComplaint(null);
         }
-    }, [complaintData]);
+    }, [complaintData, isSuccess]);
+
+    useEffect(() => {
+        if (!assignmentDialogOpen) {
+            setAssignmentNote('');
+            setSelectedAssignee('');
+        }
+    }, [assignmentDialogOpen]);
+
+    useEffect(() => {
+        if (!investigatorDialogOpen) {
+            setInvestigatorNote('');
+            setSelectedInvestigators([]);
+        }
+    }, [investigatorDialogOpen]);
+
+    useEffect(() => {
+        if (!complaint || !currentUser?._id) return;
+
+        const assignedToId = typeof complaint.assigned_to === 'string'
+            ? complaint.assigned_to
+            : complaint.assigned_to?._id;
+
+        if (
+            assignedToId &&
+            assignedToId === currentUser._id &&
+            !complaint.assignee_read_at &&
+            !hasMarkedAssigneeRead
+        ) {
+            markAssigneeRead();
+            setHasMarkedAssigneeRead(true);
+        }
+
+        if (myInvestigationAssignment && !myInvestigationAssignment.read_at && !hasMarkedInvestigatorRead) {
+            markInvestigationRead();
+            setHasMarkedInvestigatorRead(true);
+        }
+    }, [
+        complaint,
+        currentUser?._id,
+        hasMarkedAssigneeRead,
+        hasMarkedInvestigatorRead,
+        markAssigneeRead,
+        markInvestigationRead,
+        myInvestigationAssignment
+    ]);
+
+    useEffect(() => {
+        if (!complaint) return;
+
+        if (complaint.assigned_to && !complaint.assignee_read_at) {
+            setHasMarkedAssigneeRead(false);
+        }
+
+        if (myInvestigationAssignment && !myInvestigationAssignment.read_at) {
+            setHasMarkedInvestigatorRead(false);
+        }
+    }, [complaint, myInvestigationAssignment]);
 
     // Helper functions
-    const getUserRole = (user:UserData) => user.role?.[0];
+    const getUserRole = (user: UserData | null | undefined) => user?.role?.[0] ?? '';
 
     const getAvailableTransitions = () => {
         if (!complaint) return [];
@@ -191,6 +316,66 @@ const ComplaintDetailPage = (params:Props) => {
 
         console.log('Role Config:', roleConfig);
         return roleConfig?.canEdit?.includes(section);
+    };
+
+    const getUserDisplayName = (user: any) => {
+        if (!user) return 'Unassigned';
+        if (typeof user === 'string') {
+            const matchedUser = assignableUsers.find((existingUser: any) => existingUser._id === user);
+            if (matchedUser) {
+                return `${matchedUser.firstName ?? ''} ${matchedUser.lastName ?? ''}`.trim() || matchedUser.emailId || matchedUser._id;
+            }
+            return user;
+        }
+        return `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.emailId || user._id;
+    };
+
+    const currentUserRole = getUserRole(currentUser);
+    const canAssignComplaint = ['support', 'qa', roles.SUPER_ADMIN].includes(currentUserRole);
+    const canAssignInvestigators = ['qa', roles.SUPER_ADMIN, 'support'].includes(currentUserRole);
+
+    const assignedUserId = complaint?.assigned_to
+        ? (typeof complaint.assigned_to === 'string'
+            ? complaint.assigned_to
+            : complaint.assigned_to?._id)
+        : undefined;
+
+    const handleAssignComplaint = async () => {
+        if (!selectedAssignee) {
+            toast.error('Please select a user to assign.');
+            return;
+        }
+
+        try {
+            await assignComplaint({ assigneeId: selectedAssignee, note: assignmentNote });
+            toast.success('Complaint assigned successfully');
+            setAssignmentDialogOpen(false);
+            setSelectedAssignee('');
+            setAssignmentNote('');
+            await refetch();
+        } catch (error) {
+            showApiErrorToast(error as Error);
+        }
+    };
+
+    const handleAssignInvestigators = async () => {
+        if (!selectedInvestigators.length) {
+            toast.error('Select at least one investigator.');
+            return;
+        }
+
+        try {
+            await assignInvestigators({
+                assignees: selectedInvestigators.map((userId) => ({ userId, note: investigatorNote }))
+            });
+            toast.success('Investigators assigned successfully');
+            setInvestigatorDialogOpen(false);
+            setSelectedInvestigators([]);
+            setInvestigatorNote('');
+            await refetch();
+        } catch (error) {
+            showApiErrorToast(error as Error);
+        }
     };
 
     // API calls for status updates
@@ -291,7 +476,7 @@ const ComplaintDetailPage = (params:Props) => {
         );
     };
 
-    if (loading) {
+    if (isLoading && !complaint) {
         return (
             <div className="container mx-auto p-6">
                 <div className="flex items-center justify-center h-64">
@@ -301,7 +486,8 @@ const ComplaintDetailPage = (params:Props) => {
         );
     }
 
-    if (!complaint) {
+    console.log('Complaint Data:', complaint,isError,isSuccess);
+    if (!complaint && (isError || isSuccess)) {
         return (
             <div className="container mx-auto p-6">
                 <Alert variant="destructive">
@@ -652,6 +838,81 @@ const ComplaintDetailPage = (params:Props) => {
 
                 {/* Complaint Details Tab */}
                 <TabsContent value="details" className="space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="flex items-center">
+                                <UserCheck className="h-5 w-5 mr-2" />
+                                Assignment Overview
+                            </CardTitle>
+                            {canAssignComplaint && (
+                                <Button size="sm" onClick={() => {
+                                    setAssignmentDialogOpen(true);
+                                    setSelectedAssignee(assignedUserId ?? '');
+                                }}>
+                                    Assign Complaint
+                                </Button>
+                            )}
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-1">
+                                    <div className="text-sm text-muted-foreground">Assigned To</div>
+                                    <div className="font-medium">{assignedUserId ? getUserDisplayName(complaint.assigned_to) : 'Unassigned'}</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="text-sm text-muted-foreground">Assignment Status</div>
+                                    {assignedUserId ? (
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant={complaint.assignee_read_at ? 'secondary' : 'destructive'}>
+                                                {complaint.assignee_read_at ? 'Read' : 'Unread'}
+                                            </Badge>
+                                            {complaint.assignee_read_at && (
+                                                <span className="text-xs text-muted-foreground">{formatDateTime(complaint.assignee_read_at)}</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">No assignee</span>
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="text-sm text-muted-foreground">Assigned On</div>
+                                    <div className="text-sm">{complaint.assigned_at ? formatDateTime(complaint.assigned_at) : '—'}</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="text-sm text-muted-foreground">Last Updated</div>
+                                    <div className="text-sm">{complaint.updated_on ? formatDateTime(complaint.updated_on) : '—'}</div>
+                                </div>
+                            </div>
+
+                            {complaint.assignment_history && complaint.assignment_history.length > 0 && (
+                                <div className="space-y-3">
+                                    <div className="text-sm font-medium">Assignment History</div>
+                                    <div className="space-y-2">
+                                        {complaint.assignment_history
+                                            .slice()
+                                            .reverse()
+                                            .map((history, idx) => (
+                                                <div key={`${history.assigned_at}-${idx}`} className="flex items-center justify-between rounded-lg border p-3">
+                                                    <div>
+                                                        <div className="text-sm font-medium">{getUserDisplayName(history.assigned_to)}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            Assigned by {getUserDisplayName(history.assigned_by)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground text-right">
+                                                        {history.assigned_at ? formatDateTime(history.assigned_at) : '—'}
+                                                        {history.note && (
+                                                            <div className="mt-1 italic">{history.note}</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     {/* Customer Information */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
@@ -817,6 +1078,71 @@ const ComplaintDetailPage = (params:Props) => {
                                                 <span className="font-medium">Investigation Date:</span>
                                                 <span className="ml-2">{formatDateTime(complaint.investigation.investigation_date)}</span>
                                             </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between">
+                                        <CardTitle className="flex items-center">
+                                            <Users className="h-5 w-5 mr-2" />
+                                            Investigation Assignments
+                                        </CardTitle>
+                                        {canAssignInvestigators && (
+                                            <Button size="sm" variant="ghost" onClick={() => {
+                                                setInvestigatorDialogOpen(true);
+                                                setSelectedInvestigators(
+                                                    investigatorAssignments
+                                                        .map((assignment) => {
+                                                            const assignmentUserId = typeof assignment.user === 'string'
+                                                                ? assignment.user
+                                                                : assignment.user?._id;
+                                                            return assignmentUserId || '';
+                                                        })
+                                                        .filter(Boolean)
+                                                );
+                                            }}>
+                                                Assign Investigators
+                                            </Button>
+                                        )}
+                                    </CardHeader>
+                                    <CardContent>
+                                        {investigatorAssignments.length ? (
+                                            <div className="space-y-3">
+                                                {investigatorAssignments.map((assignment, idx) => {
+                                                    const assignmentUserId = typeof assignment.user === 'string'
+                                                        ? assignment.user
+                                                        : assignment.user?._id;
+                                                    const statusVariant = assignment.status === 'accepted'
+                                                        ? 'default'
+                                                        : assignment.status === 'declined'
+                                                            ? 'destructive'
+                                                            : 'secondary';
+                                                    return (
+                                                        <div key={`${assignmentUserId}-${idx}`} className="flex items-center justify-between rounded-lg border p-3">
+                                                            <div>
+                                                                <div className="text-sm font-medium">{getUserDisplayName(assignment.user)}</div>
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    Assigned {assignment.assigned_at ? formatDateTime(assignment.assigned_at) : '—'}
+                                                                </div>
+                                                                {assignment.note && (
+                                                                    <div className="text-xs text-muted-foreground mt-1 italic">{assignment.note}</div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                <Badge variant={statusVariant} className="w-fit">
+                                                                    {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                                                                </Badge>
+                                                                <span className={`text-xs ${assignment.read_at ? 'text-muted-foreground' : 'text-red-500'}`}>
+                                                                    {assignment.read_at ? `Read ${formatDateTime(assignment.read_at)}` : 'Unread'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">No investigators assigned yet.</p>
                                         )}
                                     </CardContent>
                                 </Card>
@@ -1121,14 +1447,111 @@ const ComplaintDetailPage = (params:Props) => {
                         </CardContent>
                     </Card>
                 </TabsContent>
-            </Tabs>
+        </Tabs>
 
-            {/* Single drawer for all sections */}
-            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <DrawerContent className="!h-screen !max-h-screen flex flex-col">
-                    <DrawerHeader>
-                        <DrawerTitle>Edit {activeEditSection}</DrawerTitle>
-                    </DrawerHeader>
+        <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Assign Complaint</DialogTitle>
+                    <DialogDescription>
+                        Choose a responsible user for this complaint and optionally add a note.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="assignee">Assignee</Label>
+                        <Select
+                            value={selectedAssignee}
+                            onValueChange={setSelectedAssignee}
+                            disabled={isLoadingUsers || isAssigningComplaint}
+                        >
+                            <SelectTrigger id="assignee">
+                                <SelectValue placeholder={isLoadingUsers ? 'Loading users…' : 'Select user'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {userOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="assignment-note">Note (optional)</Label>
+                        <Textarea
+                            id="assignment-note"
+                            value={assignmentNote}
+                            onChange={(event) => setAssignmentNote(event.target.value)}
+                            placeholder="Add context for the assignee"
+                            rows={3}
+                        />
+                    </div>
+                </div>
+                <DialogFooter className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => setAssignmentDialogOpen(false)} disabled={isAssigningComplaint}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleAssignComplaint} disabled={isAssigningComplaint || !selectedAssignee}>
+                        {isAssigningComplaint ? 'Assigning…' : 'Assign'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={investigatorDialogOpen} onOpenChange={setInvestigatorDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Assign Investigators</DialogTitle>
+                    <DialogDescription>
+                        Select one or more investigators to work on this complaint.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Investigators</Label>
+                        <MultiSelect
+                            options={investigatorOptions}
+                            selected={selectedInvestigators}
+                            onChange={(value) => setSelectedInvestigators(Array.isArray(value) ? value : [value])}
+                            placeholder={isLoadingUsers ? 'Loading users…' : 'Select investigators'}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="investigator-note">Note (optional)</Label>
+                        <Textarea
+                            id="investigator-note"
+                            value={investigatorNote}
+                            onChange={(event) => setInvestigatorNote(event.target.value)}
+                            placeholder="Add context for the investigation team"
+                            rows={3}
+                        />
+                    </div>
+                </div>
+                <DialogFooter className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setInvestigatorDialogOpen(false)}
+                        disabled={isAssigningInvestigators}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleAssignInvestigators}
+                        disabled={isAssigningInvestigators || selectedInvestigators.length === 0}
+                    >
+                        {isAssigningInvestigators ? 'Assigning…' : 'Assign'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Single drawer for all sections */}
+        <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <DrawerContent className="!h-screen !max-h-screen flex flex-col">
+                <DrawerHeader>
+                    <DrawerTitle>Edit {activeEditSection}</DrawerTitle>
+                </DrawerHeader>
                     {renderDrawerContent()}
                 </DrawerContent>
             </Drawer>

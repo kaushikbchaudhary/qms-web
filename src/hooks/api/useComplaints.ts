@@ -1,7 +1,6 @@
 import {useQuery, useMutation, useQueryClient, UseQueryResult} from '@tanstack/react-query'
-import {apiClient} from '@/lib/api/client'
 import {
-    Complaint, ComplaintCreateResponse,
+    ComplaintCreateResponse,
     ComplaintQueryParams,
     ComplaintsApiResponse,
     CreateComplaintPayload, MasterLookupItem
@@ -30,7 +29,7 @@ export function useCreateComplaint() {
         {
             return complaintsApi.createComplaint(complaintData);
         },
-        onSuccess: (response) => {
+        onSuccess: () => {
             // Invalidate queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['complaints'] })
             toast.success('Complaint created successfully!');
@@ -161,6 +160,61 @@ export function useUpdateInvestigation(complaintId: string) {
         onSuccess: () => {
             queryClient.invalidateQueries({queryKey: ['complaint', complaintId]});
             toast.success('Investigation updated successfully');
+        },
+        onError: showApiErrorToast
+    });
+}
+
+export function useAssignComplaint(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: { assigneeId: string; note?: string }) =>
+            complaintsApi.assignComplaint(complaintId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            queryClient.invalidateQueries({ queryKey: ['complaints'] });
+            toast.success('Complaint assigned successfully');
+        },
+        onError: showApiErrorToast
+    });
+}
+
+export function useAssignInvestigators(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: { assignees: { userId: string; note?: string }[] }) =>
+            complaintsApi.assignInvestigation(complaintId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            toast.success('Investigators assigned successfully');
+        },
+        onError: showApiErrorToast
+    });
+}
+
+export function useMarkComplaintAssignmentRead(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: () => complaintsApi.markComplaintAssignmentRead(complaintId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        },
+        onError: showApiErrorToast
+    });
+}
+
+export function useMarkInvestigationAssignmentRead(complaintId: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: () => complaintsApi.markInvestigationAssignmentRead(complaintId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
         },
         onError: showApiErrorToast
     });
