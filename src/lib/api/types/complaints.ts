@@ -115,6 +115,7 @@ export interface Customer {
 
 export interface ProductDetails {
     model: string;
+    batch_number?: string;
     serial_number: string;
     purchase_date: string;
     unique_identifier?: string;

@@ -1,6 +1,6 @@
 'use client'
 
-import {useForm, useWatch} from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -13,22 +13,23 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from '@radix-ui/react-icons'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { useCreateComplaint, useLookup} from '@/hooks/api/useComplaints'
-import { useMemo, useState} from "react";
-import { MasterLookupItem} from "@/lib/api/types/complaints";
-import {FileUploadComponent} from "@/components/forms/FileUploadComponent";
-import {useAttachmentManager} from "@/components/forms/AttachmentManager";
-// Form validation schema
+import { useCreateComplaint, useLookup } from '@/hooks/api/useComplaints'
+import { useEffect, useState } from 'react'
+import { MasterLookupItem } from '@/lib/api/types/complaints'
+import { FileUploadComponent } from '@/components/forms/FileUploadComponent'
+import { useAttachmentManager } from '@/components/forms/AttachmentManager'
+
 const formSchema = z.object({
     customer: z.object({
-        name: z.string().min(2, "Name must be at least 2 characters"),
+        name: z.string().min(2, 'Name must be at least 2 characters'),
         company: z.string().optional(),
-        contact_number: z.string().min(10, "Invalid phone number"),
-        email: z.string().email("Invalid email address"),
+        contact_number: z.string().min(10, 'Invalid phone number'),
+        email: z.string().email('Invalid email address'),
     }),
     product_details: z.object({
-        model: z.string().min(1, "Model is required"),
-        serial_number: z.string().min(1, "Serial number is required"),
+        model: z.string().min(1, 'Model is required'),
+        batch_number: z.string().optional(),
+        serial_number: z.string().min(1, 'Serial number is required'),
         purchase_date: z.string(),
     }),
     complaint_type: z.object({
@@ -41,20 +42,20 @@ const formSchema = z.object({
         }),
     }),
     issue_details: z.object({
-        description: z.string().min(10, "Description must be at least 10 characters"),
+        description: z.string().min(10, 'Description must be at least 10 characters'),
         problem_start_date: z.string(),
-        occurred_before: z.enum(["Yes", "No"]),
+        occurred_before: z.enum(['Yes', 'No']),
         replication_steps: z.string().optional(),
     }),
-    customer_impact: z.string().min(10, "Impact description must be at least 10 characters"),
+    customer_impact: z.string().min(10, 'Impact description must be at least 10 characters'),
     previous_contact: z.object({
-        reported_before: z.enum(["Yes", "No"]),
+        reported_before: z.enum(['Yes', 'No']),
         reference_number: z.string().optional(),
         contact_date: z.string().optional(),
         person_contacted: z.string().optional(),
     }),
     customer_actions: z.object({
-        troubleshooting_done: z.enum(["Yes", "No"]),
+        troubleshooting_done: z.enum(['Yes', 'No']),
         troubleshooting_description: z.string().optional(),
     }),
     preferred_resolution_method: z.object({
@@ -71,143 +72,174 @@ const formSchema = z.object({
         serial_number: z.string().optional(),
         mfg_date: z.string().optional(),
     }).optional(),
-    attachments: z.array(z.string().url("Invalid URL")).optional(),
+    attachments: z.array(z.string().url('Invalid URL')).optional(),
 })
-
 
 export function ComplaintForm() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             customer: {
-                name: "",
-                company: "",
-                contact_number: "",
-                email: "",
+                name: '',
+                company: '',
+                contact_number: '',
+                email: '',
             },
             product_details: {
-                model: "",
-                serial_number: "",
+                model: '',
+                batch_number: '',
+                serial_number: '',
                 purchase_date: new Date().toISOString(),
             },
             complaint_type: {
-                name: "Performance Issue",
-                description: "Issues related to product performance",
+                name: 'Performance Issue',
+                description: 'Issues related to product performance',
                 config: {
-                    _id: "687dc9f1b0e9176a170ac0bc",
-                    name: "Performance Issue",
-                    type: "COMPLAINT_TYPE",
+                    _id: '687dc9f1b0e9176a170ac0bc',
+                    name: 'Performance Issue',
+                    type: 'COMPLAINT_TYPE',
                 },
             },
             issue_details: {
-                description: "",
+                description: '',
                 problem_start_date: new Date().toISOString(),
-                occurred_before: "No",
-                replication_steps: "",
+                occurred_before: 'No',
+                replication_steps: '',
             },
-            customer_impact: "",
+            customer_impact: '',
             previous_contact: {
-                reported_before: "No",
-                reference_number: "",
-                contact_date: "",
-                person_contacted: "",
+                reported_before: 'No',
+                reference_number: '',
+                contact_date: '',
+                person_contacted: '',
             },
             customer_actions: {
-                troubleshooting_done: "No",
-                troubleshooting_description: "",
+                troubleshooting_done: 'No',
+                troubleshooting_description: '',
             },
             preferred_resolution_method: {
-                name: "Replacement",
-                description: "Replacement of the faulty product",
+                name: 'Replacement',
+                description: 'Replacement of the faulty product',
                 config: {
-                    _id: "687dc9f1b0e9176a170ac0c2",
-                    name: "Replacement",
-                    type: "RESOLUTION_METHOD",
+                    _id: '687dc9f1b0e9176a170ac0c2',
+                    name: 'Replacement',
+                    type: 'RESOLUTION_METHOD',
                 },
             },
-            replacement_details:{
-                batch_number: "",
-                serial_number: "",
+            replacement_details: {
+                batch_number: '',
+                serial_number: '',
                 mfg_date: '',
             },
             attachments: [],
         },
     })
-    const [pathsAttachments, setPathsAttachments] = useState<string[]>([]);
-    const { attachments, addFiles, removeFile ,setAttachments} = useAttachmentManager();
+
+    const [submissionDate] = useState(() => new Date())
+    const [pathsAttachments, setPathsAttachments] = useState<string[]>([])
+    const { attachments, addFiles, removeFile, setAttachments } = useAttachmentManager()
 
     const [complaintType, preferredResolution] = useWatch({
         control: form.control,
-        name: ["complaint_type", "preferred_resolution_method"],
-    });
+        name: ['complaint_type', 'preferred_resolution_method'],
+    })
+
     const { mutate: createComplaint, isPending } = useCreateComplaint()
+
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
-        // Prepare the payload with attachment paths
-        const payload = {
-            ...values,
-            issue_details: {
-                ...values.issue_details,
-                replication_steps: values.issue_details.replication_steps ?? null,
-            },
-            complaint_type:{
-                ...values.complaint_type,
-                description: values.complaint_type.description ?? null,
-            },
-            preferred_resolution_method: {
-                ...values.preferred_resolution_method,
-                description: values.preferred_resolution_method.description ?? null,
-            },
-            replacement_details:{
-                ...values.replacement_details,
-                ...(values.replacement_details ? {
-                    batch_number: values.replacement_details.batch_number || undefined,
-                    serial_number: values.replacement_details.serial_number || undefined,
-                    mfg_date: values.replacement_details.mfg_date ? new Date(values.replacement_details.mfg_date).toISOString() : undefined,
-                } : {})
-            },
-            attachments: pathsAttachments
-        }
-        createComplaint(payload, {
-            onSuccess: () => {
-                form.reset()
-                setAttachments([]); // Clear attachments after successful submission
-                setPathsAttachments([]); // Clear paths after successful submission
-            },
-            onError: (error) => {
-                // error handling here
+            const payload = {
+                ...values,
+                product_details: {
+                    ...values.product_details,
+                    batch_number: values.product_details.batch_number || undefined,
+                },
+                issue_details: {
+                    ...values.issue_details,
+                    replication_steps: values.issue_details.replication_steps ?? null,
+                },
+                complaint_type: {
+                    ...values.complaint_type,
+                    description: values.complaint_type.description ?? null,
+                },
+                preferred_resolution_method: {
+                    ...values.preferred_resolution_method,
+                    description: values.preferred_resolution_method.description ?? null,
+                },
+                replacement_details: values.replacement_details
+                    ? {
+                          ...values.replacement_details,
+                          batch_number: values.replacement_details.batch_number || undefined,
+                          serial_number: values.replacement_details.serial_number || undefined,
+                          mfg_date: values.replacement_details.mfg_date
+                              ? new Date(values.replacement_details.mfg_date).toISOString()
+                              : undefined,
+                      }
+                    : undefined,
+                attachments: pathsAttachments,
             }
-        });
+            createComplaint(payload, {
+                onSuccess: () => {
+                    form.reset()
+                    setAttachments([])
+                    setPathsAttachments([])
+                },
+                onError: () => {
+                    // error handling placeholder
+                },
+            })
         } catch (error) {
-            console.error('Error uploading attachments:', error);
-            // Handle attachment upload errors
+            console.error('Error uploading attachments:', error)
         }
     }
 
-    const {refetch:refetch_complaint_type,isFetching:isFetching_complaint_type,isLoading:isLoading_complaint_type,data:data_complaint_type} = useLookup({ type: 'COMPLAINT_TYPE' });
-    // type=RESOLUTION_METHOD
-    const {refetch:refetch_Resolution_method,isFetching:isFetching_Resolution_method,isLoading:isLoading_Resolution_method,data:data_resolution_method} = useLookup({ type: 'RESOLUTION_METHOD' })
+    const {
+        refetch: refetchComplaintType,
+        data: dataComplaintType,
+    } = useLookup({ type: 'COMPLAINT_TYPE' })
 
-    useMemo(()=>{
-        refetch_complaint_type();
-        refetch_Resolution_method();
-    },[])
-    const attachemntfiles = form.watch('attachments');
+    const {
+        refetch: refetchResolutionMethod,
+        data: dataResolutionMethod,
+    } = useLookup({ type: 'RESOLUTION_METHOD' })
+
+    useEffect(() => {
+        refetchComplaintType()
+        refetchResolutionMethod()
+    }, [refetchComplaintType, refetchResolutionMethod])
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                {/* Customer Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Customer Details</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-semibold">Complaint Form</h2>
+                    <div className="grid grid-cols-1 gap-4 p-6 border rounded-lg md:grid-cols-3">
+                        <div className="space-y-1">
+                            <p className="font-medium">Date of Complaint Submission:</p>
+                            <p className="text-sm text-muted-foreground">{format(submissionDate, 'PPP')}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-medium">Date:</p>
+                            <p className="text-sm text-muted-foreground">{format(submissionDate, 'PPP')}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-medium">Complaint No:</p>
+                            <p className="text-sm text-muted-foreground">Auto-generated upon submission</p>
+                        </div>
+                    </div>
+                </div>
+
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Customer Details:</h3>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <FormField
                             control={form.control}
                             name="customer.name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Full Name</FormLabel>
+                                    <FormLabel>Customer Name:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Customer fullname" {...field} />
+                                        <Input placeholder="Enter customer name" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -218,9 +250,9 @@ export function ComplaintForm() {
                             name="customer.company"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Company</FormLabel>
+                                    <FormLabel>Company (if applicable):</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="kalimed technology pvt ltd" {...field} />
+                                        <Input placeholder="Enter company name" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -231,9 +263,9 @@ export function ComplaintForm() {
                             name="customer.contact_number"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Contact Number</FormLabel>
+                                    <FormLabel>Contact Number:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="+91 7985453241" {...field} />
+                                        <Input placeholder="Enter contact number" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -244,29 +276,41 @@ export function ComplaintForm() {
                             name="customer.email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email</FormLabel>
+                                    <FormLabel>Email Address:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Customer@yopmail.com" {...field} />
+                                        <Input placeholder="Enter email address" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                     </div>
-                </div>
+                </section>
 
-                {/* Product Details Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Product Details</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Product Details:</h3>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <FormField
                             control={form.control}
                             name="product_details.model"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Model</FormLabel>
+                                    <FormLabel>Product Name/Model:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="OOM_800" {...field} />
+                                        <Input placeholder="Enter product name or model" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="product_details.batch_number"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Product Unique identifier/Batch no.:</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter unique identifier or batch number" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -277,9 +321,9 @@ export function ComplaintForm() {
                             name="product_details.serial_number"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Serial Number</FormLabel>
+                                    <FormLabel>Serial Number:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="KE304062400001" {...field} />
+                                        <Input placeholder="Enter serial number" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -290,21 +334,21 @@ export function ComplaintForm() {
                             name="product_details.purchase_date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Purchase Date</FormLabel>
+                                    <FormLabel>Date of Purchase/Rental/Lease:</FormLabel>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                                 <Button
-                                                    variant={"outline"}
+                                                    variant={'outline'}
                                                     className={cn(
-                                                        "w-[240px] pl-3 text-left font-normal",
-                                                        !field.value && "text-muted-foreground"
+                                                        'w-[240px] pl-3 text-left font-normal',
+                                                        !field.value && 'text-muted-foreground'
                                                     )}
                                                 >
                                                     {field.value ? (
-                                                        format(new Date(field.value), "PPP")
+                                                        format(new Date(field.value), 'PPP')
                                                     ) : (
-                                                        <span>Pick a date</span>
+                                                        <span>Select a date</span>
                                                     )}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
@@ -313,12 +357,10 @@ export function ComplaintForm() {
                                         <PopoverContent className="w-auto p-0" align="start">
                                             <Calendar
                                                 mode="single"
-                                                selected={new Date(field.value)}
-                                                onSelect={(date) =>
-                                                    field.onChange(date?.toISOString())
-                                                }
+                                                selected={field.value ? new Date(field.value) : undefined}
+                                                onSelect={(date) => field.onChange(date?.toISOString())}
                                                 disabled={(date) =>
-                                                    date > new Date() || date < new Date("1900-01-01")
+                                                    date > new Date() || date < new Date('1900-01-01')
                                                 }
                                                 initialFocus
                                             />
@@ -329,45 +371,46 @@ export function ComplaintForm() {
                             )}
                         />
                     </div>
-                </div>
+                </section>
 
-                {/* Complaint Type Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Complaint Type</h3>
-
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Nature of Complaint:</h3>
                     <FormField
                         control={form.control}
                         name="complaint_type"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Select Complaint Type</FormLabel>
+                                <FormLabel>Type of Complaint (Select one):</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={(value) => {
-                                            const selected  = data_complaint_type?.length && data_complaint_type.find((item:MasterLookupItem) => item._id === value);
+                                            const selected = dataComplaintType?.find(
+                                                (item: MasterLookupItem) => item._id === value,
+                                            )
                                             if (selected) {
-                                                form.setValue("complaint_type", {
+                                                form.setValue('complaint_type', {
                                                     name: selected.name,
-                                                    description:  selected.description ?? null,
+                                                    description: selected.description ?? null,
                                                     config: {
                                                         _id: selected._id,
                                                         name: selected.name,
-                                                        type: selected.type
-                                                    }
-                                                });
+                                                        type: selected.type,
+                                                    },
+                                                })
                                             }
                                         }}
                                         value={field.value?.config?._id}
                                         className="flex flex-col space-y-2"
                                     >
-                                        {data_complaint_type && data_complaint_type.map((type:MasterLookupItem,i) => (
-                                            <FormItem key={type._id} className="flex items-center space-x-3 space-y-0">
+                                        {dataComplaintType?.map((type: MasterLookupItem) => (
+                                            <FormItem
+                                                key={type._id}
+                                                className="flex items-center space-x-3 space-y-0"
+                                            >
                                                 <FormControl>
                                                     <RadioGroupItem value={type._id} />
                                                 </FormControl>
-                                                <FormLabel className="font-normal">
-                                                    {type.name}
-                                                </FormLabel>
+                                                <span className="text-sm">{type.name}</span>
                                             </FormItem>
                                         ))}
                                     </RadioGroup>
@@ -376,21 +419,18 @@ export function ComplaintForm() {
                             </FormItem>
                         )}
                     />
-
-                    {/* Regular description for non-"Other" types */}
-                    {complaintType?.config?.name === "Other" && (
+                    {complaintType?.config?.name === 'Other' && (
                         <FormField
                             control={form.control}
                             name="complaint_type.description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-foreground">Please specify*</FormLabel>
+                                    <FormLabel>Other (please specify):</FormLabel>
                                     <FormControl>
                                         <Input
-                                            placeholder="Describe your specific complaint type..."
+                                            placeholder="Enter complaint type"
                                             {...field}
-                                            value={field.value ?? ""}
-                                            className="mt-1"
+                                            value={field.value ?? ''}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -398,19 +438,19 @@ export function ComplaintForm() {
                             )}
                         />
                     )}
-                </div>
-                {/* Issue Details Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Issue Details</h3>
+                </section>
+
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Detailed Description of the Issue:</h3>
                     <FormField
                         control={form.control}
                         name="issue_details.description"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Description</FormLabel>
+                                <FormLabel>Issue Description:</FormLabel>
                                 <FormControl>
                                     <Textarea
-                                        placeholder="This is demo description"
+                                        placeholder="Describe the issue in detail"
                                         className="min-h-[120px]"
                                         {...field}
                                     />
@@ -419,27 +459,27 @@ export function ComplaintForm() {
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <FormField
                             control={form.control}
                             name="issue_details.problem_start_date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Problem Start Date</FormLabel>
+                                    <FormLabel>When did the problem start?</FormLabel>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                                 <Button
-                                                    variant={"outline"}
+                                                    variant={'outline'}
                                                     className={cn(
-                                                        "w-[240px] pl-3 text-left font-normal",
-                                                        !field.value && "text-muted-foreground"
+                                                        'w-[240px] pl-3 text-left font-normal',
+                                                        !field.value && 'text-muted-foreground'
                                                     )}
                                                 >
                                                     {field.value ? (
-                                                        format(new Date(field.value), "PPP")
+                                                        format(new Date(field.value), 'PPP')
                                                     ) : (
-                                                        <span>Pick a date</span>
+                                                        <span>Select a date</span>
                                                     )}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
@@ -448,12 +488,10 @@ export function ComplaintForm() {
                                         <PopoverContent className="w-auto p-0" align="start">
                                             <Calendar
                                                 mode="single"
-                                                selected={new Date(field.value)}
-                                                onSelect={(date) =>
-                                                    field.onChange(date?.toISOString())
-                                                }
+                                                selected={field.value ? new Date(field.value) : undefined}
+                                                onSelect={(date) => field.onChange(date?.toISOString())}
                                                 disabled={(date) =>
-                                                    date > new Date() || date < new Date("1900-01-01")
+                                                    date > new Date() || date < new Date('1900-01-01')
                                                 }
                                                 initialFocus
                                             />
@@ -468,24 +506,24 @@ export function ComplaintForm() {
                             name="issue_details.occurred_before"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel>Has this issue occurred before?</FormLabel>
+                                    <FormLabel>Has the issue occurred before? ☐ Yes / ☐ No</FormLabel>
                                     <FormControl>
                                         <RadioGroup
                                             onValueChange={field.onChange}
-                                            defaultValue={field.value}
+                                            value={field.value}
                                             className="flex space-x-4"
                                         >
                                             <FormItem className="flex items-center space-x-2 space-y-0">
                                                 <FormControl>
                                                     <RadioGroupItem value="Yes" />
                                                 </FormControl>
-                                                <FormLabel className="font-normal">Yes</FormLabel>
+                                                <span className="text-sm">Yes</span>
                                             </FormItem>
                                             <FormItem className="flex items-center space-x-2 space-y-0">
                                                 <FormControl>
                                                     <RadioGroupItem value="No" />
                                                 </FormControl>
-                                                <FormLabel className="font-normal">No</FormLabel>
+                                                <span className="text-sm">No</span>
                                             </FormItem>
                                         </RadioGroup>
                                     </FormControl>
@@ -494,30 +532,27 @@ export function ComplaintForm() {
                             )}
                         />
                     </div>
-                    {form.watch("issue_details.occurred_before") === "Yes" && (
-                        <FormField
-                            control={form.control}
-                            name="issue_details.replication_steps"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Steps to replicate the issue (if applicable)</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Steps to reproduce the issue..."
-                                            className="min-h-[80px]"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
-                </div>
+                    <FormField
+                        control={form.control}
+                        name="issue_details.replication_steps"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Steps to replicate the issue (if applicable):</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        placeholder="List the steps to replicate the issue"
+                                        className="min-h-[80px]"
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </section>
 
-                {/* Customer Impact Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Customer Impact</h3>
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Customer Impact:</h3>
                     <FormField
                         control={form.control}
                         name="customer_impact"
@@ -526,7 +561,7 @@ export function ComplaintForm() {
                                 <FormLabel>How is this issue affecting you?</FormLabel>
                                 <FormControl>
                                     <Textarea
-                                        placeholder="This is demo impact."
+                                        placeholder="Explain how the issue impacts you"
                                         className="min-h-[100px]"
                                         {...field}
                                     />
@@ -535,34 +570,33 @@ export function ComplaintForm() {
                             </FormItem>
                         )}
                     />
-                </div>
+                </section>
 
-                {/* Previous Contact Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Previous Contact</h3>
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Previous Contact Regarding Issue:</h3>
                     <FormField
                         control={form.control}
                         name="previous_contact.reported_before"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Have you reported this issue before?</FormLabel>
+                                <FormLabel>Have you reported this issue before? ☐ Yes / ☐ No</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
-                                        defaultValue={field.value}
+                                        value={field.value}
                                         className="flex space-x-4"
                                     >
                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                             <FormControl>
                                                 <RadioGroupItem value="Yes" />
                                             </FormControl>
-                                            <FormLabel className="font-normal">Yes</FormLabel>
+                                            <span className="text-sm">Yes</span>
                                         </FormItem>
                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                             <FormControl>
                                                 <RadioGroupItem value="No" />
                                             </FormControl>
-                                            <FormLabel className="font-normal">No</FormLabel>
+                                            <span className="text-sm">No</span>
                                         </FormItem>
                                     </RadioGroup>
                                 </FormControl>
@@ -570,72 +604,78 @@ export function ComplaintForm() {
                             </FormItem>
                         )}
                     />
-                    {form.watch("previous_contact.reported_before") === "Yes" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="previous_contact.reference_number"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Reference Number</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="#7637167826" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="previous_contact.contact_date"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Contact Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                        variant={"outline"}
-                                                        className={cn(
-                                                            "w-[240px] pl-3 text-left font-normal",
-                                                            !field.value && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        {field.value ? (
-                                                            format(new Date(field.value), "PPP")
-                                                        ) : (
-                                                            <span>Pick a date</span>
-                                                        )}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={field.value ? new Date(field.value) : undefined}
-                                                    onSelect={(date) =>
-                                                        field.onChange(date?.toISOString())
-                                                    }
-                                                    disabled={(date) =>
-                                                        date > new Date() || date < new Date("1900-01-01")
-                                                    }
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                    {form.watch('previous_contact.reported_before') === 'Yes' && (
+                        <div className="space-y-4">
+                            <p className="text-sm font-medium">
+                                If yes, provide the reference number and date of contact:
+                            </p>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="previous_contact.reference_number"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Reference Number:</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter reference number" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="previous_contact.contact_date"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Date of contact:</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={'outline'}
+                                                            className={cn(
+                                                                'w-[240px] pl-3 text-left font-normal',
+                                                                !field.value && 'text-muted-foreground'
+                                                            )}
+                                                        >
+                                                            {field.value ? (
+                                                                format(new Date(field.value), 'PPP')
+                                                            ) : (
+                                                                <span>Select a date</span>
+                                                            )}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value ? new Date(field.value) : undefined}
+                                                        onSelect={(date) => field.onChange(date?.toISOString())}
+                                                        disabled={(date) =>
+                                                            date > new Date() || date < new Date('1900-01-01')
+                                                        }
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <FormField
                                 control={form.control}
                                 name="previous_contact.person_contacted"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Person Contacted</FormLabel>
+                                        <FormLabel>Person contacted (if applicable):</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Kate Pierson" {...field} />
+                                            <Input
+                                                placeholder="Enter the name of the person contacted"
+                                                {...field}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -643,34 +683,33 @@ export function ComplaintForm() {
                             />
                         </div>
                     )}
-                </div>
+                </section>
 
-                {/* Customer Actions Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Customer Actions</h3>
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Action Taken by Customer (if any):</h3>
                     <FormField
                         control={form.control}
                         name="customer_actions.troubleshooting_done"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Have you attempted any troubleshooting steps?</FormLabel>
+                                <FormLabel>Have you attempted any troubleshooting steps? ☐ Yes / ☐ No</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
-                                        defaultValue={field.value}
+                                        value={field.value}
                                         className="flex space-x-4"
                                     >
                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                             <FormControl>
                                                 <RadioGroupItem value="Yes" />
                                             </FormControl>
-                                            <FormLabel className="font-normal">Yes</FormLabel>
+                                            <span className="text-sm">Yes</span>
                                         </FormItem>
                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                             <FormControl>
                                                 <RadioGroupItem value="No" />
                                             </FormControl>
-                                            <FormLabel className="font-normal">No</FormLabel>
+                                            <span className="text-sm">No</span>
                                         </FormItem>
                                     </RadioGroup>
                                 </FormControl>
@@ -678,16 +717,16 @@ export function ComplaintForm() {
                             </FormItem>
                         )}
                     />
-                    {form.watch("customer_actions.troubleshooting_done") === "Yes" && (
+                    {form.watch('customer_actions.troubleshooting_done') === 'Yes' && (
                         <FormField
                             control={form.control}
                             name="customer_actions.troubleshooting_description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Troubleshooting Steps Taken</FormLabel>
+                                    <FormLabel>If yes, please describe the actions taken:</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            placeholder="We tried tossing the ECG patch on, but it didn't work."
+                                            placeholder="Describe the troubleshooting actions taken"
                                             className="min-h-[80px]"
                                             {...field}
                                         />
@@ -697,47 +736,46 @@ export function ComplaintForm() {
                             )}
                         />
                     )}
-                </div>
+                </section>
 
-                {/* Preferred Resolution Section */}
-                {/* method Section */}
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Preferred Resolution Method</h3>
-
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Preferred Method of Resolution:</h3>
                     <FormField
                         control={form.control}
                         name="preferred_resolution_method"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Select Resolution Method</FormLabel>
+                                <FormLabel>How would you like us to resolve this issue?</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={(value) => {
-                                            const selected  = data_resolution_method && data_resolution_method.find((item:MasterLookupItem) => item._id === value);
+                                            const selected = dataResolutionMethod?.find(
+                                                (item: MasterLookupItem) => item._id === value,
+                                            )
                                             if (selected) {
-                                                form.setValue("preferred_resolution_method", {
+                                                form.setValue('preferred_resolution_method', {
+                                                    name: selected.name,
+                                                    description: selected.description ?? null,
+                                                    config: {
+                                                        _id: selected._id,
                                                         name: selected.name,
-                                                        description: selected.description ?? null,
-                                                        config:{
-                                                            _id: selected._id,
-                                                            name: selected.name,
-                                                            type: selected.type
-                                                        }
-                                                });
+                                                        type: selected.type,
+                                                    },
+                                                })
                                             }
                                         }}
-                                        // onChange={field.onChange}
                                         value={field.value?.config?._id}
                                         className="flex flex-col space-y-2"
                                     >
-                                        {data_resolution_method && data_resolution_method.map((type:MasterLookupItem,i) => (
-                                            <FormItem key={type._id} className="flex items-center space-x-3 space-y-0">
+                                        {dataResolutionMethod?.map((type: MasterLookupItem) => (
+                                            <FormItem
+                                                key={type._id}
+                                                className="flex items-center space-x-3 space-y-0"
+                                            >
                                                 <FormControl>
                                                     <RadioGroupItem value={type._id} />
                                                 </FormControl>
-                                                <FormLabel className="font-normal">
-                                                    {type.name}
-                                                </FormLabel>
+                                                <span className="text-sm">{type.name}</span>
                                             </FormItem>
                                         ))}
                                     </RadioGroup>
@@ -746,21 +784,18 @@ export function ComplaintForm() {
                             </FormItem>
                         )}
                     />
-
-                    {/* Regular description for non-"Other" methods */}
-                    {preferredResolution?.config?.name === "Other" && (
+                    {preferredResolution?.config?.name === 'Other' && (
                         <FormField
                             control={form.control}
                             name="preferred_resolution_method.description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-foreground">Please specify*</FormLabel>
+                                    <FormLabel>Other (please specify):</FormLabel>
                                     <FormControl>
                                         <Input
-                                            placeholder="Describe your specific resolution method..."
+                                            placeholder="Describe your preferred resolution"
                                             {...field}
-                                            value={field.value ?? ""}
-                                            className="mt-1"
+                                            value={field.value ?? ''}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -768,18 +803,174 @@ export function ComplaintForm() {
                             )}
                         />
                     )}
-                </div>
-                <div className="space-y-4 p-6 border rounded-lg">
-                    <h3 className="font-medium">Attachments (if any)</h3>
-                    <p>Attach supporting documents/images: [Attach files if needed, such as photos of the product or error messages]</p>
+                    {preferredResolution?.config?.name === 'Replacement' && (
+                        <div className="space-y-4">
+                            <p className="text-sm font-medium">
+                                If Replacement done Provide Replacement details(Batch no., Serial Number, Mfg.
+                                Date etc.):
+                            </p>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <FormField
+                                    control={form.control}
+                                    name="replacement_details.batch_number"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Replacement Batch no.:</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter batch number" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="replacement_details.serial_number"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Replacement Serial Number:</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Enter replacement serial number"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="replacement_details.mfg_date"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Manufacturing Date:</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={'outline'}
+                                                            className={cn(
+                                                                'w-[240px] pl-3 text-left font-normal',
+                                                                !field.value && 'text-muted-foreground'
+                                                            )}
+                                                        >
+                                                            {field.value ? (
+                                                                format(new Date(field.value), 'PPP')
+                                                            ) : (
+                                                                <span>Select a date</span>
+                                                            )}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value ? new Date(field.value) : undefined}
+                                                        onSelect={(date) => field.onChange(date?.toISOString())}
+                                                        disabled={(date) =>
+                                                            date > new Date() || date < new Date('1900-01-01')
+                                                        }
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </section>
 
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Attachments (if any):</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Attach supporting documents/images: [Attach files if needed, such as photos of the product or
+                        error messages]
+                    </p>
                     <div className="max-w-[1200px] mx-auto">
-                        <FileUploadComponent addAttachmentPath={setPathsAttachments} attachments={attachments} addFiles={addFiles} removeFile={removeFile}/>
+                        <FileUploadComponent
+                            addAttachmentPath={setPathsAttachments}
+                            attachments={attachments}
+                            addFiles={addFiles}
+                            removeFile={removeFile}
+                        />
                     </div>
-                </div>
+                </section>
+
+                <section className="space-y-4 p-6 border rounded-lg">
+                    <h3 className="font-medium">Complaint Handling Section (For Internal Use Only):</h3>
+                    <div className="space-y-4 text-sm text-muted-foreground">
+                        <div className="space-y-1">
+                            <p className="font-medium text-foreground">Received By:</p>
+                            <p>Name:</p>
+                            <p>Position:</p>
+                            <p>Date:</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-medium text-foreground">Investigation:</p>
+                            <p>12.1 Date of Investigation:</p>
+                            <p>12.2 Investigating Officer:</p>
+                            <p>Sr No.</p>
+                            <p>Name</p>
+                            <p>Designation</p>
+                            <p>Sign</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-medium text-foreground">12.3 Root Cause Identified:</p>
+                            <p>☐ Device Failure</p>
+                            <p>☐ Manufacturing Issue</p>
+                            <p>☐ Labelling/IFU</p>
+                            <p>☐ Customer Misuse</p>
+                            <p>☐ No Fault Found</p>
+                            <p>☐ Other: _____________________</p>
+                            <p>Root Cause Description:</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-medium text-foreground">Corrective/Preventive Action (if applicable)</p>
+                            <p>CAPA Initiated? ☐ Yes ☐ No</p>
+                            <p>CAPA Number: _______________</p>
+                            <p>Action Taken (if any):</p>
+                            <p>Investigation Completion date: __________________</p>
+                            <p>Above Action Approved By (QA/RA Head or Designee):</p>
+                            <p>Name: ____________________</p>
+                            <p>Signature: ____________________</p>
+                            <p>Date: ____________________</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-medium text-foreground">Customer Communication</p>
+                            <p>Date of Response to Customer: ______________</p>
+                            <p>Mode: ☐ Email ☐ Call ☐ Letter ☐ Other: ___________</p>
+                            <p>Summary of Response Provided:</p>
+                            <p>Update to Risk Management Report Require?: ☐ Yes ☐ No</p>
+                            <p>If Yes, Provide details:</p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-medium text-foreground">Complaint Closure</p>
+                            <p>Final Disposition:</p>
+                            <p>☐ Confirmed Device Defect</p>
+                            <p>☐ No Fault Found</p>
+                            <p>☐ Misuse by Customer</p>
+                            <p>☐ Duplicate Complaint</p>
+                            <p>☐ Other: ____________</p>
+                            <p>Reviewed By (Investigator):</p>
+                            <p>Sr No.</p>
+                            <p>Name</p>
+                            <p>Designation</p>
+                            <p>Sign</p>
+                            <p>Approved By (QA/RA Head or Designee):</p>
+                            <p>Name: ____________________</p>
+                            <p>Signature: ____________________</p>
+                            <p>Date: ____________________</p>
+                        </div>
+                    </div>
+                </section>
 
                 <Button type="submit" disabled={isPending} className="align-right">
-                    {isPending ? "Submitting..." : "Submit Complaint"}
+                    {isPending ? 'Submitting...' : 'Submit Complaint'}
                 </Button>
             </form>
         </Form>

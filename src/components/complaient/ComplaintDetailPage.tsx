@@ -132,7 +132,7 @@ const ComplaintDetailPage = (params:Props) => {
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.REJECTED, COMPLAINT_STATUS.CLOSED],
                 [COMPLAINT_STATUS.RESOLVED]: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.UNDER_INVESTIGATION],
                 [COMPLAINT_STATUS.REJECTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
-                [COMPLAINT_STATUS.CLOSED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION]
+                [COMPLAINT_STATUS.CLOSED]: []
             },
             canEdit: 'all',
             label: 'Super Administrator'
@@ -169,7 +169,9 @@ const ComplaintDetailPage = (params:Props) => {
         if (!complaint) return [];
         const userRole = getUserRole(currentUser);
         const roleConfig = ROLE_PERMISSIONS[userRole];
+        console.log('User Role:', userRole,complaint.status);
         const allowedTransitions = roleConfig?.canTransitionTo[complaint.status] || [];
+        console.log('Allowed Transitions:', allowedTransitions);
         return allowedTransitions;
     };
 
@@ -182,10 +184,12 @@ const ComplaintDetailPage = (params:Props) => {
     };
 
     const canEditSection = (section:string) => {
+        console.log('Checking edit permission for section:', section);
         const userRole = getUserRole(currentUser);
         const roleConfig = ROLE_PERMISSIONS[userRole];
         if (roleConfig?.canEdit === 'all') return true;
 
+        console.log('Role Config:', roleConfig);
         return roleConfig?.canEdit?.includes(section);
     };
 
