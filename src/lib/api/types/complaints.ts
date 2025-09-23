@@ -296,6 +296,37 @@ export interface ComplaintQueryParams {
     investigator_read?: 'all' | 'unread';
     status?: ComplaintStatus;
 }
+
+export interface ComplaintStats {
+    total: number;
+    statusCounts: Record<string, number>;
+    assignmentSummary: {
+        assigned: number;
+        unassigned: number;
+    };
+    topAssignees: Array<{
+        count: number;
+        user?: {
+            _id?: string;
+            firstName?: string;
+            lastName?: string;
+            emailId?: string;
+            role?: string[];
+        };
+    }>;
+    recentComplaints: Array<{
+        _id: string;
+        complaint_number: string;
+        status: ComplaintStatus;
+        assigned_to?: string | null;
+        created_on?: string;
+        created_at?: string;
+        customer?: {
+            name?: string;
+            company?: string;
+        };
+    }>;
+}
 // types/upload.ts
 export interface FileUploadResponse {
     success: boolean;

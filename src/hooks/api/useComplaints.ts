@@ -3,7 +3,8 @@ import {
     ComplaintCreateResponse,
     ComplaintQueryParams,
     ComplaintsApiResponse,
-    CreateComplaintPayload, MasterLookupItem
+    CreateComplaintPayload, MasterLookupItem,
+    ComplaintStats
 } from '@/lib/api/types/complaints'
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
 import {toast} from "sonner";
@@ -217,6 +218,18 @@ export function useMarkInvestigationAssignmentRead(complaintId: string) {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         },
         onError: showApiErrorToast
+    });
+}
+
+export function useComplaintStats() {
+    return useQuery({
+        queryKey: ['complaint-stats'],
+        queryFn: async () => {
+            const response = await complaintsApi.getComplaintStats();
+            return response.data as ComplaintStats;
+        },
+        staleTime: 60_000,
+        refetchInterval: 5 * 60_000
     });
 }
 

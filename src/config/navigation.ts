@@ -16,6 +16,11 @@ export const mainNav: NavItem[] = [
   },
   {
     title: "Admin Dashboard",
+    href: "/admin/dashboard",
+    roles: [roles.SUPER_ADMIN],
+  },
+  {
+    title: "Manage Users",
     href: "/admin/users",
     roles: [roles.SUPER_ADMIN],
   },
@@ -27,7 +32,7 @@ export const mainNav: NavItem[] = [
   {
     title: "My Complaints",
     href: "/dashboard/complaints",
-    roles: [ roles.SUPPORT, roles.SUPER_ADMIN ],
+    roles: [ roles.SUPPORT, roles.SUPER_ADMIN,roles.QA,roles.PRODUCTION ],
   },
   {
     title: "QA Dashboard",

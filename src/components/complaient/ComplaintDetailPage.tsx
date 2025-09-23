@@ -102,6 +102,48 @@ const ComplaintDetailPage = (params:Props) => {
             description: 'Complaint has been closed'
         }
     };
+    const formatRoleLabel = (roleValue: any): string => {
+        if (!roleValue) return '';
+        const roleArray = Array.isArray(roleValue) ? roleValue : [roleValue];
+        return roleArray
+            .filter(Boolean)
+            .map((role: string) =>
+                role
+                    .split(/[-_]/)
+                    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                    .join(' ')
+            )
+            .join(', ');
+    };
+
+    const getChangedByInfo = (changedBy: any): { label: string; tooltip?: string } | null => {
+        if (!changedBy) return null;
+
+        if (typeof changedBy === 'string') {
+            return { label: changedBy };
+        }
+
+        const name = [changedBy.firstName, changedBy.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim()
+            || changedBy.emailId
+            || changedBy._id
+            || 'Unknown user';
+
+        const roleLabel = formatRoleLabel(changedBy.role);
+        const tooltipParts = [
+            name,
+            roleLabel ? `Role: ${roleLabel}` : '',
+            changedBy.emailId && changedBy.emailId !== name ? `Email: ${changedBy.emailId}` : ''
+        ].filter(Boolean);
+
+        return {
+            label: name,
+            tooltip: tooltipParts.length ? tooltipParts.join(' • ') : undefined
+        };
+    };
+
 
     // Role-based permissions matching your user schema
     const ROLE_PERMISSIONS = {
@@ -129,9 +171,10 @@ const ComplaintDetailPage = (params:Props) => {
         },
         production: {
             canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
             },
-            canEdit: ['investigation'],
+            canEdit: ['investigation', 'customer_communication'],
             label: 'Production Team'
         },
         [roles.SUPER_ADMIN]: {
@@ -899,6 +942,21 @@ const ComplaintDetailPage = (params:Props) => {
                                                             Assigned by {getUserDisplayName(history.assigned_by)}
                                                         </div>
                                                     </div>
+                                                    {/* <div className="space-y-1">
+                                                        <div className="text-sm text-muted-foreground">Assignment Status</div>
+                                                        {assignedUserId ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge variant={history.assignee_read_at ? 'secondary' : 'destructive'}>
+                                                                    {history.assignee_read_at ? 'Read' : 'Unread'}
+                                                                </Badge>
+                                                                {history.assignee_read_at && (
+                                                                    <span className="text-xs text-muted-foreground">{formatDateTime(history.assignee_read_at)}</span>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-sm text-muted-foreground">No assignee</span>
+                                                        )}
+                                                    </div> */}
                                                     <div className="text-xs text-muted-foreground text-right">
                                                         {history.assigned_at ? formatDateTime(history.assigned_at) : '—'}
                                                         {history.note && (
@@ -1420,6 +1478,8 @@ const ComplaintDetailPage = (params:Props) => {
                                 {complaint.status_history.map((entry, index) => {
                                     const stageConfig = STAGE_CONFIG[entry.status];
                                     const StageIcon = stageConfig.icon;
+                                    const changedByInfo = getChangedByInfo(entry.changed_by);
+
                                     return (
                                         <div key={index} className="flex items-start space-x-3 p-4 border rounded-lg">
                                             <div className="flex-shrink-0">
@@ -1436,8 +1496,16 @@ const ComplaintDetailPage = (params:Props) => {
                                                 {entry.comments && (
                                                     <p className="text-sm">{entry.comments}</p>
                                                 )}
-                                                {entry.changed_by && (
-                                                    <p className="text-xs text-muted-foreground">Changed by: {entry.changed_by}</p>
+                                                {changedByInfo && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Changed by:{' '}
+                                                        <span
+                                                            className="font-medium"
+                                                            title={changedByInfo.tooltip ?? undefined}
+                                                        >
+                                                            {changedByInfo.label}
+                                                        </span>
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>

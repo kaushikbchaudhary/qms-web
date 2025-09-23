@@ -88,4 +88,6 @@ export const complaintsApi = {
         apiClient.patch(`/api/v1/complaint/${complaintId}/assignee/read`, {}),
     markInvestigationAssignmentRead: (complaintId: string) =>
         apiClient.patch(`/api/v1/complaint/${complaintId}/investigation/assignments/read`, {}),
+    getComplaintStats: () =>
+        apiClient.get('/api/v1/complaint/stats'),
 };
