@@ -2,6 +2,7 @@
 "use client"
 
 import { useState } from 'react'
+import { UseQueryResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -13,18 +14,24 @@ import {
 import { Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import {useGetAttachment} from "@/hooks/api/useComplaints";
+import {useUserSignaturePreview} from "@/hooks/api/useUser";
+
+type SignatureQueryHook = (options: { path: string | null; isOpen: boolean }) => UseQueryResult<{ url: string; blob: Blob } | null>;
 
 export function SignaturePreviewModal({
                                           signaturePath,
-                                          triggerText = "Preview Signature"
+                                          triggerText = "Preview Signature",
+                                          source = 'complaint'
                                       }: {
     signaturePath: string
     triggerText?: string
+    source?: 'complaint' | 'user'
 }) {
     const [isOpen, setIsOpen] = useState(false)
     const [imageUrl, setImageUrl] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
-    const { data: attachmentData, isLoading:imageFetching, error, refetch } = useGetAttachment({
+    const queryHook: SignatureQueryHook = source === 'user' ? useUserSignaturePreview : useGetAttachment;
+    const { data: attachmentData, refetch } = queryHook({
         path: signaturePath,
         isOpen: isOpen
     });

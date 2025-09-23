@@ -60,3 +60,56 @@ export function useDeleteUser() {
     });
 }
 
+export function useUpdateUser() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => userApi.updateUser(id, data),
+        onSuccess: (response: any) => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+            toast.success(response?.message ?? 'User updated successfully.');
+        },
+        onError: showApiErrorToast,
+    });
+}
+
+export function useUserSignatureUpload() {
+    return useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            formData.append('signature', file);
+            const response = await userApi.uploadSignature(formData);
+            return response.data;
+        },
+        onError: (error) => {
+            console.error('Error uploading signature:', error);
+            showApiErrorToast(error as Error);
+        },
+    });
+}
+
+export function useUserSignatureDelete() {
+    return useMutation({
+        mutationFn: async (path: string) => {
+            await userApi.deleteSignature({ path });
+        },
+        onError: (error) => {
+            console.error('Error removing signature:', error);
+        },
+    });
+}
+
+export function useUserSignaturePreview(params: { path: string | null; isOpen: boolean }) {
+    return useQuery({
+        queryKey: ['user-signature', params.path],
+        queryFn: async () => {
+            if (!params.path) return null;
+            const response = await userApi.getSignature({ path: params.path });
+            return response;
+        },
+        enabled: !!params.path && params.isOpen,
+        gcTime: 10 * 60 * 1000,
+        staleTime: 5 * 60 * 1000,
+    });
+}

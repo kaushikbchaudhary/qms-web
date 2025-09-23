@@ -28,6 +28,10 @@ export const userFormSchema = z.object({
     organization: z.string().min(2, {
         message: "Organization must be at least 2 characters.",
     }),
+    signature: z.object({
+        path: z.string().min(1, { message: "Signature is required" }),
+        filename: z.string().optional(),
+    }).optional(),
 });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;

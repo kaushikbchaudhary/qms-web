@@ -25,10 +25,13 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import {roles as role} from "@/config/roles";
 // import {toast} from "sonner";
 import {userFormSchema, UserFormValues} from "@/components/users/schemas/user";
-import {Loader2} from "lucide-react";
+import {Loader2, Upload, Eraser} from "lucide-react";
 import {DeleteConfirmDialog} from "@/components/auth/delete-confirm-dialog";
-import {useState} from "react";
-import {useDeleteUser} from "@/hooks/api/useUser";
+import {useRef, useState} from "react";
+import {useDeleteUser, useUserSignatureDelete, useUserSignatureUpload} from "@/hooks/api/useUser";
+import { SignaturePreviewModal } from "@/components/forms/SignaturePreviewModal";
+import { SignaturePadDialog } from "@/components/forms/SignaturePadDialog";
+import { toast } from "sonner";
 
 interface UserFormProps {
     defaultValues?: Partial<UserFormValues> | any;
@@ -58,9 +61,42 @@ export function UserForm({
             countryCode: "+91",
             role: [],
             organization: "",
+            signature: undefined,
             ...defaultValues,
         },
     });
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const { mutateAsync: uploadSignature, isPending: isUploadingSignature } = useUserSignatureUpload();
+    const { mutateAsync: removeSignature, isPending: isDeletingSignature } = useUserSignatureDelete();
+
+    const handleSignatureUpload = async (file: File) => {
+        try {
+            const result = await uploadSignature(file);
+            form.setValue('signature', result, { shouldDirty: true, shouldTouch: true });
+            form.clearErrors('signature');
+            toast.success('Signature uploaded successfully.');
+        } catch (error) {
+            console.error('Failed to upload signature', error);
+            toast.error('Failed to upload signature.');
+        }
+    };
+
+    const handleSignatureRemove = async () => {
+        const current = form.getValues('signature');
+        if (!current?.path) {
+            form.setValue('signature', undefined, { shouldDirty: true });
+            return;
+        }
+
+        try {
+            await removeSignature(current.path);
+        } catch (error) {
+            console.warn('Unable to delete signature from server', error);
+        } finally {
+            form.setValue('signature', undefined, { shouldDirty: true });
+            toast.success('Signature removed.');
+        }
+    };
 
     const handleSubmit = async (values: UserFormValues) => {
         try {
@@ -221,6 +257,70 @@ export function UserForm({
                                 <FormMessage />
                             </FormItem>
                         )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="signature"
+                        render={({ field }) => {
+                            const hasSignature = !!field.value?.path
+                            return (
+                                <FormItem className="md:col-span-2">
+                                    <FormLabel>Digital Signature</FormLabel>
+                                    <FormControl>
+                                        <div className="space-y-3">
+                                            {hasSignature && (
+                                                <div className="flex items-center gap-3">
+                                                    <SignaturePreviewModal signaturePath={field.value.path} source="user" />
+                                                    <span className="text-sm text-muted-foreground truncate">
+                                                        {field.value.filename ?? 'Signature image'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="flex flex-wrap gap-3">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    disabled={isUploadingSignature}
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                >
+                                                    <Upload className="mr-2 h-4 w-4" />
+                                                    {isUploadingSignature ? 'Uploading…' : 'Upload image'}
+                                                </Button>
+                                                <SignaturePadDialog
+                                                    onSave={handleSignatureUpload}
+                                                    disabled={isUploadingSignature}
+                                                />
+                                                {hasSignature && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        disabled={isDeletingSignature}
+                                                        onClick={handleSignatureRemove}
+                                                    >
+                                                        <Eraser className="mr-2 h-4 w-4" /> Remove
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(event) => {
+                                                    const file = event.target.files?.[0]
+                                                    if (file) {
+                                                        handleSignatureUpload(file)
+                                                        event.target.value = ''
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )
+                        }}
                     />
                 </div>
 
