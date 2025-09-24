@@ -1,5 +1,6 @@
 "use client"
-import {useFieldArray, useForm} from "react-hook-form"
+import { useEffect, useMemo } from 'react'
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { investigationSchema, InvestigationFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
@@ -7,12 +8,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Plus, Trash2 } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Textarea} from "@/components/ui/textarea";
-import {useAttachmentDelete, useSignatureUpload, useUpdateInvestigation} from "@/hooks/api/useComplaints";
-import {InvestigationData} from "@/lib/api/types/complaints";
+import {useSignatureUpload, useUpdateInvestigation} from "@/hooks/api/useComplaints";
+import { InvestigationAssignment } from "@/lib/api/types/complaints";
 import {SignaturePreviewModal} from "@/components/forms/SignaturePreviewModal";
 import {Switch} from "@/components/ui/switch";
 import {cn} from "@/lib/utils";
@@ -20,59 +21,71 @@ export const root_cause= ["Device Failure", "Manufacturing Issue", "Labeling/IFU
 export function InvestigationForm({
                                       complaintId,
                                       defaultValues,
-                                      onSuccess
+                                      onSuccess,
+                                      assignments = []
                                   }: {
     complaintId: string
     defaultValues?: Partial<InvestigationFormData>
     onSuccess: () => void
+    assignments?: InvestigationAssignment[]
 }) {
     const form = useForm<InvestigationFormData>({
         resolver: zodResolver(investigationSchema),
         defaultValues
     })
 
-    const { fields, append, remove } = useFieldArray({
-        control: form.control,
-        name: "investigating_officers"
-    })
     const { mutate, isPending } = useUpdateInvestigation(complaintId);
 
     async function onSubmit(data: InvestigationFormData) {
         mutate(data);
     }
 
-    const {mutateAsync:uploadImageSign,isPending:isUploadingSign,isError} = useSignatureUpload();
-    const handleFileUpload = async (file: File, index: number) => {
-        try {
-            const imageUrl = await uploadImageSign(file);
-            form.setValue(`investigating_officers.${index}.signature`, imageUrl.path);
-        } catch (error) {
-            console.error("Error uploading file:", error);
-        }
-    };
+    const { mutateAsync: uploadInvestigationAsset } = useSignatureUpload();
 
-    const handleSignatureUpload = async (file: File, fieldName: string) => {
+    const derivedOfficers = useMemo(() => {
+        if (assignments && assignments.length > 0) {
+            return assignments
+                .map((assignment, index) => {
+                    const user = assignment.user as any;
+                    if (!user) return null;
+                    const nameParts = [user.firstName, user.middleName, user.lastName]
+                        .filter((part: string | undefined) => typeof part === 'string' && part.trim().length > 0);
+                    const fullName = nameParts.length ? nameParts.join(' ') : user.emailId ?? user._id ?? '';
+                    if (!fullName) return null;
+
+                    const primaryRole = Array.isArray(user.role) && user.role.length ? user.role[0] : undefined;
+                    const designation = primaryRole
+                        ? primaryRole.replace(/-/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+                        : user.organization ?? 'Investigation Officer';
+
+                    return {
+                        sr_no: index + 1,
+                        name: fullName,
+                        designation,
+                        signature: user?.signature?.path ?? '',
+                    };
+                })
+                .filter((entry): entry is { sr_no: number; name: string; designation: string; signature: string } => entry !== null);
+        }
+
+        return (defaultValues?.investigating_officers as any[]) ?? [];
+    }, [assignments, defaultValues?.investigating_officers]);
+
+    useEffect(() => {
+        if (derivedOfficers) {
+            form.setValue('investigating_officers', derivedOfficers as any, { shouldDirty: false });
+        }
+    }, [form, derivedOfficers]);
+
+    const investigatingOfficers = form.watch('investigating_officers') ?? [];
+
+    const handleCompletionSignatureUpload = async (file: File) => {
         try {
-            const imageUrl = await uploadImageSign(file);
-            form.setValue(`completion_details.signature`, imageUrl.path);
+            const imageUrl = await uploadInvestigationAsset(file);
+            form.setValue('completion_details.signature', imageUrl.path, { shouldDirty: true });
         } catch (error) {
             console.error("Error uploading signature:", error);
         }
-    }
-
-
-    const {mutate: deleteImage} = useAttachmentDelete();
-    const handleRemove = async (index: number) => {
-        const sig = form.getValues(`investigating_officers.${index}.signature`);
-        if (sig) {
-            try {
-                // Assuming you have a function to delete the image from your storage
-                await deleteImage(sig);
-            } catch (e) {
-                console.warn("Signature deletion failed", e);
-            }
-        }
-        remove(index);
     };
     return (
         <Form {...form}>
@@ -108,99 +121,44 @@ export function InvestigationForm({
                 />
 
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col gap-1">
                         <h3 className="font-medium">Investigating Officers</h3>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => append({ sr_no: fields.length + 1, name: "", designation: "", signature: "" })}
-                        >
-                            <Plus className="mr-2 h-4 w-4" /> Add Officer
-                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                            Investigators are automatically listed based on complaint assignments. Update their signature from the user profile if needed.
+                        </p>
                     </div>
 
-                    {fields.map((field, index) => (
-                        <div key={field.id} className="grid grid-cols-4 gap-4 items-end">
-                            <FormField
-                                control={form.control}
-                                name={`investigating_officers.${index}.sr_no`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Sr. No</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            {/* Add other officer fields... */}
-                            <FormField
-                                control={form.control}
-                                name={`investigating_officers.${index}.name`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Name</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name={`investigating_officers.${index}.designation`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Designation</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            {/* Signature Field: Upload + Preview */}
-                            <FormField
-                                control={form.control}
-                                name={`investigating_officers.${index}.signature`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Signature</FormLabel>
-                                        <FormControl>
-                                            <div>
-                                                {field.value && (
-                                                    <SignaturePreviewModal signaturePath={field.value} />
-                                                )}
-                                                <Input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) handleFileUpload(file, index);
-                                                    }}
-                                                />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                // onClick={() => remove(index)}
-                                onClick={() => handleRemove(index)}
-                            >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                        </div>
-                    ))}
+                    <div className="space-y-3">
+                        {investigatingOfficers.length === 0 ? (
+                            <p className="text-sm text-muted-foreground border border-dashed rounded-md p-4">
+                                No investigators assigned yet. Assign team members to this complaint to populate their details here.
+                            </p>
+                        ) : (
+                            investigatingOfficers.map((officer: any) => (
+                                <div
+                                    key={officer.sr_no}
+                                    className="border rounded-md p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                                >
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-medium">Officer #{officer.sr_no}</p>
+                                        <p className="text-base">{officer.name}</p>
+                                        <p className="text-sm text-muted-foreground">{officer.designation}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {officer.signature ? (
+                                            <SignaturePreviewModal
+                                                signaturePath={officer.signature}
+                                                triggerText="View Signature"
+                                                source="user"
+                                            />
+                                        ) : (
+                                            <span className="text-sm text-muted-foreground">No signature uploaded</span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
 
                 {/* Root Cause Section */}
@@ -390,8 +348,7 @@ export function InvestigationForm({
                                             onChange={(e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
-                                                    // Handle file upload and set field value
-                                                    handleSignatureUpload(file, 'completion');
+                                                    handleCompletionSignatureUpload(file);
                                                 }
                                             }}
                                         />

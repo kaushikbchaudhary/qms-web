@@ -86,9 +86,15 @@ export interface ReplacementDetails {
 export interface UserSummary {
     _id: string;
     firstName?: string;
+    middleName?: string;
     lastName?: string;
     emailId?: string;
     role?: string[];
+    organization?: string;
+    signature?: {
+        path?: string;
+        filename?: string;
+    };
 }
 
 export interface AssignmentHistoryItem {

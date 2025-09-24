@@ -53,8 +53,7 @@ export const completionDetailsSchema = z.object({
 
 export const investigationSchema = z.object({
     investigation_date: z.date(),
-    investigating_officers: z.array(investigatingOfficerSchema)
-        .min(1, "At least one investigating officer is required"),
+    investigating_officers: z.array(investigatingOfficerSchema).default([]),
     root_cause: rootCauseSchema,
     corrective_action: z.string().min(1, "Corrective action is required"),
     capa: capaSchema,

@@ -166,21 +166,6 @@ export function useUpdateInvestigation(complaintId: string) {
     });
 }
 
-export function useAssignComplaint(complaintId: string) {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: (data: { assigneeId: string; note?: string }) =>
-            complaintsApi.assignComplaint(complaintId, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
-            queryClient.invalidateQueries({ queryKey: ['complaints'] });
-            toast.success('Complaint assigned successfully');
-        },
-        onError: showApiErrorToast
-    });
-}
-
 export function useAssignInvestigators(complaintId: string) {
     const queryClient = useQueryClient();
 
@@ -190,19 +175,6 @@ export function useAssignInvestigators(complaintId: string) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
             toast.success('Investigators assigned successfully');
-        },
-        onError: showApiErrorToast
-    });
-}
-
-export function useMarkComplaintAssignmentRead(complaintId: string) {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: () => complaintsApi.markComplaintAssignmentRead(complaintId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['complaint', complaintId] });
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
         },
         onError: showApiErrorToast
     });

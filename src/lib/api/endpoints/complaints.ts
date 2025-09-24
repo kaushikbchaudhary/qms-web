@@ -80,12 +80,8 @@ export const complaintsApi = {
         apiFileClient.get(`/api/v1/complaint/${complaintId}/pdf`, {
             responseType: 'blob'
         }).then(response => response.data as Blob),
-    assignComplaint: (complaintId: string, data: { assigneeId: string; note?: string }) =>
-        apiClient.post(`/api/v1/complaint/${complaintId}/assign`, data),
     assignInvestigation: (complaintId: string, data: { assignees: { userId: string; note?: string }[] }) =>
         apiClient.post(`/api/v1/complaint/${complaintId}/investigation/assignments`, data),
-    markComplaintAssignmentRead: (complaintId: string) =>
-        apiClient.patch(`/api/v1/complaint/${complaintId}/assignee/read`, {}),
     markInvestigationAssignmentRead: (complaintId: string) =>
         apiClient.patch(`/api/v1/complaint/${complaintId}/investigation/assignments/read`, {}),
     getComplaintStats: () =>

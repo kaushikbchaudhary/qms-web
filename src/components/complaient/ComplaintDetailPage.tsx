@@ -36,10 +36,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {useAuthStore, UserData} from "@/stores/authStore";
 import {roles} from "@/config/roles";
 import {
-    useAssignComplaint,
     useAssignInvestigators,
     useComplaintWithWorkflow,
-    useMarkComplaintAssignmentRead,
     useMarkInvestigationAssignmentRead,
     useTransitionComplaintStatus,
     useUpdateReceivedInfo
@@ -56,7 +54,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { useGetUsers } from '@/hooks/api/useUser';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 interface Props {
     complaintId:any
 }
@@ -166,7 +163,7 @@ const ComplaintDetailPage = (params:Props) => {
                 [COMPLAINT_STATUS.REJECTED]: [],
                 [COMPLAINT_STATUS.CLOSED]: []
             },
-            canEdit: ['investigation', 'closure', 'risk_management'],
+            canEdit: ['investigation', 'closure', 'risk_management','customer_communication'],
             label: 'Quality Assurance'
         },
         production: {
@@ -201,13 +198,9 @@ const ComplaintDetailPage = (params:Props) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeEditSection, setActiveEditSection] = useState<string | null>(null);
     const [downloadingReport, setDownloadingReport] = useState(false);
-    const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
     const [investigatorDialogOpen, setInvestigatorDialogOpen] = useState(false);
-    const [selectedAssignee, setSelectedAssignee] = useState('');
-    const [assignmentNote, setAssignmentNote] = useState('');
     const [selectedInvestigators, setSelectedInvestigators] = useState<string[]>([]);
     const [investigatorNote, setInvestigatorNote] = useState('');
-    const [hasMarkedAssigneeRead, setHasMarkedAssigneeRead] = useState(false);
     const [hasMarkedInvestigatorRead, setHasMarkedInvestigatorRead] = useState(false);
 
     const {
@@ -219,9 +212,7 @@ const ComplaintDetailPage = (params:Props) => {
     } = useComplaintWithWorkflow(params.complaintId);
     console.log('fetched complaint data>>:', complaintData);
 
-    const { mutateAsync: assignComplaint, isPending: isAssigningComplaint } = useAssignComplaint(params.complaintId);
     const { mutateAsync: assignInvestigators, isPending: isAssigningInvestigators } = useAssignInvestigators(params.complaintId);
-    const { mutate: markAssigneeRead } = useMarkComplaintAssignmentRead(params.complaintId);
     const { mutate: markInvestigationRead } = useMarkInvestigationAssignmentRead(params.complaintId);
 
     const userQueryPayload = useMemo(() => ({
@@ -274,13 +265,6 @@ const ComplaintDetailPage = (params:Props) => {
     }, [complaintData, isSuccess]);
 
     useEffect(() => {
-        if (!assignmentDialogOpen) {
-            setAssignmentNote('');
-            setSelectedAssignee('');
-        }
-    }, [assignmentDialogOpen]);
-
-    useEffect(() => {
         if (!investigatorDialogOpen) {
             setInvestigatorNote('');
             setSelectedInvestigators([]);
@@ -290,20 +274,6 @@ const ComplaintDetailPage = (params:Props) => {
     useEffect(() => {
         if (!complaint || !currentUser?._id) return;
 
-        const assignedToId = typeof complaint.assigned_to === 'string'
-            ? complaint.assigned_to
-            : complaint.assigned_to?._id;
-
-        if (
-            assignedToId &&
-            assignedToId === currentUser._id &&
-            !complaint.assignee_read_at &&
-            !hasMarkedAssigneeRead
-        ) {
-            markAssigneeRead();
-            setHasMarkedAssigneeRead(true);
-        }
-
         if (myInvestigationAssignment && !myInvestigationAssignment.read_at && !hasMarkedInvestigatorRead) {
             markInvestigationRead();
             setHasMarkedInvestigatorRead(true);
@@ -311,19 +281,13 @@ const ComplaintDetailPage = (params:Props) => {
     }, [
         complaint,
         currentUser?._id,
-        hasMarkedAssigneeRead,
         hasMarkedInvestigatorRead,
-        markAssigneeRead,
         markInvestigationRead,
         myInvestigationAssignment
     ]);
 
     useEffect(() => {
         if (!complaint) return;
-
-        if (complaint.assigned_to && !complaint.assignee_read_at) {
-            setHasMarkedAssigneeRead(false);
-        }
 
         if (myInvestigationAssignment && !myInvestigationAssignment.read_at) {
             setHasMarkedInvestigatorRead(false);
@@ -346,15 +310,34 @@ const ComplaintDetailPage = (params:Props) => {
     const props = {
         complaintId: complaint?._id,
         defaultValues: complaint?.investigation,
+        assignments: complaint?.investigation?.assignments ?? [],
         onSuccess: async () => {
             await refetch();
         },
     };
 
+    const resolveAssignmentUserId = (assignmentUser: any) => {
+        if (!assignmentUser) return null;
+        if (typeof assignmentUser === 'string') return assignmentUser;
+        return assignmentUser?._id ?? assignmentUser?.id ?? null;
+    };
+
+    const isAssignedInvestigator = complaint?.investigation?.assignments?.some((assignment: any) => {
+        const assignmentUserId = resolveAssignmentUserId(assignment?.user);
+        return assignmentUserId && currentUser?._id && assignmentUserId.toString() === currentUser._id;
+    }) ?? false;
+
     const canEditSection = (section:string) => {
         console.log('Checking edit permission for section:', section);
         const userRole = getUserRole(currentUser);
         const roleConfig = ROLE_PERMISSIONS[userRole];
+
+        if (section === 'investigation') {
+            if (!currentUser) return false;
+            if (userRole === roles.QA) return true;
+            return isAssignedInvestigator;
+        }
+
         if (roleConfig?.canEdit === 'all') return true;
 
         console.log('Role Config:', roleConfig);
@@ -374,32 +357,7 @@ const ComplaintDetailPage = (params:Props) => {
     };
 
     const currentUserRole = getUserRole(currentUser);
-    const canAssignComplaint = ['support', 'qa', roles.SUPER_ADMIN].includes(currentUserRole);
     const canAssignInvestigators = ['qa', roles.SUPER_ADMIN, 'support'].includes(currentUserRole);
-
-    const assignedUserId = complaint?.assigned_to
-        ? (typeof complaint.assigned_to === 'string'
-            ? complaint.assigned_to
-            : complaint.assigned_to?._id)
-        : undefined;
-
-    const handleAssignComplaint = async () => {
-        if (!selectedAssignee) {
-            toast.error('Please select a user to assign.');
-            return;
-        }
-
-        try {
-            await assignComplaint({ assigneeId: selectedAssignee, note: assignmentNote });
-            toast.success('Complaint assigned successfully');
-            setAssignmentDialogOpen(false);
-            setSelectedAssignee('');
-            setAssignmentNote('');
-            await refetch();
-        } catch (error) {
-            showApiErrorToast(error as Error);
-        }
-    };
 
     const handleAssignInvestigators = async () => {
         if (!selectedInvestigators.length) {
@@ -881,96 +839,6 @@ const ComplaintDetailPage = (params:Props) => {
 
                 {/* Complaint Details Tab */}
                 <TabsContent value="details" className="space-y-6">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="flex items-center">
-                                <UserCheck className="h-5 w-5 mr-2" />
-                                Assignment Overview
-                            </CardTitle>
-                            {canAssignComplaint && (
-                                <Button size="sm" onClick={() => {
-                                    setAssignmentDialogOpen(true);
-                                    setSelectedAssignee(assignedUserId ?? '');
-                                }}>
-                                    Assign Complaint
-                                </Button>
-                            )}
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-1">
-                                    <div className="text-sm text-muted-foreground">Assigned To</div>
-                                    <div className="font-medium">{assignedUserId ? getUserDisplayName(complaint.assigned_to) : 'Unassigned'}</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="text-sm text-muted-foreground">Assignment Status</div>
-                                    {assignedUserId ? (
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant={complaint.assignee_read_at ? 'secondary' : 'destructive'}>
-                                                {complaint.assignee_read_at ? 'Read' : 'Unread'}
-                                            </Badge>
-                                            {complaint.assignee_read_at && (
-                                                <span className="text-xs text-muted-foreground">{formatDateTime(complaint.assignee_read_at)}</span>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground">No assignee</span>
-                                    )}
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="text-sm text-muted-foreground">Assigned On</div>
-                                    <div className="text-sm">{complaint.assigned_at ? formatDateTime(complaint.assigned_at) : '—'}</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="text-sm text-muted-foreground">Last Updated</div>
-                                    <div className="text-sm">{complaint.updated_on ? formatDateTime(complaint.updated_on) : '—'}</div>
-                                </div>
-                            </div>
-
-                            {complaint.assignment_history && complaint.assignment_history.length > 0 && (
-                                <div className="space-y-3">
-                                    <div className="text-sm font-medium">Assignment History</div>
-                                    <div className="space-y-2">
-                                        {complaint.assignment_history
-                                            .slice()
-                                            .reverse()
-                                            .map((history, idx) => (
-                                                <div key={`${history.assigned_at}-${idx}`} className="flex items-center justify-between rounded-lg border p-3">
-                                                    <div>
-                                                        <div className="text-sm font-medium">{getUserDisplayName(history.assigned_to)}</div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            Assigned by {getUserDisplayName(history.assigned_by)}
-                                                        </div>
-                                                    </div>
-                                                    {/* <div className="space-y-1">
-                                                        <div className="text-sm text-muted-foreground">Assignment Status</div>
-                                                        {assignedUserId ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <Badge variant={history.assignee_read_at ? 'secondary' : 'destructive'}>
-                                                                    {history.assignee_read_at ? 'Read' : 'Unread'}
-                                                                </Badge>
-                                                                {history.assignee_read_at && (
-                                                                    <span className="text-xs text-muted-foreground">{formatDateTime(history.assignee_read_at)}</span>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-sm text-muted-foreground">No assignee</span>
-                                                        )}
-                                                    </div> */}
-                                                    <div className="text-xs text-muted-foreground text-right">
-                                                        {history.assigned_at ? formatDateTime(history.assigned_at) : '—'}
-                                                        {history.note && (
-                                                            <div className="mt-1 italic">{history.note}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
                     {/* Customer Information */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
@@ -1516,56 +1384,6 @@ const ComplaintDetailPage = (params:Props) => {
                     </Card>
                 </TabsContent>
         </Tabs>
-
-        <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>Assign Complaint</DialogTitle>
-                    <DialogDescription>
-                        Choose a responsible user for this complaint and optionally add a note.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="assignee">Assignee</Label>
-                        <Select
-                            value={selectedAssignee}
-                            onValueChange={setSelectedAssignee}
-                            disabled={isLoadingUsers || isAssigningComplaint}
-                        >
-                            <SelectTrigger id="assignee">
-                                <SelectValue placeholder={isLoadingUsers ? 'Loading users…' : 'Select user'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {userOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="assignment-note">Note (optional)</Label>
-                        <Textarea
-                            id="assignment-note"
-                            value={assignmentNote}
-                            onChange={(event) => setAssignmentNote(event.target.value)}
-                            placeholder="Add context for the assignee"
-                            rows={3}
-                        />
-                    </div>
-                </div>
-                <DialogFooter className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => setAssignmentDialogOpen(false)} disabled={isAssigningComplaint}>
-                        Cancel
-                    </Button>
-                    <Button onClick={handleAssignComplaint} disabled={isAssigningComplaint || !selectedAssignee}>
-                        {isAssigningComplaint ? 'Assigning…' : 'Assign'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
 
         <Dialog open={investigatorDialogOpen} onOpenChange={setInvestigatorDialogOpen}>
             <DialogContent className="sm:max-w-lg">
