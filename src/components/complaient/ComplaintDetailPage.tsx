@@ -54,6 +54,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { useGetUsers } from '@/hooks/api/useUser';
+import AttachmentViewer from "@/components/complaient/AttachmentViewer";
 interface Props {
     complaintId:any
 }
@@ -178,7 +179,7 @@ const ComplaintDetailPage = (params:Props) => {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION, COMPLAINT_STATUS.REJECTED, COMPLAINT_STATUS.CLOSED],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.REJECTED, COMPLAINT_STATUS.CLOSED],
-                [COMPLAINT_STATUS.RESOLVED]: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.RESOLVED]: [COMPLAINT_STATUS.CLOSED],
                 [COMPLAINT_STATUS.REJECTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
                 [COMPLAINT_STATUS.CLOSED]: []
             },
@@ -497,6 +498,64 @@ const ComplaintDetailPage = (params:Props) => {
             </div>
         );
     }
+
+    const safeText = (value?: string | null) => {
+        if (value === null || value === undefined) return '—';
+        const stringValue = String(value).trim();
+        return stringValue.length > 0 ? stringValue : '—';
+    };
+
+    const formatDateSafe = (value?: string | null) => (value ? formatDate(value) : '—');
+    const formatDateTimeSafe = (value?: string | null) => (value ? formatDateTime(value) : '—');
+
+    const renderCheckboxLine = (label: string, checked: boolean, trailing?: React.ReactNode) => (
+        <div className="flex items-start text-sm" key={label}>
+            <span className="mr-2 text-base leading-5">{checked ? '☑' : '☐'}</span>
+            <span className="text-sm">{label}{trailing}</span>
+        </div>
+    );
+
+    const normalizeYesNo = (value: unknown): 'yes' | 'no' | null => {
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            if (["yes", "y", "true", "1"].includes(normalized)) return 'yes';
+            if (["no", "n", "false", "0"].includes(normalized)) return 'no';
+        }
+        if (typeof value === 'boolean') {
+            return value ? 'yes' : 'no';
+        }
+        return null;
+    };
+
+    const complaintTypeName = complaint?.complaint_type?.name?.toLowerCase?.() ?? '';
+    const complaintTypeConfigName = complaint?.complaint_type?.config?.name?.toLowerCase?.() ?? '';
+    const natureMatches = {
+        performance: complaintTypeName.includes('performance'),
+        faulty: complaintTypeName.includes('faulty'),
+        installation: complaintTypeName.includes('installation') || complaintTypeName.includes('setup'),
+        communication: complaintTypeName.includes('communication') || complaintTypeName.includes('connectivity'),
+        ui: complaintTypeName.includes('interface') || complaintTypeName.includes('ui'),
+    };
+    const natureOtherSelected = complaintTypeConfigName === 'other' || (!Object.values(natureMatches).includes(true) && !!complaintTypeName);
+    const natureOtherDescription = safeText(complaint?.complaint_type?.description);
+
+    const preferredResolutionName = (
+        complaint?.preferred_resolution_method?.config?.name || complaint?.preferred_resolution_method?.name || ''
+    ).toLowerCase();
+    const resolutionMatches = {
+        replacement: preferredResolutionName.includes('replacement'),
+        refund: preferredResolutionName.includes('refund'),
+        technical: preferredResolutionName.includes('technical'),
+        furtherInvestigation: preferredResolutionName.includes('further') || preferredResolutionName.includes('investigation'),
+    };
+    const resolutionOtherSelected = preferredResolutionName.includes('other') || (!Object.values(resolutionMatches).includes(true) && !!preferredResolutionName);
+    const resolutionOtherDescription = safeText(complaint?.preferred_resolution_method?.description);
+
+    const issueOccurred = normalizeYesNo(complaint?.issue_details?.occurred_before);
+    const reportedBefore = normalizeYesNo(complaint?.previous_contact?.reported_before);
+    const troubleshootingAttempted = normalizeYesNo(complaint?.customer_actions?.troubleshooting_done);
+
+    const attachments = Array.isArray(complaint?.attachments) ? complaint.attachments : [];
 
     const handleEditClick = (section: string) => {
         setActiveEditSection(section);
@@ -838,108 +897,248 @@ const ComplaintDetailPage = (params:Props) => {
 
                 {/* Complaint Details Tab */}
                 <TabsContent value="details" className="space-y-6">
-                    {/* Customer Information */}
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader>
+                            <CardTitle>Complaint Form</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span className="font-medium">Date of Complaint Submission:</span>
+                                <span className="ml-2">{formatDateSafe(complaint.submission_date)}</span>
+                            </div>
+                            <div>
+                                <span className="font-medium">Date:</span>
+                                <span className="ml-2">{formatDateSafe(complaint.created_on || complaint.submission_date)}</span>
+                            </div>
+                            <div>
+                                <span className="font-medium">Complaint No:</span>
+                                <span className="ml-2">{safeText(complaint.complaint_number)}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
                             <CardTitle className="flex items-center">
                                 <User className="h-5 w-5 mr-2" />
-                                Customer Information
+                                Customer Details
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-4">
+                        <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
                             <div className="space-y-2">
-                                <div className="flex items-center text-sm">
-                                    <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    <span className="font-medium">Name:</span>
-                                    <span className="ml-2">{complaint.customer.name}</span>
+                                <div>
+                                    <span className="font-medium">Customer Name:</span>
+                                    <span className="ml-2">{safeText(complaint.customer?.name)}</span>
                                 </div>
-                                <div className="flex items-center text-sm">
-                                    <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    <span className="font-medium">Company:</span>
-                                    <span className="ml-2">{complaint.customer.company}</span>
+                                <div>
+                                    <span className="font-medium">Company (if applicable):</span>
+                                    <span className="ml-2">{safeText(complaint.customer?.company)}</span>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <div className="flex items-center text-sm">
-                                    <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    <span className="font-medium">Contact:</span>
-                                    <span className="ml-2">{complaint.customer.contact_number}</span>
+                                <div>
+                                    <span className="font-medium">Contact Number:</span>
+                                    <span className="ml-2">{safeText(complaint.customer?.contact_number)}</span>
                                 </div>
-                                <div className="flex items-center text-sm">
-                                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    <span className="font-medium">Email:</span>
-                                    <span className="ml-2">{complaint.customer.email}</span>
+                                <div>
+                                    <span className="font-medium">Email Address:</span>
+                                    <span className="ml-2">{safeText(complaint.customer?.email)}</span>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Product Details */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Package className="h-5 w-5 mr-2" />
-                                Product Information
+                                Product Details
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-4">
+                        <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
                             <div className="space-y-2">
-                                <div className="text-sm">
-                                    <span className="font-medium">Model:</span>
-                                    <span className="ml-2">{complaint.product_details.model}</span>
+                                <div>
+                                    <span className="font-medium">Product Name/Model:</span>
+                                    <span className="ml-2">{safeText(complaint.product_details?.model)}</span>
                                 </div>
-                                <div className="text-sm">
-                                    <span className="font-medium">Serial Number:</span>
-                                    <span className="ml-2 font-mono">{complaint.product_details.serial_number}</span>
+                                <div>
+                                    <span className="font-medium">Product Unique identifier/Batch no.:</span>
+                                    <span className="ml-2">{safeText(complaint.product_details?.batch_number)}</span>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <div className="flex items-center text-sm">
-                                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    <span className="font-medium">Purchase Date:</span>
-                                    <span className="ml-2">{formatDate(complaint.product_details.purchase_date)}</span>
+                                <div>
+                                    <span className="font-medium">Serial Number:</span>
+                                    <span className="ml-2 font-mono">{safeText(complaint.product_details?.serial_number)}</span>
+                                </div>
+                                <div>
+                                    <span className="font-medium">Date of Purchase/Rental/Lease:</span>
+                                    <span className="ml-2">{formatDateSafe(complaint.product_details?.purchase_date)}</span>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Issue Details */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <AlertTriangle className="h-5 w-5 mr-2" />
-                                Issue Details
-                            </CardTitle>
+                            <CardTitle>Nature of Complaint</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-3 text-sm">
+                            <span className="font-medium">Type of Complaint (Select one):</span>
+                            <div className="grid md:grid-cols-2 gap-2">
+                                {renderCheckboxLine('Performance issue', natureMatches.performance)}
+                                {renderCheckboxLine('Faulty equipment', natureMatches.faulty)}
+                                {renderCheckboxLine('Installation/Setup problem', natureMatches.installation)}
+                                {renderCheckboxLine('Communication or connectivity issue', natureMatches.communication)}
+                                {renderCheckboxLine('User interface issue', natureMatches.ui)}
+                                {renderCheckboxLine(
+                                    'Other (please specify):',
+                                    natureOtherSelected,
+                                    <span className="ml-1 text-muted-foreground">
+                                        {natureOtherSelected ? natureOtherDescription : '[Enter description]'}
+                                    </span>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Detailed Description of the Issue</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-sm">
                             <div>
-                                <span className="font-medium text-sm">Description:</span>
-                                <p className="mt-1 text-sm text-muted-foreground">{complaint.issue_details.description}</p>
+                                <span className="font-medium">Issue Description:</span>
+                                <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{safeText(complaint.issue_details?.description)}</p>
                             </div>
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div>
-                                    <span className="font-medium text-sm">Problem Start Date:</span>
-                                    <p className="text-sm text-muted-foreground">
-                                        {formatDate(complaint.issue_details.problem_start_date)}
-                                    </p>
+                                    <span className="font-medium">When did the problem start?</span>
+                                    <p className="mt-1 text-muted-foreground">{formatDateSafe(complaint.issue_details?.problem_start_date)}</p>
                                 </div>
                                 <div>
-                                    <span className="font-medium text-sm">Occurred Before:</span>
-                                    <p className="text-sm text-muted-foreground">{complaint.issue_details.occurred_before}</p>
+                                    <span className="font-medium">Has the issue occurred before?</span>
+                                    <div className="mt-1 flex gap-4">
+                                        {renderCheckboxLine('Yes', issueOccurred === 'yes')}
+                                        {renderCheckboxLine('No', issueOccurred === 'no')}
+                                    </div>
                                 </div>
                             </div>
-                            {complaint.issue_details.replication_steps && (
-                                <div>
-                                    <span className="font-medium text-sm">Replication Steps:</span>
-                                    <pre className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded-md">
-                    {complaint.issue_details.replication_steps}
-                  </pre>
-                                </div>
-                            )}
+                            <div>
+                                <span className="font-medium">Steps to replicate the issue (if applicable):</span>
+                                <pre className="mt-1 text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded-md">
+                                    {safeText(complaint.issue_details?.replication_steps)}
+                                </pre>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    {/* Received Information */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Customer Impact</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm">
+                            <span className="font-medium">How is this issue affecting you?</span>
+                            <p className="mt-2 text-muted-foreground whitespace-pre-wrap">{safeText(complaint.customer_impact)}</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Previous Contact Regarding Issue</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            <div>
+                                <span className="font-medium">Have you reported this issue before?</span>
+                                <div className="mt-1 flex gap-4">
+                                    {renderCheckboxLine('Yes', reportedBefore === 'yes')}
+                                    {renderCheckboxLine('No', reportedBefore === 'no')}
+                                </div>
+                            </div>
+                            <div>
+                                <span className="font-medium">If yes, provide the reference number and date of contact:</span>
+                                <div className="mt-1 text-muted-foreground">
+                                    <div>Reference number: {safeText(complaint.previous_contact?.reference_number)}</div>
+                                    <div>Date of contact: {formatDateSafe(complaint.previous_contact?.contact_date)}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="font-medium">Person contacted (if applicable):</span>
+                                <p className="mt-1 text-muted-foreground">{safeText(complaint.previous_contact?.person_contacted)}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Action Taken by Customer (if any)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            <div>
+                                <span className="font-medium">Have you attempted any troubleshooting steps?</span>
+                                <div className="mt-1 flex gap-4">
+                                    {renderCheckboxLine('Yes', troubleshootingAttempted === 'yes')}
+                                    {renderCheckboxLine('No', troubleshootingAttempted === 'no')}
+                                </div>
+                            </div>
+                            <div>
+                                <span className="font-medium">If yes, please describe the actions taken:</span>
+                                <pre className="mt-1 text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded-md">
+                                    {safeText(complaint.customer_actions?.troubleshooting_description)}
+                                </pre>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Preferred Method of Resolution</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            <span className="font-medium">How would you like us to resolve this issue?</span>
+                            <div className="grid md:grid-cols-2 gap-2">
+                                {renderCheckboxLine('Replacement', resolutionMatches.replacement)}
+                                {renderCheckboxLine('Refund', resolutionMatches.refund)}
+                                {renderCheckboxLine('Technical assistance', resolutionMatches.technical)}
+                                {renderCheckboxLine('Further investigation', resolutionMatches.furtherInvestigation)}
+                                {renderCheckboxLine(
+                                    'Other (please specify):',
+                                    resolutionOtherSelected,
+                                    <span className="ml-1 text-muted-foreground">
+                                        {resolutionOtherSelected ? resolutionOtherDescription : '[Enter description]'}
+                                    </span>
+                                )}
+                            </div>
+                            <div>
+                                <span className="font-medium">If Replacement done Provide Replacement details (Batch no., Serial Number, Mfg. Date etc.):</span>
+                                <div className="mt-1 text-muted-foreground">
+                                    <div>Batch no.: {safeText(complaint.replacement_details?.batch_number)}</div>
+                                    <div>Serial Number: {safeText(complaint.replacement_details?.serial_number)}</div>
+                                    <div>Mfg. Date: {formatDateSafe(complaint.replacement_details?.mfg_date)}</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center">
+                                <Paperclip className="h-5 w-5 mr-2" />
+                                Attachments (if any)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm">
+                            <span className="font-medium">Attach supporting documents/images:</span>
+                            <div className="mt-2">
+                                {attachments.length > 0 ? (
+                                    <AttachmentViewer attachments={attachments as (string | null)[]} />
+                                ) : (
+                                    <span className="text-muted-foreground">No attachments provided.</span>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {complaint.received_info && (
                         <Card>
                             <CardHeader>
@@ -948,23 +1147,20 @@ const ComplaintDetailPage = (params:Props) => {
                                     Received Information
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="grid md:grid-cols-2 gap-4">
+                            <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
                                 <div className="space-y-2">
-                                    <div className="text-sm">
+                                    <div>
                                         <span className="font-medium">Received By:</span>
-                                        <span className="ml-2">{complaint.received_info.receiver_name}</span>
+                                        <span className="ml-2">{safeText(complaint.received_info.receiver_name)}</span>
                                     </div>
-                                    <div className="text-sm">
-                                        <span className="font-medium">Role:</span>
-                                        <span className="ml-2">{complaint.received_info.receiver_role}</span>
+                                    <div>
+                                        <span className="font-medium">Position:</span>
+                                        <span className="ml-2">{safeText(complaint.received_info.receiver_role)}</span>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center text-sm">
-                                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <span className="font-medium">Received Date:</span>
-                                        <span className="ml-2">{formatDateTime(complaint.received_info.received_date)}</span>
-                                    </div>
+                                <div>
+                                    <span className="font-medium">Date:</span>
+                                    <span className="ml-2">{formatDateTimeSafe(complaint.received_info.received_date)}</span>
                                 </div>
                             </CardContent>
                         </Card>
