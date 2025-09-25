@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Mail, Phone, ChevronDown, ArrowLeft, RefreshCw } from 'lucide-react';
 import {Button} from "@/components/ui/button";
 import {useRequestOtp, useVerifyOtp} from "@/hooks/api/useAuth";
@@ -102,6 +102,10 @@ const OTPVerification = ({
         }
     }, [timer]);
 
+    useEffect(() => {
+        inputRefs.current?.[0]?.focus();
+    }, []);
+
     const handleOtpChange = (index:any, value:any) => {
         if (value.length > 1) return;
 
@@ -133,15 +137,23 @@ const OTPVerification = ({
         }, 1500);
     };
 
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        handleVerify();
+    };
+
     const handleResend = () => {
         setTimer(30);
         setCanResend(false);
         setOtp(['', '', '', '', '', '']);
         onResendOTP();
+        setTimeout(() => {
+            inputRefs.current?.[0]?.focus();
+        }, 0);
     };
 
     return (
-        <div className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="text-center space-y-2">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     {contactType === 'email' ? (
@@ -175,7 +187,7 @@ const OTPVerification = ({
                 </div>
 
                 <Button
-                    onClick={handleVerify}
+                    type="submit"
                     disabled={otp.join('').length !== 6 || isVerifying}
                     className="w-full"
                     size="lg"
@@ -197,7 +209,7 @@ const OTPVerification = ({
                 </p>
 
                 {canResend ? (
-                    <Button variant="ghost" onClick={handleResend}>
+                    <Button type="button" variant="ghost" onClick={handleResend}>
                         <RefreshCw className="mr-2 h-4 w-4" />
                         Resend Code
                     </Button>
@@ -208,11 +220,11 @@ const OTPVerification = ({
                 )}
             </div>
 
-            <Button variant="ghost" onClick={onBack} className="w-full">
+            <Button type="button" variant="ghost" onClick={onBack} className="w-full">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Login
             </Button>
-        </div>
+        </form>
     );
 };
 
@@ -240,16 +252,20 @@ export default function LoginPage() {
     const { mutate: otpRequest, isPending:isLoading } = useRequestOtp()
     const { mutate: otpVerify, isPending:isVerifying } = useVerifyOtp()
 
-    const handleSendOTP = async () => {
-        const contactInfo = loginMethod === 'email' ? email : `${countryCode}${phone}`;
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmailValid = useMemo(() => emailPattern.test(email.trim()), [email]);
+    const isPhoneValid = useMemo(() => phone.replace(/\D/g, '').length >= 6, [phone]);
+    const isContactValid = loginMethod === 'email' ? isEmailValid : isPhoneValid;
 
-        if (!contactInfo || (loginMethod === 'email' && !email) || (loginMethod === 'phone' && !phone)) {
-            return;
-        }
+    const handleSendOTP = async () => {
+        if (!isContactValid) return;
+
+        const trimmedEmail = email.trim();
+        const contactInfo = loginMethod === 'email' ? trimmedEmail : `${countryCode}${phone}`;
 
         // setIsLoading(true);
 
-         otpRequest({email},{
+         otpRequest({email: contactInfo},{
              onSuccess: () => {
                  // setIsLoading(false);
                  setStep('otp');
@@ -270,7 +286,8 @@ export default function LoginPage() {
 
 
     const handleVerifyOTP = (otpCode:any) => {
-        const contactInfo = loginMethod === 'email' ? email : `${countryCode}${phone}`;
+        const trimmedEmail = email.trim();
+        const contactInfo = loginMethod === 'email' ? trimmedEmail : `${countryCode}${phone}`;
         // Handle successful verification - redirect to dashboard
         otpVerify({email: contactInfo, otp: otpCode },{
             onSuccess: (user:any) => {
@@ -293,9 +310,13 @@ export default function LoginPage() {
     };
 
     const handleResendOTP = () => {
-        const contactInfo = loginMethod === 'email' ? email : `${countryCode}${phone}`;
         handleSendOTP();
         // Handle OTP resend logic
+    };
+
+    const handleLoginSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        handleSendOTP();
     };
 
     const handleBackToLogin = () => {
@@ -319,7 +340,7 @@ export default function LoginPage() {
                             </CardHeader>
 
                             <CardContent>
-                                <div className="space-y-6">
+                                <form className="space-y-6" onSubmit={handleLoginSubmit} noValidate>
                                     {/* Login Method Toggle */}
                                     {/*<div className="flex rounded-lg border p-1 bg-muted">*/}
                                     {/*    <button*/}
@@ -392,8 +413,8 @@ export default function LoginPage() {
 
                                     {/* Send OTP Button */}
                                     <Button
-                                        onClick={handleSendOTP}
-                                        disabled={isLoading || (!email && loginMethod === 'email') || (!phone && loginMethod === 'phone')}
+                                        type="submit"
+                                        disabled={isLoading || !isContactValid}
                                         className="w-full"
                                         size="lg"
                                     >
@@ -460,7 +481,7 @@ export default function LoginPage() {
                                     {/*        Sign up*/}
                                     {/*    </button>*/}
                                     {/*</p>*/}
-                                </div>
+                                </form>
                             </CardContent>
                         </>
                     ) : (
