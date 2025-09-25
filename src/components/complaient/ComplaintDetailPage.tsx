@@ -247,6 +247,23 @@ const ComplaintDetailPage = (params:Props) => {
         [complaint?.investigation?.assignments]
     );
 
+    const activeInvestigationAssignments = useMemo(
+        () =>
+            investigatorAssignments.filter((assignment: any) => assignment?.status !== 'declined'),
+        [investigatorAssignments]
+    );
+
+    const hasActiveInvestigationAssignments = useMemo(
+        () => activeInvestigationAssignments.length > 0,
+        [activeInvestigationAssignments]
+    );
+
+    const hasPendingInvestigationAcknowledgements = useMemo(
+        () =>
+            activeInvestigationAssignments.some((assignment: any) => !assignment?.read_at),
+        [activeInvestigationAssignments]
+    );
+
     const myInvestigationAssignment = useMemo(() => {
         if (!currentUser?._id) return undefined;
         return investigatorAssignments.find((assignment) => {
@@ -604,7 +621,16 @@ const ComplaintDetailPage = (params:Props) => {
     };
 
     const currentStageConfig = STAGE_CONFIG[complaint.status];
-    const availableTransitions = getAvailableTransitions();
+    const rawTransitions = getAvailableTransitions();
+    const shouldBlockResolution = (!hasActiveInvestigationAssignments || hasPendingInvestigationAcknowledgements)
+        && rawTransitions.includes(COMPLAINT_STATUS.RESOLVED);
+    const availableTransitions = shouldBlockResolution
+        ? rawTransitions.filter((status) => status !== COMPLAINT_STATUS.RESOLVED)
+        : rawTransitions;
+    const isResolutionBlockedByInvestigation = shouldBlockResolution;
+    const resolutionBlockMessage = !hasActiveInvestigationAssignments
+        ? 'Assign at least one investigation officer before resolving the complaint.'
+        : 'Waiting for all investigation officers to acknowledge the complaint before resolving.';
     const isReportDownloadAvailable = [
         COMPLAINT_STATUS.RESOLVED,
         COMPLAINT_STATUS.CLOSED
@@ -657,10 +683,10 @@ const ComplaintDetailPage = (params:Props) => {
             </div>
 
             {/* Action Buttons */}
-            {availableTransitions.length > 0 && (
+            {(availableTransitions.length > 0 || isResolutionBlockedByInvestigation) && (
                 <Card>
                     <CardContent className="pt-6">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <span className="text-sm font-medium">Available Actions:</span>
                             {availableTransitions.map(status => {
                                 const config = STAGE_CONFIG[status];
@@ -676,6 +702,12 @@ const ComplaintDetailPage = (params:Props) => {
                                     </Button>
                                 );
                             })}
+                            {isResolutionBlockedByInvestigation && (
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                    <AlertTriangle className="h-4 w-4 mr-2" />
+                                    {resolutionBlockMessage}
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
