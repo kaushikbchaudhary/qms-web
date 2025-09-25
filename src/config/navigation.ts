@@ -20,6 +20,11 @@ export const mainNav: NavItem[] = [
     roles: [roles.SUPER_ADMIN],
   },
   {
+    title: "Site Settings",
+    href: "/admin/settings",
+    roles: [roles.SUPER_ADMIN],
+  },
+  {
     title: "Manage Users",
     href: "/admin/users",
     roles: [roles.SUPER_ADMIN],
@@ -39,11 +44,11 @@ export const mainNav: NavItem[] = [
     href: "/staff/patients",
     roles: [roles.QA],
   },
-  {
-    title: "Profile",
-    href: "/profile",
-    roles: [roles.PRODUCTION],
-  },
+  // {
+  //   title: "Profile",
+  //   href: "/profile",
+  //   roles: [roles.SUPER_ADMIN, roles.SUPPORT, roles.QA, roles.PRODUCTION],
+  // },
   {
     title: "Login",
     href: "/auth/login",

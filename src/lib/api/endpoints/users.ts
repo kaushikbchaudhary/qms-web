@@ -9,6 +9,8 @@ export const userApi = {
         apiClient.delete(`api/v1/users/${endPoint}`),
     updateUser: (id: string, data: any) =>
         apiClient.patch(`api/v1/users/${id}`, data),
+    updatePassword: (id: string, data: { currentPassword: string; newPassword: string }) =>
+        apiClient.patch(`api/v1/users/${id}/password`, data),
     uploadSignature: (formData: FormData) =>
         apiClient.post('api/v1/users/signature', formData, {
             headers: {

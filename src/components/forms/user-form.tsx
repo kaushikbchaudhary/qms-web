@@ -324,6 +324,12 @@ export function UserForm({
                     />
                 </div>
 
+                {mode === "create" && (
+                    <p className="text-xs text-muted-foreground">
+                        New users start with the default password <span className="font-semibold tracking-widest">000000</span>. Share it securely and remind them to update it after signing in.
+                    </p>
+                )}
+
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? (
                         <span className="flex items-center">

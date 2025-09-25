@@ -2,7 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query'
 import {toast} from "sonner";
 import {showApiErrorToast} from "@/lib/utils";
 import {authApi} from "@/lib/api/endpoints/auth";
-import {AuthPayload, AuthResponse} from "@/lib/api/types/authTypes";
+import {AuthPayload, AuthResponse, PasswordLoginPayload} from "@/lib/api/types/authTypes";
 import { useAuthStore } from "@/stores/authStore";
 
 export function useRequestOtp() {
@@ -35,6 +35,19 @@ export function useVerifyOtp() {
         },
         onError: showApiErrorToast
     })
+}
+
+export function usePasswordLogin() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (authPayload: PasswordLoginPayload): Promise<AuthResponse> =>
+            authApi.loginWithPassword(authPayload),
+        onSuccess: (response: AuthResponse) => {
+            queryClient.invalidateQueries({ queryKey: ['passwordLogin'] });
+            toast.success(response.message);
+        },
+        onError: showApiErrorToast,
+    });
 }
 
 export function useLogout() {

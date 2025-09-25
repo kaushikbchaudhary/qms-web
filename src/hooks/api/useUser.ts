@@ -74,6 +74,24 @@ export function useUpdateUser() {
     });
 }
 
+export function useUpdatePassword(userId?: string) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (payload: { currentPassword: string; newPassword: string }) => {
+            if (!userId) {
+                return Promise.reject(new Error('User ID is required to update password.'));
+            }
+            return userApi.updatePassword(userId, payload);
+        },
+        onSuccess: (response: any) => {
+            toast.success(response?.message ?? 'Password updated successfully.');
+            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        },
+        onError: showApiErrorToast,
+    });
+}
+
 export function useUserSignatureUpload() {
     return useMutation({
         mutationFn: async (file: File) => {

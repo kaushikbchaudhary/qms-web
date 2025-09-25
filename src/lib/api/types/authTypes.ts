@@ -4,11 +4,13 @@ export interface AuthPayload {
     otp?: string;
 }
 
+export interface PasswordLoginPayload {
+    email: string;
+    password: string;
+}
+
 export interface AuthResponse {
-    status: string;
+    success: boolean;
     message: string;
-    data?: {
-        user?: any; // Replace 'any' with your User type
-        token?: string; // Optional if using cookies
-    };
+    data?: any;
 }
