@@ -6,8 +6,16 @@ import {getRedirectPath, hasAccess} from "@/lib/auth/access";
 
 const PUBLIC_ROUTES = ['/auth/login', '/register', '/about'];
 
+const APP_ENV = process.env.NEXT_PUBLIC_RUNTIME_ENV || process.env.NODE_ENV;
+
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    if (APP_ENV !== 'production') {
+        const response = NextResponse.next();
+        response.headers.set('x-middleware-cache', 'no-store');
+        return response;
+    }
 
     // Allow public routes
     if (PUBLIC_ROUTES.includes(pathname)) {
@@ -53,6 +61,5 @@ export const config = {
         '/((?!api|_next|favicon.ico).*)', // Excludes API & static files
     ],
 };
-
 
 

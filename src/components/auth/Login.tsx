@@ -273,11 +273,20 @@ export default function LoginPage() {
         const contactInfo = loginMethod === 'email' ? email : `${countryCode}${phone}`;
         // Handle successful verification - redirect to dashboard
         otpVerify({email: contactInfo, otp: otpCode },{
-            onSuccess: (user:any) => {
-                // Save to Zustand store
-                useAuthStore.getState().login(user.data);
+            onSuccess: (response:any) => {
+                const authData = response?.data;
+                const token = authData?.token;
+                const user = authData?.user;
 
-                const role = user.data.role?.[0]; // Assuming user data has a role field
+                if (token) {
+                    localStorage.setItem('token', token);
+                }
+
+                if (user) {
+                    useAuthStore.getState().login(user);
+                }
+
+                const role = user?.role?.[0]; // Assuming user data has a role field
                 const redirectPath:string = roleRedirects[role] || '/';
 
                 // Nuclear option - works 100% of the time

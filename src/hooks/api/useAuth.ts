@@ -43,6 +43,9 @@ export function useLogout() {
             const response = await authApi.logout();
             if (!response?.data) throw new Error("Logout failed");
             toast.success(response.message);
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+            }
             useAuthStore.getState().logout();
             if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
                 window.location.replace('/auth/login');
