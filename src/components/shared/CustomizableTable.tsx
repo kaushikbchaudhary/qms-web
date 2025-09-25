@@ -18,6 +18,8 @@ import {
 } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -128,6 +130,7 @@ export interface DataTableProps<TData, TValue> {
         manualPagination?: boolean
         manualSorting?: boolean
         manualFiltering?: boolean
+        pageSizeOptions?: number[]
     }
 }
 
@@ -159,6 +162,7 @@ export default function CustomizableTable<TData, TValue>({
                                                  manualPagination: false,
                                                  manualSorting: false,
                                                  manualFiltering: false,
+                                                 pageSizeOptions: [10, 25, 50, 100],
                                              },
                                          }: DataTableProps<TData, TValue>) {
     const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
@@ -198,10 +202,23 @@ export default function CustomizableTable<TData, TValue>({
         ? onRowSelectionChange
         : setInternalRowSelection
 
+    const pageSizeOptions = options.pageSizeOptions ?? [10, 25, 50, 100]
+    const manualTotalItems = options.manualPagination
+        ? (totalItems && totalItems > 0 ? totalItems : data.length)
+        : undefined
+
     const table = useReactTable({
         data,
         columns,
-        pageCount: options.manualPagination ? Math.ceil(totalItems / actualPagination.pageSize) : undefined,
+        pageCount: options.manualPagination
+            ? Math.max(
+                1,
+                Math.ceil(
+                    Math.max(manualTotalItems ?? 1, 1) /
+                    Math.max(actualPagination.pageSize, 1)
+                )
+            )
+            : undefined,
         state: {
             pagination: actualPagination,
             sorting: actualSorting,
@@ -223,6 +240,25 @@ export default function CustomizableTable<TData, TValue>({
         manualFiltering: options.manualFiltering,
         debugTable: process.env.NODE_ENV === 'development',
     })
+
+    const paginationState = table.getState().pagination
+    const resolvedTotalItems = options.manualPagination
+        ? (manualTotalItems ?? 0)
+        : table.getFilteredRowModel().rows.length
+    const currentPageStart = resolvedTotalItems === 0
+        ? 0
+        : paginationState.pageIndex * paginationState.pageSize + 1
+    const currentPageRowCount = table.getRowModel().rows.length || data.length
+    const currentPageEnd = resolvedTotalItems === 0
+        ? 0
+        : Math.min(
+            resolvedTotalItems,
+            currentPageStart + currentPageRowCount - 1
+        )
+    const totalPages = options.manualPagination
+        ? Math.max(1, Math.ceil(Math.max(resolvedTotalItems, 1) / Math.max(paginationState.pageSize, 1)))
+        : Math.max(1, table.getPageCount() || 1)
+    const selectedRowCount = table.getFilteredSelectedRowModel().rows.length
 
     // Default loading component
     const defaultLoadingComponent = (
@@ -348,33 +384,78 @@ export default function CustomizableTable<TData, TValue>({
 
             {/* Pagination and row selection info */}
             {showPagination && (
-                <div className="flex items-center justify-between">
-                    {showRowSelection ? (
-                        <div className="text-sm text-muted-foreground">
-                            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                            {table.getFilteredRowModel().rows.length} row(s) selected.
-                        </div>
-                    ) : (
-                        <div />
-                    )}
+                <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm text-muted-foreground">
+                        {resolvedTotalItems === 0 ? (
+                            'No records to display.'
+                        ) : (
+                            <>
+                                Showing <span className="font-medium text-foreground">{currentPageStart}</span>
+                                {'-'}
+                                <span className="font-medium text-foreground">{currentPageEnd}</span>
+                                {' of '}
+                                <span className="font-medium text-foreground">{resolvedTotalItems}</span>
+                                {` item${resolvedTotalItems === 1 ? '' : 's'}`}.
+                            </>
+                        )}
+                        {showRowSelection && selectedRowCount > 0 && (
+                            <span className="ml-2 text-xs text-foreground">
+                                • {selectedRowCount} selected
+                            </span>
+                        )}
+                    </div>
 
-                    <div className="flex items-center space-x-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={()=> table.nextPage()}
-                            disabled={!table.getCanNextPage()}
-                        >
-                            Next
-                        </Button>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Rows per page</span>
+                            <Select
+                                value={String(paginationState.pageSize)}
+                                onValueChange={(value) => table.setPageSize(Number(value))}
+                            >
+                                <SelectTrigger className="h-8 w-[90px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {pageSizeOptions.map((size) => (
+                                        <SelectItem key={size} value={String(size)}>
+                                            {size}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            Page
+                            <span className="font-medium text-foreground">
+                                {resolvedTotalItems === 0 ? 0 : paginationState.pageIndex + 1}
+                            </span>
+                            <span>/</span>
+                            <span>{resolvedTotalItems === 0 ? 0 : totalPages}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => table.previousPage()}
+                                disabled={!table.getCanPreviousPage()}
+                                className="h-8 w-8"
+                                aria-label="Previous page"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => table.nextPage()}
+                                disabled={!table.getCanNextPage()}
+                                className="h-8 w-8"
+                                aria-label="Next page"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}
