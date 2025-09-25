@@ -23,7 +23,7 @@ export const finalDispositionOptions = [
     "Confirmed Device Defect",
     "No Fault Found",
     "Customer Misuse",
-    "Duplicate",
+    "Duplicate Complaint",
     "Other"
 ]
 

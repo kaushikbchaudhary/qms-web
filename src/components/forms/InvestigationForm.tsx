@@ -13,7 +13,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {Textarea} from "@/components/ui/textarea";
 import {useUpdateInvestigation} from "@/hooks/api/useComplaints";
 import {Switch} from "@/components/ui/switch";
-export const root_cause= ["Device Failure", "Manufacturing Issue", "Labeling/IFU", "Customer Misuse", "No Fault Found"];
+export const root_cause= ["Device Failure", "Manufacturing Issue", "Labelling/IFU", "Customer Misuse", "No Fault Found"];
 export function InvestigationForm({
                                       complaintId,
                                       defaultValues,
@@ -57,7 +57,7 @@ export function InvestigationForm({
                     name="investigation_date"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                            <FormLabel>Investigation Date</FormLabel>
+                            <FormLabel>12.1 Date of Investigation</FormLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <FormControl>
@@ -84,13 +84,13 @@ export function InvestigationForm({
 
                 {/* Root Cause Section */}
                 <div className="space-y-4">
-                    <h3 className="font-medium">Root Cause</h3>
+                    <h3 className="font-medium">12.3 Root Cause Identified</h3>
                     <FormField
                         control={form.control}
                         name="root_cause.identified"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Identified</FormLabel>
+                                <FormLabel>Select root cause</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
@@ -100,11 +100,9 @@ export function InvestigationForm({
                                     <SelectContent>
                                         {/*<SelectItem value="Device Failure">Device Failure</SelectItem>*/}
                                         {/*<SelectItem value="Manufacturing Issue">Manufacturing Issue</SelectItem>*/}
-                                        {
-                                            root_cause.map((cause) => (
-                                                <SelectItem key={cause} value={cause}>{cause}</SelectItem>
-                                            ))
-                                        }
+                                        {root_cause.map((cause) => (
+                                            <SelectItem key={cause} value={cause}>{cause}</SelectItem>
+                                        ))}
                                         <SelectItem value="Other">Other</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -113,32 +111,34 @@ export function InvestigationForm({
                         )}
                     />
 
-                    {form.watch("root_cause.identified") === "Other" && (
-                        <FormField
-                            control={form.control}
-                            name="root_cause.description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl>
-                                        <Textarea {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
+                    <FormField
+                        control={form.control}
+                        name="root_cause.description"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Root Cause Description</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        placeholder="Document the identified root cause. Required when 'Other' is selected."
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
 
                 {/* Corrective Action Section */}
                 <div className="space-y-4">
-                    <h3 className="font-medium">Corrective Action</h3>
+                    <h3 className="font-medium">Corrective/Preventive Action (if applicable)</h3>
                     <FormField
                         control={form.control}
                         name="corrective_action"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Description</FormLabel>
+                                <FormLabel>Corrective/Preventive Action Details</FormLabel>
                                 <FormControl>
                                     <Textarea
                                         {...field}
@@ -160,7 +160,7 @@ export function InvestigationForm({
                         render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">CAPA Initiated</FormLabel>
+                                    <FormLabel className="text-base">CAPA Initiated?</FormLabel>
                                 </div>
                                 <FormControl>
                                     <Switch
@@ -213,13 +213,13 @@ export function InvestigationForm({
 
                 {/* Action Taken Section */}
                 <div className="space-y-4">
-                    <h3 className="font-medium">Action Taken</h3>
+                    <h3 className="font-medium">Action Taken (if any)</h3>
                     <FormField
                         control={form.control}
                         name="action_taken"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Description</FormLabel>
+                                <FormLabel>Action Taken Description</FormLabel>
                                 <FormControl>
                                     <Textarea
                                         {...field}

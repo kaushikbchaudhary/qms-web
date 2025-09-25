@@ -92,11 +92,11 @@ export function ComplaintForm() {
                 purchase_date: new Date().toISOString(),
             },
             complaint_type: {
-                name: 'Performance Issue',
+                name: 'Performance issue',
                 description: 'Issues related to product performance',
                 config: {
                     _id: '687dc9f1b0e9176a170ac0bc',
-                    name: 'Performance Issue',
+                    name: 'Performance issue',
                     type: 'COMPLAINT_TYPE',
                 },
             },

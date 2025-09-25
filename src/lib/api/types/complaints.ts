@@ -198,7 +198,7 @@ export interface Complaint {
         investigating_officers: InvestigatingOfficer[];
         assignments?: InvestigationAssignment[];
         root_cause: {
-            identified: 'Device Failure' | 'Manufacturing Issue' | 'Labeling/IFU'
+            identified: 'Device Failure' | 'Manufacturing Issue' | 'Labelling/IFU'
                 | 'Customer Misuse' | 'No Fault Found' | 'Other';
             description?: string;
         };
@@ -233,7 +233,7 @@ export interface Complaint {
     // Closure
     closure?: {
         final_disposition: 'Confirmed Device Defect' | 'No Fault Found'
-            | 'Customer Misuse' | 'Duplicate' | 'Other';
+            | 'Customer Misuse' | 'Duplicate Complaint' | 'Other';
         reviewed_by: {
             sr_no: number;
             name: string;
@@ -426,7 +426,7 @@ export interface RootCause {
     identified:
         | 'Device Failure'
         | 'Manufacturing Issue'
-        | 'Labeling/IFU'
+        | 'Labelling/IFU'
         | 'Customer Misuse'
         | 'No Fault Found'
         | 'Other';

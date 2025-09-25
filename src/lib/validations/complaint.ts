@@ -12,7 +12,7 @@ export const rootCauseSchema = z.discriminatedUnion("identified", [
         identified: z.enum([
             "Device Failure",
             "Manufacturing Issue",
-            "Labeling/IFU",
+            "Labelling/IFU",
             "Customer Misuse",
             "No Fault Found"
         ]),
@@ -83,7 +83,7 @@ export const complaintClosureSchema = z.object({
         "Confirmed Device Defect",
         "No Fault Found",
         "Customer Misuse",
-        "Duplicate",
+        "Duplicate Complaint",
         "Other"
     ], {
         message: "Final disposition is required"
