@@ -52,13 +52,13 @@ export const completionDetailsSchema = z.object({
 });
 
 export const investigationSchema = z.object({
-    investigation_date: z.date(),
-    investigating_officers: z.array(investigatingOfficerSchema).default([]),
+    investigation_date: z.date({
+        message: "Investigation date is required"
+    }),
     root_cause: rootCauseSchema,
     corrective_action: z.string().min(1, "Corrective action is required"),
     capa: capaSchema,
-    action_taken: z.string().min(1, "Action taken is required"),
-    completion_details: completionDetailsSchema
+    action_taken: z.string().min(1, "Action taken is required")
 });
 
 export const customerCommunicationSchema = z.object({

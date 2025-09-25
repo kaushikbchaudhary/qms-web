@@ -46,7 +46,6 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
                         <InvestigationForm
                             complaintId={complaint._id!}
                             defaultValues={complaint.investigation!}
-                            assignments={complaint.investigation?.assignments ?? []}
                             onSuccess={() => window.location.reload()}
                         />
                     )}

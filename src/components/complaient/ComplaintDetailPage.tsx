@@ -310,7 +310,6 @@ const ComplaintDetailPage = (params:Props) => {
     const props = {
         complaintId: complaint?._id,
         defaultValues: complaint?.investigation,
-        assignments: complaint?.investigation?.assignments ?? [],
         onSuccess: async () => {
             await refetch();
         },
