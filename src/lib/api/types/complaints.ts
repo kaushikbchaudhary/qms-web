@@ -282,10 +282,19 @@ export interface ComplaintsApiResponse  {
 }
 
 // Query params (you already had this)
+export type FilterValue =
+    | string
+    | number
+    | boolean
+    | null
+    | { min: string; max?: string }
+    | { min?: string; max: string };
+
 export interface Filter {
     field: string;
     operator: string;
-    value: string;
+    value: FilterValue;
+    subType?: 'string' | 'number' | 'boolean' | 'date' | string;
 }
 
 export interface ComplaintQueryParams {

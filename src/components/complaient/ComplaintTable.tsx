@@ -4,16 +4,20 @@
 import {useEffect, useMemo, useState} from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { RefreshCw } from "lucide-react"
+import { CalendarRange, RefreshCw } from "lucide-react"
 import {ComplaintQueryParams, ComplaintStatus} from "@/lib/api/types/complaints";
 import CustomizableTable, {useTableState} from "@/components/shared/CustomizableTable";
 import {useGetComplaints} from "@/hooks/api/useComplaints";
 import {ColumnsComplaints} from "@/components/complaient/ColumnsComplaints";
-import {showApiErrorToast} from "@/lib/utils";
+import {cn, showApiErrorToast} from "@/lib/utils";
 import {useDebounce} from "@/hooks/debounceHook";
 import {Tabs, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/stores/authStore';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
+import { endOfMonth, format, startOfMonth, subDays } from 'date-fns';
 
 type StatusFilterValue = ComplaintStatus | 'ALL';
 
@@ -25,6 +29,67 @@ const STATUS_FILTERS: { value: StatusFilterValue; label: string }[] = [
     { value: 'REJECTED', label: 'Rejected' },
     { value: 'CLOSED', label: 'Closed' },
 ];
+
+type DateFilterKey = 'ALL' | 'TODAY' | 'YESTERDAY' | 'LAST_3_DAYS' | 'LAST_7_DAYS' | 'THIS_MONTH' | 'CUSTOM';
+
+const QUICK_DATE_FILTERS: DateFilterKey[] = ['ALL', 'TODAY', 'YESTERDAY', 'LAST_3_DAYS', 'LAST_7_DAYS', 'THIS_MONTH'];
+
+interface DateFilterState {
+    key: DateFilterKey;
+    range?: DateRange;
+}
+
+const DATE_FILTER_LABELS: Record<Exclude<DateFilterKey, 'CUSTOM'>, string> = {
+    ALL: 'All time',
+    TODAY: 'Today',
+    YESTERDAY: 'Yesterday',
+    LAST_3_DAYS: 'Last 3 days',
+    LAST_7_DAYS: 'Last 7 days',
+    THIS_MONTH: 'This month',
+};
+
+const atStartOfDay = (date: Date) => {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+};
+
+const getPresetRange = (key: DateFilterKey): DateRange | undefined => {
+    const today = atStartOfDay(new Date());
+
+    switch (key) {
+        case 'TODAY':
+            return { from: today, to: today };
+        case 'YESTERDAY': {
+            const yesterday = atStartOfDay(subDays(today, 1));
+            return { from: yesterday, to: yesterday };
+        }
+        case 'LAST_3_DAYS': {
+            const from = atStartOfDay(subDays(today, 2));
+            return { from, to: today };
+        }
+        case 'LAST_7_DAYS': {
+            const from = atStartOfDay(subDays(today, 6));
+            return { from, to: today };
+        }
+        case 'THIS_MONTH': {
+            const from = atStartOfDay(startOfMonth(today));
+            const to = atStartOfDay(endOfMonth(today));
+            return { from, to };
+        }
+        default:
+            return undefined;
+    }
+};
+
+const formatDateRangeLabel = (range?: DateRange) => {
+    if (!range?.from) return 'Custom';
+
+    const fromLabel = format(range.from, 'MMM d, yyyy');
+    const toLabel = range.to ? format(range.to, 'MMM d, yyyy') : fromLabel;
+
+    return fromLabel === toLabel ? fromLabel : `${fromLabel} – ${toLabel}`;
+};
 
 export function ComplaintsTable() {
     const tableState = useTableState()
@@ -43,6 +108,9 @@ export function ComplaintsTable() {
     const [globalFilter, setGlobalFilter] = useState("")
     const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('ALL');
     const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'assigned_to_me' | 'assigned_unread' | 'investigator' | 'investigator_unread'>('all');
+    const [dateFilter, setDateFilter] = useState<DateFilterState>({ key: 'ALL' });
+    const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
+    const [pendingCustomRange, setPendingCustomRange] = useState<DateRange | undefined>();
     const [globalFilterFields] = useState<string[]>([
         "customer.name",
         "customer.company",
@@ -59,6 +127,31 @@ export function ComplaintsTable() {
             : [{ field: 'status', operator: 'eq', value: statusFilter }]
     ), [statusFilter]);
 
+    const dateRangeFilters = useMemo(() => {
+        if (dateFilter.key === 'ALL' || !dateFilter.range?.from) {
+            return [] as ComplaintQueryParams['filters'];
+        }
+
+        const from = dateFilter.range.from;
+        const to = dateFilter.range.to ?? dateFilter.range.from;
+        const fromDateStr = format(from, 'yyyy-MM-dd');
+        const toDateStr = format(to, 'yyyy-MM-dd');
+
+        return [{
+            field: 'submission_date',
+            operator: 'ltegte',
+            subType: 'date',
+            value: {
+                min: fromDateStr,
+                max: toDateStr,
+            },
+        }];
+    }, [dateFilter]);
+
+    const combinedFilters = useMemo(() => (
+        [...statusFilters, ...dateRangeFilters]
+    ), [statusFilters, dateRangeFilters]);
+
     // Prepare query params
     const queryParams: ComplaintQueryParams = useMemo(() => ({
         page_size: pagination.pageSize,
@@ -67,7 +160,7 @@ export function ComplaintsTable() {
         global_filter: globalFilterFields,
         sort_by: sorting[0]?.id || "submission_date",
         sort_order: -1, // sorting[0]?.desc ? -1 : 1,
-        filters: statusFilters,
+        filters: combinedFilters,
         status: statusFilter === 'ALL' ? undefined : statusFilter,
         assigned_to: !currentUser ? undefined : (assignmentFilter === 'assigned_to_me' || assignmentFilter === 'assigned_unread') ? currentUser._id : undefined,
         assignee_read: assignmentFilter === 'assigned_unread' ? 'unread' : undefined,
@@ -79,10 +172,10 @@ export function ComplaintsTable() {
         debouncedGlobalFilterValue,
         globalFilterFields,
         sorting,
-        statusFilters,
         statusFilter,
         assignmentFilter,
-        currentUser
+        currentUser,
+        combinedFilters
     ]);
 
     const {data, isLoading,isError, error, refetch } = useGetComplaints(queryParams);
@@ -91,6 +184,43 @@ export function ComplaintsTable() {
             showApiErrorToast(error);
         }
     }, [isError, error]);
+
+    useEffect(() => {
+        if (isDateFilterOpen) {
+            setPendingCustomRange(dateFilter.key === 'CUSTOM' ? dateFilter.range : undefined);
+        }
+    }, [isDateFilterOpen, dateFilter.key, dateFilter.range]);
+
+    const handlePresetSelect = (key: DateFilterKey) => {
+        if (key === 'CUSTOM') {
+            setPendingCustomRange(dateFilter.key === 'CUSTOM' ? dateFilter.range : undefined);
+            setDateFilter((prev) => ({ key: 'CUSTOM', range: prev.key === 'CUSTOM' ? prev.range : undefined }));
+            return;
+        }
+
+        const presetRange = getPresetRange(key);
+        setDateFilter({ key, range: presetRange });
+        setIsDateFilterOpen(false);
+    };
+
+    const handleApplyCustomRange = () => {
+        if (!pendingCustomRange?.from) return;
+
+        const from = atStartOfDay(pendingCustomRange.from);
+        const to = pendingCustomRange.to ? atStartOfDay(pendingCustomRange.to) : from;
+
+        const normalizedRange: DateRange = { from, to };
+        setDateFilter({ key: 'CUSTOM', range: normalizedRange });
+        setPendingCustomRange(normalizedRange);
+        setIsDateFilterOpen(false);
+    };
+
+    const dateFilterLabel = useMemo(() => {
+        if (dateFilter.key === 'CUSTOM') {
+            return formatDateRangeLabel(dateFilter.range);
+        }
+        return DATE_FILTER_LABELS[dateFilter.key] ?? 'Custom';
+    }, [dateFilter]);
 
     return (
         <div className="space-y-4">
@@ -140,6 +270,86 @@ export function ComplaintsTable() {
                     </div>
 
                     <div className="flex items-center gap-2 self-start lg:self-auto">
+                        <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex h-auto min-w-[110px] items-center gap-1 px-3 py-2"
+                                >
+                                    <CalendarRange className="h-4 w-4" />
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                        {dateFilterLabel}
+                                    </span>
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80" align="end">
+                                <div className="space-y-4">
+                                    <div className="grid gap-1">
+                                        {QUICK_DATE_FILTERS.map((key) => (
+                                            <Button
+                                                key={key}
+                                                variant="ghost"
+                                                size="sm"
+                                                className={cn(
+                                                    'justify-start text-sm',
+                                                    dateFilter.key === key && dateFilter.key !== 'CUSTOM' && 'bg-accent text-accent-foreground'
+                                                )}
+                                                onClick={() => handlePresetSelect(key)}
+                                            >
+                                                {DATE_FILTER_LABELS[key as Exclude<DateFilterKey, 'CUSTOM'>] ?? 'Custom'}
+                                            </Button>
+                                        ))}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={cn(
+                                                'justify-start text-sm',
+                                                dateFilter.key === 'CUSTOM' && 'bg-accent text-accent-foreground'
+                                            )}
+                                            onClick={() => handlePresetSelect('CUSTOM')}
+                                        >
+                                            Custom range
+                                        </Button>
+                                    </div>
+
+                                    <div className="rounded-md border p-3">
+                                        <p className="mb-2 text-xs font-medium text-muted-foreground">Select range</p>
+                                        <Calendar
+                                            initialFocus
+                                            mode="range"
+                                            numberOfMonths={2}
+                                            selected={pendingCustomRange}
+                                            onSelect={setPendingCustomRange}
+                                            defaultMonth={pendingCustomRange?.from ?? dateFilter.range?.from ?? new Date()}
+                                            disabled={{ after: new Date() }}
+                                        />
+                                        <div className="mt-3 flex justify-end gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setPendingCustomRange(undefined);
+                                                    setDateFilter({ key: 'ALL' });
+                                                    setIsDateFilterOpen(false);
+                                                }}
+                                            >
+                                                Clear
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                disabled={!pendingCustomRange?.from}
+                                                onClick={handleApplyCustomRange}
+                                            >
+                                                Apply
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                         <Button
                             variant="outline"
                             size="sm"
