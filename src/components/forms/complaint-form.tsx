@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm, useWatch, Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -14,70 +14,23 @@ import { CalendarIcon } from '@radix-ui/react-icons'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useCreateComplaint, useLookup } from '@/hooks/api/useComplaints'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CreateComplaintPayload, MasterLookupItem, ReplacementDetails } from '@/lib/api/types/complaints'
 import { FileUploadComponent } from '@/components/forms/FileUploadComponent'
 import { useAttachmentManager } from '@/components/forms/AttachmentManager'
+import { useComplaintFormRequirements } from '@/hooks/useComplaintFormRequirements'
+import { buildComplaintSubmissionSchema } from '@/lib/validations/complaintSubmission'
 
-const formSchema = z.object({
-    customer: z.object({
-        name: z.string().min(2, 'Name must be at least 2 characters'),
-        company: z.string().optional(),
-        contact_number: z.string().min(10, 'Invalid phone number'),
-        email: z.string().email('Invalid email address'),
-    }),
-    product_details: z.object({
-        model: z.string().min(1, 'Model is required'),
-        batch_number: z.string().optional(),
-        serial_number: z.string().min(1, 'Serial number is required'),
-        purchase_date: z.string(),
-    }),
-    complaint_type: z.object({
-        name: z.string(),
-        description: z.string().nullable(),
-        config: z.object({
-            _id: z.string(),
-            name: z.string(),
-            type: z.string(),
-        }),
-    }),
-    issue_details: z.object({
-        description: z.string().min(10, 'Description must be at least 10 characters'),
-        problem_start_date: z.string(),
-        occurred_before: z.enum(['Yes', 'No']),
-        replication_steps: z.string().optional(),
-    }),
-    customer_impact: z.string().min(10, 'Impact description must be at least 10 characters'),
-    previous_contact: z.object({
-        reported_before: z.enum(['Yes', 'No']),
-        reference_number: z.string().optional(),
-        contact_date: z.string().optional(),
-        person_contacted: z.string().optional(),
-    }),
-    customer_actions: z.object({
-        troubleshooting_done: z.enum(['Yes', 'No']),
-        troubleshooting_description: z.string().optional(),
-    }),
-    preferred_resolution_method: z.object({
-        name: z.string(),
-        description: z.string().nullable(),
-        config: z.object({
-            _id: z.string(),
-            name: z.string(),
-            type: z.string(),
-        }),
-    }),
-    replacement_details: z.object({
-        batch_number: z.string().optional(),
-        serial_number: z.string().optional(),
-        mfg_date: z.string().optional(),
-    }).optional(),
-    attachments: z.array(z.string().url('Invalid URL')).optional(),
-})
+type ComplaintFormSchema = ReturnType<typeof buildComplaintSubmissionSchema>
+type ComplaintFormValues = z.infer<ComplaintFormSchema>
 
 export function ComplaintForm() {
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
+    const { requirements } = useComplaintFormRequirements()
+    const schema = useMemo(() => buildComplaintSubmissionSchema(requirements), [requirements])
+    const resolver = useMemo(() => zodResolver(schema) as Resolver<ComplaintFormValues>, [schema])
+
+    const form = useForm<ComplaintFormValues>({
+        resolver,
         defaultValues: {
             customer: {
                 name: '',
@@ -135,6 +88,10 @@ export function ComplaintForm() {
         },
     })
 
+    useEffect(() => {
+        form.reset(form.getValues())
+    }, [schema, form])
+
     const [submissionDate] = useState(() => new Date())
     const [pathsAttachments, setPathsAttachments] = useState<string[]>([])
     const { attachments, addFiles, removeFile, setAttachments } = useAttachmentManager()
@@ -146,17 +103,20 @@ export function ComplaintForm() {
 
     const { mutate: createComplaint, isPending } = useCreateComplaint()
 
-    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const normalizeOptional = (value?: string | null) =>
+        value === undefined || value === null ? undefined : value;
+
+    const onSubmit = async (values: ComplaintFormValues) => {
         try {
             const payload: CreateComplaintPayload = {
                 ...values,
                 product_details: {
                     ...values.product_details,
-                    batch_number: values.product_details.batch_number || undefined,
+                    batch_number: normalizeOptional(values.product_details.batch_number),
                 },
                 issue_details: {
                     ...values.issue_details,
-                    replication_steps: values.issue_details.replication_steps ?? null,
+                    replication_steps: normalizeOptional(values.issue_details.replication_steps) ?? null,
                 },
                 complaint_type: {
                     ...values.complaint_type,
@@ -169,8 +129,8 @@ export function ComplaintForm() {
                 replacement_details: values.replacement_details
                     ? {
                           ...values.replacement_details,
-                          batch_number: values.replacement_details.batch_number || undefined,
-                          serial_number: values.replacement_details.serial_number || undefined,
+                          batch_number: normalizeOptional(values.replacement_details.batch_number),
+                          serial_number: normalizeOptional(values.replacement_details.serial_number),
                           mfg_date: values.replacement_details.mfg_date
                               ? new Date(values.replacement_details.mfg_date).toISOString()
                               : undefined,
