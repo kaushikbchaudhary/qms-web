@@ -263,7 +263,8 @@ export function UserForm({
                         control={form.control}
                         name="signature"
                         render={({ field }) => {
-                            const hasSignature = !!field.value?.path
+                            const signatureValue = field.value;
+                            const hasSignature = !!signatureValue?.path
                             return (
                                 <FormItem className="md:col-span-2">
                                     <FormLabel>Digital Signature</FormLabel>
@@ -271,9 +272,9 @@ export function UserForm({
                                         <div className="space-y-3">
                                             {hasSignature && (
                                                 <div className="flex items-center gap-3">
-                                                    <SignaturePreviewModal signaturePath={field.value.path} source="user" />
+                                                    <SignaturePreviewModal signaturePath={signatureValue?.path ?? ''} source="user" />
                                                     <span className="text-sm text-muted-foreground truncate">
-                                                        {field.value.filename ?? 'Signature image'}
+                                                        {signatureValue?.filename ?? 'Signature image'}
                                                     </span>
                                                 </div>
                                             )}

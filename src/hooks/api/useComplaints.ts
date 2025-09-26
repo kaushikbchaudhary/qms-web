@@ -1,6 +1,6 @@
 import {useQuery, useMutation, useQueryClient, UseQueryResult} from '@tanstack/react-query'
 import {
-    ComplaintCreateResponse,
+    Complaint,
     ComplaintQueryParams,
     ComplaintsApiResponse,
     CreateComplaintPayload, MasterLookupItem,
@@ -9,7 +9,6 @@ import {
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
 import {toast} from "sonner";
 import {getFileType, showApiErrorToast} from "@/lib/utils";
-import {AxiosResponse} from "axios";
 
 export function useLookup(params: { type: string }) {
     return useQuery<MasterLookupItem[], Error>({
@@ -238,11 +237,14 @@ export function useUpdateRiskManagement(complaintId: string) {
 
 export function useComplaintWithWorkflow(
     complaintId: string
-): UseQueryResult<AxiosResponse<ComplaintCreateResponse>> {
-    return useQuery<AxiosResponse<ComplaintCreateResponse>>({
+): UseQueryResult<Complaint | undefined> {
+    return useQuery<Complaint | undefined>({
         queryKey: ['complaint', complaintId],
-        queryFn: () =>
-            complaintsApi.getComplaintWithWorkflow(complaintId),
+        queryFn: async () => {
+            if (!complaintId) return undefined;
+            const response = await complaintsApi.getComplaintWithWorkflow(complaintId);
+            return response?.data as Complaint;
+        },
         enabled: !!complaintId,
         staleTime: 5 * 60 * 1000 // 5 minutes
     });

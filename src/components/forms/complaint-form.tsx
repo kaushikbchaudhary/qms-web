@@ -15,7 +15,7 @@ import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useCreateComplaint, useLookup } from '@/hooks/api/useComplaints'
 import { useEffect, useState } from 'react'
-import { MasterLookupItem } from '@/lib/api/types/complaints'
+import { CreateComplaintPayload, MasterLookupItem, ReplacementDetails } from '@/lib/api/types/complaints'
 import { FileUploadComponent } from '@/components/forms/FileUploadComponent'
 import { useAttachmentManager } from '@/components/forms/AttachmentManager'
 
@@ -148,7 +148,7 @@ export function ComplaintForm() {
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
-            const payload = {
+            const payload: CreateComplaintPayload = {
                 ...values,
                 product_details: {
                     ...values.product_details,
@@ -175,7 +175,7 @@ export function ComplaintForm() {
                               ? new Date(values.replacement_details.mfg_date).toISOString()
                               : undefined,
                       }
-                    : undefined,
+                    : ({} as ReplacementDetails),
                 attachments: pathsAttachments,
             }
             createComplaint(payload, {

@@ -9,9 +9,19 @@ const ComplaintWorkflowSystem = () => {
         RESOLVED: 'RESOLVED',
         REJECTED: 'REJECTED',
         CLOSED: 'CLOSED'
+    } as const;
+
+    type ComplaintStatus = typeof COMPLAINT_STATUS[keyof typeof COMPLAINT_STATUS];
+    type StageIconComponent = React.ComponentType<{ className?: string; size?: number }>;
+    type StageConfig = {
+        id: number;
+        name: string;
+        color: string;
+        icon: StageIconComponent;
+        description: string;
     };
 
-    const STAGE_CONFIG = {
+    const STAGE_CONFIG: Record<ComplaintStatus, StageConfig> = {
         [COMPLAINT_STATUS.SUBMITTED]: {
             id: 1, name: 'Submitted', color: 'blue', icon: FileText,
             description: 'Complaint has been submitted and awaiting review'
@@ -35,7 +45,14 @@ const ComplaintWorkflowSystem = () => {
     };
 
     // Role-based workflow permissions based on your user roles
-    const ROLE_WORKFLOW = {
+    type RoleWorkflowConfig = {
+        canTransitionTo: Partial<Record<ComplaintStatus, ComplaintStatus[]>>;
+        canView: 'all' | 'assigned_only';
+        canEdit: string[] | 'all';
+        description: string;
+    };
+
+    const ROLE_WORKFLOW: Record<string, RoleWorkflowConfig> = {
         support: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION, COMPLAINT_STATUS.REJECTED],
@@ -82,8 +99,21 @@ const ComplaintWorkflowSystem = () => {
         }
     };
 
+    type WorkflowComplaint = {
+        _id: string;
+        complaint_number: string;
+        status: ComplaintStatus;
+        status_history: Array<{
+            status: ComplaintStatus;
+            changed_by: string;
+            changed_at: Date;
+            comments?: string;
+        }>;
+        [key: string]: any;
+    };
+
     // Sample complaint data matching your schema
-    const [complaints, setComplaints] = useState([
+    const [complaints, setComplaints] = useState<WorkflowComplaint[]>([
         {
             _id: '507f1f77bcf86cd799439011',
             complaint_number: 'CPL-2024-001',
@@ -170,25 +200,37 @@ const ComplaintWorkflowSystem = () => {
             },
             customer_communication: {},
             closure: {}
-        }
+        } as WorkflowComplaint
     ]);
 
-    const [currentUser, setCurrentUser] = useState({
+    type WorkflowUser = {
+        _id: string;
+        role?: string[];
+        firstName?: string;
+        lastName?: string;
+    };
+
+    const [currentUser, setCurrentUser] = useState<WorkflowUser>({
         _id: '507f1f77bcf86cd799439014',
         role: ['support'],
         firstName: 'Support',
         lastName: 'User'
     });
-    const [selectedComplaint, setSelectedComplaint] = useState(null);
-    const [statusUpdateModal, setStatusUpdateModal] = useState({ show: false, complaint: null, targetStatus: null });
+    const [selectedComplaint, setSelectedComplaint] = useState<string | null>(null);
+    const [statusUpdateModal, setStatusUpdateModal] = useState<{
+        show: boolean;
+        complaint: WorkflowComplaint | null;
+        targetStatus: ComplaintStatus | null;
+    }>({ show: false, complaint: null, targetStatus: null });
 
     // Get user's primary role
-    const getUserRole = (user) => {
-        return user.role && user.role.length > 0 ? user.role[0] : 'support';
+    const getUserRole = (user: WorkflowUser | null | undefined) => {
+        const roles = user?.role ?? [];
+        return roles.length > 0 ? roles[0] : 'support';
     };
 
     // Check if user can transition complaint to target status
-    const canTransitionToStatus = (complaint, targetStatus) => {
+    const canTransitionToStatus = (complaint: WorkflowComplaint, targetStatus: ComplaintStatus) => {
         const userRole = getUserRole(currentUser);
         const roleConfig = ROLE_WORKFLOW[userRole];
 
@@ -199,7 +241,7 @@ const ComplaintWorkflowSystem = () => {
     };
 
     // Get available status transitions for current user
-    const getAvailableTransitions = (complaint) => {
+    const getAvailableTransitions = (complaint: WorkflowComplaint) => {
         const userRole = getUserRole(currentUser);
         const roleConfig = ROLE_WORKFLOW[userRole];
 
@@ -213,8 +255,8 @@ const ComplaintWorkflowSystem = () => {
     };
 
     // Update complaint status
-    const updateComplaintStatus = (complaintId, newStatus, comments = '') => {
-        setComplaints(prev => prev.map(complaint => {
+    const updateComplaintStatus = (complaintId: string, newStatus: ComplaintStatus, comments = '') => {
+        setComplaints(prev => prev.map((complaint) => {
             if (complaint._id === complaintId) {
                 const newHistoryEntry = {
                     status: newStatus,
@@ -236,7 +278,7 @@ const ComplaintWorkflowSystem = () => {
     };
 
     // Check if user can view complaint
-    const canViewComplaint = (complaint) => {
+    const canViewComplaint = (complaint: WorkflowComplaint) => {
         const userRole = getUserRole(currentUser);
         const roleConfig = ROLE_WORKFLOW[userRole];
 
@@ -253,7 +295,9 @@ const ComplaintWorkflowSystem = () => {
     const StatusUpdateModal = () => {
         const [comments, setComments] = useState('');
 
-        if (!statusUpdateModal.show) return null;
+        if (!statusUpdateModal.show || !statusUpdateModal.complaint || !statusUpdateModal.targetStatus) {
+            return null;
+        }
 
         const { complaint, targetStatus } = statusUpdateModal;
         const targetConfig = STAGE_CONFIG[targetStatus];
@@ -294,15 +338,18 @@ const ComplaintWorkflowSystem = () => {
     };
 
     // Workflow progress component
-    const WorkflowProgress = ({ complaint }) => {
-        const currentStageId = STAGE_CONFIG[complaint.status]?.id || 1;
+    const WorkflowProgress = ({ complaint }: { complaint: WorkflowComplaint }) => {
+        const currentStageId = STAGE_CONFIG[complaint.status]?.id ?? 1;
 
         return (
             <div className="flex items-center space-x-2 mb-4">
-                {Object.entries(STAGE_CONFIG).filter(([status]) => status !== COMPLAINT_STATUS.REJECTED).map(([status, config], index) => {
-                    const isCompleted = currentStageId > config.id;
-                    const isCurrent = complaint.status === status;
-                    const isRejected = complaint.status === COMPLAINT_STATUS.REJECTED;
+                {Object.entries(STAGE_CONFIG)
+                    .filter(([status]) => status !== COMPLAINT_STATUS.REJECTED)
+                    .map(([status, config], index) => {
+                        const statusKey = status as ComplaintStatus;
+                        const isCompleted = currentStageId > config.id;
+                        const isCurrent = complaint.status === statusKey;
+                        const isRejected = complaint.status === COMPLAINT_STATUS.REJECTED;
 
                     const StageIcon = config.icon;
 
@@ -326,7 +373,7 @@ const ComplaintWorkflowSystem = () => {
                             )}
                         </div>
                     );
-                })}
+                    })}
 
                 {complaint.status === COMPLAINT_STATUS.REJECTED && (
                     <div className="ml-4 flex items-center">
@@ -488,15 +535,19 @@ const ComplaintWorkflowSystem = () => {
                         Current Role Permissions ({getUserRole(currentUser)})
                     </h3>
                     <div className="text-sm text-gray-600 space-y-2">
-                        {Object.entries(ROLE_WORKFLOW[getUserRole(currentUser)]?.canTransitionTo || {}).map(([fromStatus, toStatuses]) => (
-                            <div key={fromStatus}>
-                                <strong>From {STAGE_CONFIG[fromStatus]?.name}:</strong> Can move to{' '}
-                                {toStatuses.length > 0
-                                    ? toStatuses.map(status => STAGE_CONFIG[status]?.name).join(', ')
-                                    : 'No transitions allowed'
-                                }
-                            </div>
-                        ))}
+                        {Object.entries(ROLE_WORKFLOW[getUserRole(currentUser)]?.canTransitionTo || {}).map(([fromStatus, toStatuses]) => {
+                            const fromStatusKey = fromStatus as ComplaintStatus;
+                            const destinations = (toStatuses ?? []) as ComplaintStatus[];
+                            return (
+                                <div key={fromStatus}>
+                                    <strong>From {STAGE_CONFIG[fromStatusKey]?.name}:</strong> Can move to{' '}
+                                    {destinations.length > 0
+                                        ? destinations.map(status => STAGE_CONFIG[status]?.name).join(', ')
+                                        : 'No transitions allowed'
+                                    }
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

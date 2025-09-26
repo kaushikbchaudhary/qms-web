@@ -19,6 +19,7 @@ export interface ComplaintCustomer {
 
 export interface ComplaintProductDetails {
     model: string;
+    batch_number?: string;
     serial_number: string;
     purchase_date: string;
     config?: Record<string, unknown>;

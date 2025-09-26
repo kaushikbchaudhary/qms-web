@@ -8,6 +8,8 @@ export type UserData = {
     lastName: string;
     role: string[];
     emailId: string;
+    isVerified?: boolean;
+    organization?: string;
     // Add other fields you need
 };
 

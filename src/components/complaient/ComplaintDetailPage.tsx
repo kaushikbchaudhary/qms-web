@@ -43,6 +43,7 @@ import {
     useUpdateReceivedInfo
 } from "@/hooks/api/useComplaints";
 import {Complaint} from "@/lib/api/types/complaints";
+import type { InvestigationFormData, ComplaintClosureFormData } from '@/lib/validations/complaint';
 import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer";
 import {InvestigationForm} from "@/components/forms/InvestigationForm";
 import {formatDate, formatDateTime, showApiErrorToast} from "@/lib/utils";
@@ -66,6 +67,13 @@ const ComplaintDetailPage = (params:Props) => {
         RESOLVED: 'RESOLVED',
         REJECTED: 'REJECTED',
         CLOSED: 'CLOSED'
+    } as const satisfies Record<string, Complaint['status']>;
+
+    type ComplaintStatus = Complaint['status'];
+    type RolePermission = {
+        canTransitionTo: Record<ComplaintStatus, ComplaintStatus[]>;
+        canEdit: string[] | 'all';
+        label: string;
     };
 
     const STAGE_CONFIG = {
@@ -144,7 +152,7 @@ const ComplaintDetailPage = (params:Props) => {
 
 
     // Role-based permissions matching your user schema
-    const ROLE_PERMISSIONS = {
+    const ROLE_PERMISSIONS: Record<string, RolePermission> = {
         support: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION, COMPLAINT_STATUS.REJECTED],
@@ -171,6 +179,9 @@ const ComplaintDetailPage = (params:Props) => {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
             },
             canEdit: ['investigation', 'customer_communication'],
             label: 'Production Team'
@@ -190,8 +201,12 @@ const ComplaintDetailPage = (params:Props) => {
 
     // State management
     const [complaint, setComplaint] = useState<Complaint>();
-    const currentUser: UserData = useAuthStore.getState().user;
-    const [statusUpdateModal, setStatusUpdateModal] = useState({
+    const currentUser = useAuthStore((state) => state.user);
+    const [statusUpdateModal, setStatusUpdateModal] = useState<{
+        show: boolean;
+        targetStatus: Complaint['status'] | null;
+        comments: string;
+    }>({
         show: false,
         targetStatus: null,
         comments: ''
@@ -265,20 +280,21 @@ const ComplaintDetailPage = (params:Props) => {
     );
 
     const myInvestigationAssignment = useMemo(() => {
-        if (!currentUser?._id) return undefined;
+        const currentUserId = currentUser?._id;
+        if (!currentUserId) return undefined;
         return investigatorAssignments.find((assignment) => {
             const assignmentUserId = typeof assignment.user === 'string'
                 ? assignment.user
                 : assignment.user?._id;
-            return assignmentUserId === currentUser._id;
+            return assignmentUserId === currentUserId;
         });
     }, [investigatorAssignments, currentUser?._id]);
 
     useEffect(() => {
         console.log('Complaint Data Effect:', complaintData, isSuccess);
-        if (isSuccess && complaintData?.data) {
+        if (isSuccess && complaintData) {
             console.log('Fetched Complaint Data:', complaintData);
-            setComplaint(complaintData.data);
+            setComplaint(complaintData);
         }
     }, [complaintData, isSuccess]);
 
@@ -314,24 +330,110 @@ const ComplaintDetailPage = (params:Props) => {
 
     // Helper functions
     const getUserRole = (user: UserData | null | undefined) => user?.role?.[0] ?? '';
+    const getRoleConfig = (role: string) =>
+        role ? ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] : undefined;
+    const mapButtonVariant = (variant: string): 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' => {
+        if (variant === 'destructive' || variant === 'outline' || variant === 'secondary' || variant === 'ghost' || variant === 'link') {
+            return variant;
+        }
+        return 'default';
+    };
 
-    const getAvailableTransitions = () => {
+    const mapBadgeVariant = (variant: string): React.ComponentProps<typeof Badge>['variant'] => {
+        if (variant === 'destructive' || variant === 'outline' || variant === 'secondary') {
+            return variant;
+        }
+        return 'default';
+    };
+
+    const getAvailableTransitions = (): Complaint['status'][] => {
         if (!complaint) return [];
         const userRole = getUserRole(currentUser);
-        const roleConfig = ROLE_PERMISSIONS[userRole];
+        const roleConfig = getRoleConfig(userRole);
         console.log('User Role:', userRole,complaint.status);
         const allowedTransitions = roleConfig?.canTransitionTo[complaint.status] || [];
         console.log('Allowed Transitions:', allowedTransitions);
-        return allowedTransitions;
+        return allowedTransitions as Complaint['status'][];
     };
 
-    const props = {
-        complaintId: complaint?._id,
-        defaultValues: complaint?.investigation,
-        onSuccess: async () => {
-            await refetch();
-        },
-    };
+    const investigationFormDefaults = useMemo(() => {
+        const investigation = complaint?.investigation;
+        if (!investigation) return undefined;
+
+        const rootCause = investigation.root_cause
+            ? (
+                investigation.root_cause.identified === 'Other'
+                    ? {
+                        identified: 'Other' as const,
+                        description: investigation.root_cause.description ?? '',
+                    }
+                    : {
+                        identified: investigation.root_cause.identified,
+                        ...(investigation.root_cause.description
+                            ? { description: investigation.root_cause.description }
+                            : {}),
+                    }
+            ) as InvestigationFormData['root_cause']
+            : undefined;
+
+        const defaults: Partial<InvestigationFormData> & {
+            completion_details?: {
+                name: string;
+                signature: string;
+                date?: Date;
+            };
+        } = {
+            investigation_date: investigation.investigation_date
+                ? new Date(investigation.investigation_date)
+                : undefined,
+            root_cause: rootCause,
+            corrective_action: investigation.corrective_action ?? '',
+            capa: investigation.capa,
+            action_taken: investigation.action_taken ?? '',
+        };
+
+        if (investigation.completion_details) {
+            defaults.completion_details = {
+                ...investigation.completion_details,
+                date: investigation.completion_details.date
+                    ? new Date(investigation.completion_details.date)
+                    : undefined,
+            };
+        }
+
+        return defaults;
+    }, [complaint?.investigation]);
+
+    const investigationFormProps = complaint
+        ? {
+            complaintId: complaint._id,
+            defaultValues: investigationFormDefaults,
+            onSuccess: async () => {
+                await refetch();
+            },
+        }
+        : null;
+
+    const closureFormDefaults = useMemo(() => {
+        const closure = complaint?.closure;
+        if (!closure) return undefined;
+
+        const defaults: Partial<ComplaintClosureFormData> = {
+            final_disposition: closure.final_disposition,
+            reviewed_by: closure.reviewed_by,
+            closure_comments: closure.closure_comments,
+        };
+
+        if (closure.approved_by?.date) {
+            defaults.approved_by = {
+                qa_head_name: closure.approved_by.qa_head_name,
+                signature: closure.approved_by.signature,
+                date: new Date(closure.approved_by.date),
+            };
+        }
+
+        return defaults;
+    }, [complaint?.closure]);
 
     const resolveAssignmentUserId = (assignmentUser: any) => {
         if (!assignmentUser) return null;
@@ -341,13 +443,14 @@ const ComplaintDetailPage = (params:Props) => {
 
     const isAssignedInvestigator = complaint?.investigation?.assignments?.some((assignment: any) => {
         const assignmentUserId = resolveAssignmentUserId(assignment?.user);
-        return assignmentUserId && currentUser?._id && assignmentUserId.toString() === currentUser._id;
+        const currentUserId = currentUser?._id;
+        return assignmentUserId && currentUserId && assignmentUserId.toString() === currentUserId;
     }) ?? false;
 
     const canEditSection = (section:string) => {
         console.log('Checking edit permission for section:', section);
         const userRole = getUserRole(currentUser);
-        const roleConfig = ROLE_PERMISSIONS[userRole];
+        const roleConfig = getRoleConfig(userRole);
 
         if (section === 'investigation') {
             if (!currentUser) return false;
@@ -374,6 +477,15 @@ const ComplaintDetailPage = (params:Props) => {
     };
 
     const currentUserRole = getUserRole(currentUser);
+    const currentUserFirstName = currentUser?.firstName ?? '';
+    const currentUserLastName = currentUser?.lastName ?? '';
+    const currentUserDisplayName = currentUser
+        ? `${currentUserFirstName} ${currentUserLastName}`.trim() || currentUser.emailId || 'Unknown user'
+        : 'Unknown user';
+    const currentUserRoleLabel = currentUserRole
+        ? getRoleConfig(currentUserRole)?.label || formatRoleLabel(currentUserRole) || 'User'
+        : 'User';
+
     const canAssignInvestigators = ['qa', roles.SUPER_ADMIN, 'support'].includes(currentUserRole);
 
     const handleAssignInvestigators = async () => {
@@ -431,7 +543,7 @@ const ComplaintDetailPage = (params:Props) => {
         try {
             if (targetStatus === COMPLAINT_STATUS.UNDER_INVESTIGATION && currentUser) {
                 await reciverInfo({
-                    receiver_name: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
+                    receiver_name: currentUserDisplayName,
                     receiver_role: getUserRole(currentUser),
                     received_date: new Date().toISOString()
                 });
@@ -452,7 +564,7 @@ const ComplaintDetailPage = (params:Props) => {
 
     // Status update modal
     const StatusUpdateModal = () => {
-        if (!statusUpdateModal.show || !statusUpdateModal.targetStatus) return null;
+        if (!statusUpdateModal.show || !statusUpdateModal.targetStatus || !complaint) return null;
 
         const targetConfig = STAGE_CONFIG[statusUpdateModal.targetStatus];
         return (
@@ -476,7 +588,7 @@ const ComplaintDetailPage = (params:Props) => {
                             <Button
                                 // onClick={() => updateComplaintStatus(statusUpdateModal.targetStatus, statusUpdateModal.comments)}
                                 onClick={() => handleStatusUpdate()}
-                                variant={targetConfig.variant}
+                                variant={mapButtonVariant(targetConfig.variant)}
                                 disabled={isStatusUpdating}
                             >
                                 {isStatusUpdating ? 'Updating...' : 'Update Status'}
@@ -516,7 +628,11 @@ const ComplaintDetailPage = (params:Props) => {
         );
     }
 
-    const safeText = (value?: string | null) => {
+    if (!complaint) {
+        return null;
+    }
+
+    const safeText = (value?: unknown) => {
         if (value === null || value === undefined) return '—';
         const stringValue = String(value).trim();
         return stringValue.length > 0 ? stringValue : '—';
@@ -580,13 +696,16 @@ const ComplaintDetailPage = (params:Props) => {
     };
 
     const renderDrawerContent = () => {
+        if (!complaint) return null;
         switch (activeEditSection) {
             case "details":
                 return <div className="p-4">Complaint Details Form</div>;
             case "investigation":
-                return <div className="container mx-auto flex-1 overflow-y-auto mb-2">
-                    <InvestigationForm {...props}/>
-                </div>;
+                return (
+                    <div className="container mx-auto flex-1 overflow-y-auto mb-2">
+                        {investigationFormProps && <InvestigationForm {...investigationFormProps} />}
+                    </div>
+                );
             case "customer_communication":
                 return <div className={"container mx-auto flex-1 overflow-y-auto mb-2"}>
                     <CustomerCommunicationForm complaintId={complaint._id} />
@@ -598,14 +717,14 @@ const ComplaintDetailPage = (params:Props) => {
                 return <div className="container mx-auto flex-1 overflow-y-auto mb-2">
                     <ComplaintClosureForm
                         complaintId={complaint._id}
-                        defaultValues={complaint.closure}
+                        defaultValues={closureFormDefaults}
                         onSuccess={async () => {
                             try {
                                 setDrawerOpen(false);
                                 setActiveEditSection(null);
                                 await statusTransition({
                                     newStatus: COMPLAINT_STATUS.CLOSED,
-                                    comments: `Complaint closed by ${currentUser.firstName} ${currentUser.lastName}`.trim()
+                                    comments: `Complaint closed by ${currentUserDisplayName}`.trim()
                                 });
                                 await refetch();
                             } catch (error) {
@@ -631,10 +750,12 @@ const ComplaintDetailPage = (params:Props) => {
     const resolutionBlockMessage = !hasActiveInvestigationAssignments
         ? 'Assign at least one investigation officer before resolving the complaint.'
         : 'Waiting for all investigation officers to acknowledge the complaint before resolving.';
-    const isReportDownloadAvailable = [
-        COMPLAINT_STATUS.RESOLVED,
-        COMPLAINT_STATUS.CLOSED
-    ].includes(complaint.status);
+    const isReportDownloadAvailable = (
+        [
+            COMPLAINT_STATUS.RESOLVED,
+            COMPLAINT_STATUS.CLOSED
+        ] as ComplaintStatus[]
+    ).includes(complaint.status);
 
     return (
         <div className="container mx-auto p-6 space-y-6">
@@ -644,7 +765,7 @@ const ComplaintDetailPage = (params:Props) => {
                     <div className="flex items-center space-x-3">
                         <Hash className="h-5 w-5 text-muted-foreground" />
                         <h1 className="text-2xl font-bold">{complaint.complaint_number}</h1>
-                        <Badge variant={currentStageConfig.variant}>
+                        <Badge variant={mapBadgeVariant(currentStageConfig.variant)}>
                             <currentStageConfig.icon className="h-3 w-3 mr-1" />
                             {currentStageConfig.name}
                         </Badge>
@@ -655,8 +776,8 @@ const ComplaintDetailPage = (params:Props) => {
                 <div className="flex flex-col items-end space-y-3">
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <User className="h-4 w-4" />
-                        <span>{currentUser.firstName} {currentUser.lastName}</span>
-                        <Badge variant="outline">{ROLE_PERMISSIONS[getUserRole(currentUser)]?.label}</Badge>
+                        <span>{currentUserDisplayName}</span>
+                        <Badge variant="outline">{currentUserRoleLabel}</Badge>
                     </div>
                     {isReportDownloadAvailable && (
                         <Button
@@ -693,7 +814,7 @@ const ComplaintDetailPage = (params:Props) => {
                                 return (
                                     <Button
                                         key={status}
-                                        variant={config.variant}
+                                        variant={mapButtonVariant(config.variant)}
                                         size="sm"
                                         onClick={() => status === COMPLAINT_STATUS.CLOSED ? handleEditClick(COMPLAINT_STATUS.CLOSED) : setStatusUpdateModal({ show: true, targetStatus: status, comments: '' })}
                                     >
@@ -1578,7 +1699,7 @@ const ComplaintDetailPage = (params:Props) => {
                                     return (
                                         <div key={index} className="flex items-start space-x-3 p-4 border rounded-lg">
                                             <div className="flex-shrink-0">
-                                                <Badge variant={stageConfig.variant}>
+                                                <Badge variant={mapBadgeVariant(stageConfig.variant)}>
                                                     <StageIcon className="h-3 w-3 mr-1" />
                                                     {stageConfig.name}
                                                 </Badge>

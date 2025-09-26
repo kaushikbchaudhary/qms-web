@@ -30,6 +30,12 @@ import {
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 
+type CustomColumnMeta = {
+    className?: string;
+    actionClassName?: string;
+    [key: string]: unknown;
+};
+
 export interface DataTableProps<TData, TValue> {
     /**
      * Array of column definitions
@@ -339,16 +345,21 @@ export default function CustomizableTable<TData, TValue>({
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id} className={header.column.columnDef.meta?.className ?? header.column.columnDef.meta?.actionClassName ?? "" }>
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
-                                    </TableHead>
-                                ))}
+                                {headerGroup.headers.map((header) => {
+                                    const columnMeta = header.column.columnDef.meta as CustomColumnMeta | undefined;
+                                    const headClassName = columnMeta?.className ?? columnMeta?.actionClassName ?? "";
+
+                                    return (
+                                        <TableHead key={header.id} className={headClassName}>
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                        </TableHead>
+                                    );
+                                })}
                             </TableRow>
                         ))}
                     </TableHeader>
@@ -363,15 +374,19 @@ export default function CustomizableTable<TData, TValue>({
                                     data-state={row.getIsSelected() && "selected"}
                                     // className={row.column.columnDef.meta?.className ?? ""}
                                 >
-                                    {row.getVisibleCells().map((cell) => (
-                                        // className={row.column.columnDef.meta?.className ?? ""}
-                                        <TableCell key={cell.id} className={cell.column.columnDef.meta?.className ?? cell.column.columnDef.meta?.actionClassName ?? ""}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
+                                    {row.getVisibleCells().map((cell) => {
+                                        const cellMeta = cell.column.columnDef.meta as CustomColumnMeta | undefined;
+                                        const cellClassName = cellMeta?.className ?? cellMeta?.actionClassName ?? "";
+
+                                        return (
+                                            <TableCell key={cell.id} className={cellClassName}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        );
+                                    })}
                                 </TableRow>
                             ))
                         ) : (

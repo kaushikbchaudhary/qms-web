@@ -1,5 +1,5 @@
 "use client"
-import { useForm } from "react-hook-form"
+import { Resolver, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { investigationSchema, InvestigationFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
@@ -24,25 +24,15 @@ export function InvestigationForm({
     onSuccess: () => void | Promise<void>
 }) {
     const form = useForm<InvestigationFormData>({
-        resolver: zodResolver(investigationSchema),
+        resolver: zodResolver(investigationSchema) as Resolver<InvestigationFormData>,
         defaultValues
     })
 
     const { mutateAsync, isPending } = useUpdateInvestigation(complaintId);
 
     async function onSubmit(data: InvestigationFormData) {
-        const payload: InvestigationFormData & { completion_details?: any } = {
-            ...data,
-        };
-
-        if (defaultValues?.completion_details) {
-            payload.completion_details = defaultValues.completion_details;
-        } else if ('completion_details' in payload && payload.completion_details == null) {
-            delete payload.completion_details;
-        }
-
         try {
-            await mutateAsync(payload);
+            await mutateAsync(data);
             await onSuccess();
         } catch (error) {
             console.error('Failed to update investigation:', error);

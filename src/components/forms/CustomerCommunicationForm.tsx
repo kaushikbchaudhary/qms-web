@@ -1,5 +1,5 @@
 "use client"
-import { useFieldArray, useForm } from "react-hook-form"
+import { FieldArrayPath, useFieldArray, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { customerCommunicationSchema, CustomerCommunicationFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
@@ -42,9 +42,9 @@ export function CustomerCommunicationForm({
         }
     })
 
-    const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray({
+    const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray<CustomerCommunicationFormData>({
         control: form.control,
-        name: "attachments"
+        name: "attachments" as FieldArrayPath<CustomerCommunicationFormData>
     })
 
     const { mutate: updateCommunication, isPending } = useUpdateCustomerCommunication(complaintId)

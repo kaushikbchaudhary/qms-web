@@ -34,7 +34,7 @@ export function StatusTransitionDropdown({
 
     const { mutate, isPending } = useTransitionComplaintStatus(complaintId);
     async function handleStatusChange(newStatus: string) {
-        mutate({ newStatus }, {
+        mutate({ newStatus, comments: '' }, {
             onError: (error:any) => {
                 toast.error('Failed to update status', {
                     description: error.message

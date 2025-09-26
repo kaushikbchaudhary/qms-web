@@ -10,7 +10,7 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 export default function ComplaintDetail({ params }: { params: { id: string } }) {
     const userData = useAuthStore.getState().user;
     // const complaint = await fetchComplaint(params.id) // Implement your data fetching
-    const { data: complaint, isLoading }:any = useComplaintWithWorkflow(params.id);
+    const { data: complaint, isLoading } = useComplaintWithWorkflow(params.id);
 
     if (!complaint) return notFound()
 
@@ -42,10 +42,10 @@ export default function ComplaintDetail({ params }: { params: { id: string } }) 
                 {/*</TabsContent>*/}
 
                 <TabsContent value="investigation">
-                    {userData && userData.role.includes("INVESTIGATOR") && (
+                    {userData && userData.role.includes("INVESTIGATOR") && complaint?.investigation && (
                         <InvestigationForm
                             complaintId={complaint._id!}
-                            defaultValues={complaint.investigation!}
+                            defaultValues={complaint.investigation as any}
                             onSuccess={() => window.location.reload()}
                         />
                     )}
