@@ -5,7 +5,23 @@ export interface ComplaintSubmissionFieldDefinition {
     description?: string;
 }
 
+export interface InvestigationFieldDefinition {
+    path: string;
+    label: string;
+    defaultRequired: boolean;
+    description?: string;
+}
+
+export interface CustomerCommunicationFieldDefinition {
+    path: string;
+    label: string;
+    defaultRequired: boolean;
+    description?: string;
+}
+
 export type ComplaintSubmissionRequirementMap = Record<string, boolean>;
+export type InvestigationRequirementMap = Record<string, boolean>;
+export type CustomerCommunicationRequirementMap = Record<string, boolean>;
 
 export const COMPLAINT_SUBMISSION_FIELDS: ComplaintSubmissionFieldDefinition[] = [
     { path: 'customer.name', label: 'Customer Name', defaultRequired: true },
@@ -44,3 +60,41 @@ export const buildDefaultComplaintSubmissionRequirements = (): ComplaintSubmissi
 };
 
 export const DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS = buildDefaultComplaintSubmissionRequirements();
+
+export const INVESTIGATION_FIELDS: InvestigationFieldDefinition[] = [
+    { path: 'investigation_date', label: 'Date of Investigation', defaultRequired: true },
+    { path: 'root_cause.identified', label: 'Root Cause Identified', defaultRequired: true },
+    { path: 'root_cause.description', label: 'Root Cause Description', defaultRequired: false, description: 'Required when "Other" is selected.' },
+    { path: 'corrective_action', label: 'Corrective Action', defaultRequired: true },
+    { path: 'capa.initiated', label: 'CAPA Initiated', defaultRequired: false },
+    { path: 'capa.number', label: 'CAPA Number', defaultRequired: false, description: 'Required when CAPA is initiated.' },
+    { path: 'capa.details', label: 'CAPA Details', defaultRequired: false, description: 'Required when CAPA is initiated.' },
+    { path: 'action_taken', label: 'Action Taken', defaultRequired: true },
+    { path: 'completion_details.name', label: 'Investigation Completed By', defaultRequired: true },
+    { path: 'completion_details.signature', label: 'Investigator Signature', defaultRequired: true },
+    { path: 'completion_details.date', label: 'Completion Date', defaultRequired: true },
+];
+
+export const CUSTOMER_COMMUNICATION_FIELDS: CustomerCommunicationFieldDefinition[] = [
+    { path: 'response_date', label: 'Response Date', defaultRequired: true },
+    { path: 'mode', label: 'Communication Mode', defaultRequired: true },
+    { path: 'summary', label: 'Communication Summary', defaultRequired: true },
+    { path: 'attachments', label: 'Attachments', defaultRequired: false },
+];
+
+export const buildDefaultInvestigationRequirements = (): InvestigationRequirementMap => {
+    return INVESTIGATION_FIELDS.reduce<InvestigationRequirementMap>((acc, field) => {
+        acc[field.path] = field.defaultRequired;
+        return acc;
+    }, {});
+};
+
+export const buildDefaultCustomerCommunicationRequirements = (): CustomerCommunicationRequirementMap => {
+    return CUSTOMER_COMMUNICATION_FIELDS.reduce<CustomerCommunicationRequirementMap>((acc, field) => {
+        acc[field.path] = field.defaultRequired;
+        return acc;
+    }, {});
+};
+
+export const DEFAULT_INVESTIGATION_REQUIREMENTS = buildDefaultInvestigationRequirements();
+export const DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS = buildDefaultCustomerCommunicationRequirements();

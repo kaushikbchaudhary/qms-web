@@ -1,7 +1,7 @@
 "use client"
 import { Resolver, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { investigationSchema, InvestigationFormData } from "@/lib/validations/complaint"
+import { InvestigationFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,9 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {Textarea} from "@/components/ui/textarea";
 import {useUpdateInvestigation} from "@/hooks/api/useComplaints";
 import {Switch} from "@/components/ui/switch";
+import { useInvestigationFormRequirements } from "@/hooks/useComplaintFormRequirements";
+import { buildInvestigationFormSchema } from "@/lib/validations/complaintSubmission";
+import { useEffect, useMemo } from "react";
 export const root_cause= ["Device Failure", "Manufacturing Issue", "Labelling/IFU", "Customer Misuse", "No Fault Found"];
 export function InvestigationForm({
                                       complaintId,
@@ -23,10 +26,18 @@ export function InvestigationForm({
     defaultValues?: Partial<InvestigationFormData>
     onSuccess: () => void | Promise<void>
 }) {
+    const { requirements } = useInvestigationFormRequirements()
+    const schema = useMemo(() => buildInvestigationFormSchema(requirements), [requirements])
+    const resolver = useMemo(() => zodResolver(schema) as Resolver<InvestigationFormData>, [schema])
+
     const form = useForm<InvestigationFormData>({
-        resolver: zodResolver(investigationSchema) as Resolver<InvestigationFormData>,
+        resolver,
         defaultValues
     })
+
+    useEffect(() => {
+        form.reset({ ...form.getValues() })
+    }, [schema, form])
 
     const { mutateAsync, isPending } = useUpdateInvestigation(complaintId);
 
@@ -132,6 +143,7 @@ export function InvestigationForm({
                                 <FormControl>
                                     <Textarea
                                         {...field}
+                                        value={field.value ?? ''}
                                         placeholder="Describe the corrective action taken"
                                     />
                                 </FormControl>
@@ -154,7 +166,7 @@ export function InvestigationForm({
                                 </div>
                                 <FormControl>
                                     <Switch
-                                        checked={field.value}
+                                        checked={!!field.value}
                                         onCheckedChange={field.onChange}
                                     />
                                 </FormControl>
@@ -173,6 +185,7 @@ export function InvestigationForm({
                                         <FormControl>
                                             <Input
                                                 {...field}
+                                                value={field.value ?? ''}
                                                 placeholder="Enter CAPA number"
                                             />
                                         </FormControl>
@@ -190,6 +203,7 @@ export function InvestigationForm({
                                         <FormControl>
                                             <Textarea
                                                 {...field}
+                                                value={field.value ?? ''}
                                                 placeholder="Describe the CAPA details"
                                             />
                                         </FormControl>
@@ -213,6 +227,7 @@ export function InvestigationForm({
                                 <FormControl>
                                     <Textarea
                                         {...field}
+                                        value={field.value ?? ''}
                                         placeholder="Describe the action taken"
                                     />
                                 </FormControl>

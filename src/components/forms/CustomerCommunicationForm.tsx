@@ -1,13 +1,13 @@
 "use client"
-import { FieldArrayPath, useFieldArray, useForm } from "react-hook-form"
+import { FieldArrayPath, useFieldArray, useForm, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { customerCommunicationSchema, CustomerCommunicationFormData } from "@/lib/validations/complaint"
+import { CustomerCommunicationFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Plus, Trash2, Upload, FileText, Eye } from "lucide-react"
+import { CalendarIcon, Plus, Trash2, FileText, Eye } from "lucide-react"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,7 +15,9 @@ import { useAttachmentDelete, useAttachmentUpload, useUpdateCustomerCommunicatio
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
+import { useEffect, useMemo } from "react"
+import { useCustomerCommunicationRequirements } from "@/hooks/useComplaintFormRequirements"
+import { buildCustomerCommunicationSchema } from "@/lib/validations/complaintSubmission"
 
 export const communicationModes = ["Email", "Call", "Letter", "Other"]
 
@@ -29,10 +31,13 @@ export function CustomerCommunicationForm({
     onSuccess?: () => void
 }) {
     console.log("Customer Communication Form Rendered")
-    const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set())
+
+    const { requirements } = useCustomerCommunicationRequirements()
+    const schema = useMemo(() => buildCustomerCommunicationSchema(requirements), [requirements])
+    const resolver = useMemo(() => zodResolver(schema) as Resolver<CustomerCommunicationFormData>, [schema])
 
     const form = useForm<CustomerCommunicationFormData>({
-        resolver: zodResolver(customerCommunicationSchema),
+        resolver,
         defaultValues: {
             response_date: new Date(),
             mode: "Email",
@@ -41,6 +46,10 @@ export function CustomerCommunicationForm({
             ...defaultValues
         }
     })
+
+    useEffect(() => {
+        form.reset({ ...form.getValues() })
+    }, [schema, form])
 
     const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray<CustomerCommunicationFormData>({
         control: form.control,
@@ -51,31 +60,25 @@ export function CustomerCommunicationForm({
     const { mutateAsync: uploadAttachment, isPending: isUploadingAttachment } = useAttachmentUpload()
     const { mutate: deleteAttachment } = useAttachmentDelete()
 
+    const handleSuccess = () => {
+        if (onSuccess) {
+            onSuccess()
+        }
+    }
+
     async function onSubmit(data: CustomerCommunicationFormData) {
-        console.log("Customer Communication Data:", data)
         updateCommunication(data, {
-            onSuccess: () => {
-                onSuccess && onSuccess()
-            }
+            onSuccess: handleSuccess,
         })
     }
 
     const handleFileUpload = async (file: File, index: number) => {
-        const fileId = `${index}-${Date.now()}`
-        setUploadingFiles(prev => new Set(prev).add(fileId))
-
         try {
             const uploadResult = await uploadAttachment(file)
             // Update the specific attachment field
             form.setValue(`attachments.${index}`, uploadResult.path)
         } catch (error) {
             console.error("Error uploading file:", error)
-        } finally {
-            setUploadingFiles(prev => {
-                const newSet = new Set(prev)
-                newSet.delete(fileId)
-                return newSet
-            })
         }
     }
 
@@ -160,7 +163,7 @@ export function CustomerCommunicationForm({
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Communication Mode</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select communication mode" />
@@ -189,6 +192,7 @@ export function CustomerCommunicationForm({
                                     <FormControl>
                                         <Textarea
                                             {...field}
+                                            value={field.value ?? ''}
                                             placeholder="Provide a detailed summary of the communication with the customer..."
                                             className="min-h-[120px]"
                                         />
@@ -328,21 +332,3 @@ export function CustomerCommunicationForm({
         </Card>
     )
 }
-
-// You'll also need to create the validation schema. Here's the schema file:
-// @/lib/validations/complaint.ts (add this to your existing file)
-
-// import { z } from "zod"
-//
-// export const customerCommunicationSchema = z.object({
-//     response_date: z.date({
-//         required_error: "Response date is required"
-//     }),
-//     mode: z.enum(["Email", "Call", "Letter", "Other"], {
-//         required_error: "Communication mode is required"
-//     }),
-//     summary: z.string().min(10, "Summary must be at least 10 characters long"),
-//     attachments: z.array(z.string()).optional().default([])
-// })
-//
-// export type CustomerCommunicationFormData = z.infer<typeof customerCommunicationSchema>

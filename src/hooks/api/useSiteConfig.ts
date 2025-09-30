@@ -3,7 +3,11 @@ import { toast } from 'sonner';
 import { siteConfigApi } from '@/lib/api/endpoints/siteConfig';
 import { SiteConfigUpdatePayload, SiteConfig } from '@/lib/api/types/siteConfig';
 import { showApiErrorToast } from '@/lib/utils';
-import { DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS } from '@/config/formRequirements';
+import {
+    DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
+    DEFAULT_INVESTIGATION_REQUIREMENTS,
+    DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
+} from '@/config/formRequirements';
 
 export function usePublicSiteConfig() {
     return useQuery({
@@ -14,6 +18,10 @@ export function usePublicSiteConfig() {
                 ...response.data,
                 complaintSubmissionRequirements:
                     response.data.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
+                investigationRequirements:
+                    response.data.investigationRequirements ?? DEFAULT_INVESTIGATION_REQUIREMENTS,
+                customerCommunicationRequirements:
+                    response.data.customerCommunicationRequirements ?? DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
             };
         },
         staleTime: 5 * 60 * 1000,
@@ -30,6 +38,10 @@ export function useSiteConfig() {
                 ...data,
                 complaintSubmissionRequirements:
                     data.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
+                investigationRequirements:
+                    data.investigationRequirements ?? DEFAULT_INVESTIGATION_REQUIREMENTS,
+                customerCommunicationRequirements:
+                    data.customerCommunicationRequirements ?? DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
             };
         },
     });

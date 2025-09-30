@@ -1,17 +1,24 @@
 import { z } from 'zod';
-import { ComplaintSubmissionRequirementMap } from '@/config/formRequirements';
+import {
+    ComplaintSubmissionRequirementMap,
+    InvestigationRequirementMap,
+    CustomerCommunicationRequirementMap,
+} from '@/config/formRequirements';
 
 const preprocessOptionalString = () =>
     z.preprocess((value) => {
+        if (value === null || value === undefined) {
+            return undefined;
+        }
         if (typeof value === 'string') {
             const trimmed = value.trim();
             return trimmed.length ? trimmed : undefined;
         }
-        return value === '' ? undefined : value;
+        return value;
     }, z.string().optional());
 
 const stringField = (
-    requirements: ComplaintSubmissionRequirementMap,
+    requirements: Record<string, boolean>,
     path: string,
     {
         message,
@@ -49,7 +56,7 @@ const stringField = (
 };
 
 const enumField = <T extends readonly [string, ...string[]]>(
-    requirements: ComplaintSubmissionRequirementMap,
+    requirements: Record<string, boolean>,
     path: string,
     options: T,
     message: string
@@ -61,7 +68,7 @@ const enumField = <T extends readonly [string, ...string[]]>(
 };
 
 const arrayOfStringsField = (
-    requirements: ComplaintSubmissionRequirementMap,
+    requirements: Record<string, boolean>,
     path: string
 ) => {
     const base = z.array(z.string());
@@ -160,5 +167,119 @@ export const buildComplaintSubmissionSchema = (requirements: ComplaintSubmission
                 mfg_date: preprocessOptionalString(),
             })
             .optional(),
+        attachments: arrayOfStringsField(requirements, 'attachments'),
+    });
+
+const dateField = (
+    requirements: Record<string, boolean>,
+    path: string,
+    message: string
+) => {
+    const base = z.date({ required_error: message });
+    return requirements[path] ? base : base.optional();
+};
+
+const booleanField = (defaultValue = false) => z.boolean().default(defaultValue);
+
+export const buildInvestigationFormSchema = (requirements: InvestigationRequirementMap) => {
+    const rootCauseDescriptionRequired = requirements['root_cause.description'];
+    const capaNumberRequired = requirements['capa.number'];
+    const capaDetailsRequired = requirements['capa.details'];
+
+    const rootCauseSchema = z.object({
+        identified: z.enum([
+            'Device Failure',
+            'Manufacturing Issue',
+            'Labelling/IFU',
+            'Customer Misuse',
+            'No Fault Found',
+            'Other',
+        ] as const, {
+            required_error: 'Root cause selection is required',
+        }),
+        description: rootCauseDescriptionRequired
+            ? z.string({ required_error: 'Root cause description is required' }).min(1, 'Root cause description is required')
+            : preprocessOptionalString(),
+    }).superRefine((data, ctx) => {
+        if (data.identified === 'Other' && rootCauseDescriptionRequired && !data.description) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Description required when "Other" is selected',
+                path: ['description'],
+            });
+        }
+    });
+
+    const capaSchema = z
+        .object({
+            initiated: booleanField(false),
+            number: preprocessOptionalString(),
+            details: preprocessOptionalString(),
+        })
+        .superRefine((data, ctx) => {
+            if (!data.initiated) {
+                return;
+            }
+
+            if (capaNumberRequired && !data.number) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'CAPA number is required when CAPA is initiated',
+                    path: ['number'],
+                });
+            }
+
+            if (capaDetailsRequired && !data.details) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'CAPA details are required when CAPA is initiated',
+                    path: ['details'],
+                });
+            }
+        })
+        .transform((value) => ({
+            initiated: Boolean(value.initiated),
+            number: value.number ?? undefined,
+            details: value.details ?? undefined,
+        }));
+
+    return z.object({
+        investigation_date: dateField(requirements, 'investigation_date', 'Investigation date is required'),
+        root_cause: rootCauseSchema,
+        corrective_action: stringField(requirements, 'corrective_action', {
+            message: 'Corrective action is required',
+            minLength: 1,
+        }),
+        capa: capaSchema,
+        action_taken: stringField(requirements, 'action_taken', {
+            message: 'Action taken is required',
+            minLength: 1,
+        }),
+        completion_details: z.object({
+            name: stringField(requirements, 'completion_details.name', {
+                message: 'Investigation completed by is required',
+                minLength: 1,
+            }),
+            signature: stringField(requirements, 'completion_details.signature', {
+                message: 'Investigator signature is required',
+                minLength: 1,
+            }),
+            date: dateField(requirements, 'completion_details.date', 'Completion date is required'),
+        }),
+    });
+};
+
+export const buildCustomerCommunicationSchema = (requirements: CustomerCommunicationRequirementMap) =>
+    z.object({
+        response_date: dateField(requirements, 'response_date', 'Response date is required'),
+        mode: requirements['mode']
+            ? z.enum(['Email', 'Call', 'Letter', 'Other'] as const, {
+                  required_error: 'Communication mode is required',
+              })
+            : z.enum(['Email', 'Call', 'Letter', 'Other'] as const).optional(),
+        summary: stringField(requirements, 'summary', {
+            message: 'Summary must be at least 10 characters long',
+            minLength: 10,
+        }),
         attachments: arrayOfStringsField(requirements, 'attachments'),
     });

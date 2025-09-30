@@ -7,7 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSiteConfig, useUpdateSiteConfig } from '@/hooks/api/useSiteConfig';
 import { LoginMode } from '@/lib/api/types/siteConfig';
-import { COMPLAINT_SUBMISSION_FIELDS, DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS } from '@/config/formRequirements';
+import {
+    COMPLAINT_SUBMISSION_FIELDS,
+    DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
+    INVESTIGATION_FIELDS,
+    DEFAULT_INVESTIGATION_REQUIREMENTS,
+    CUSTOMER_COMMUNICATION_FIELDS,
+    DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
+} from '@/config/formRequirements';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -18,11 +25,17 @@ const SiteSettingsPage = () => {
 
     const currentMode: LoginMode = siteConfig?.loginMode ?? 'OTP';
     const isUpdating = updateConfig.isPending;
-    const requirementMap = siteConfig?.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS;
+    const complaintRequirementMap = siteConfig?.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS;
+    const investigationRequirementMap = siteConfig?.investigationRequirements ?? DEFAULT_INVESTIGATION_REQUIREMENTS;
+    const customerRequirementMap = siteConfig?.customerCommunicationRequirements ?? DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS;
 
-    const handleToggle = (fieldPath: string, currentRequired: boolean) => {
+    const handleToggle = (
+        section: 'complaintSubmissionRequirements' | 'investigationRequirements' | 'customerCommunicationRequirements',
+        fieldPath: string,
+        currentRequired: boolean
+    ) => {
         updateConfig.mutate({
-            complaintSubmissionRequirements: {
+            [section]: {
                 [fieldPath]: !currentRequired,
             },
         });
@@ -73,11 +86,53 @@ const SiteSettingsPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                     {COMPLAINT_SUBMISSION_FIELDS.map((field) => {
-                        const isRequired = requirementMap[field.path] ?? field.defaultRequired;
+                        const isRequired = complaintRequirementMap[field.path] ?? field.defaultRequired;
                         const isDefault = field.defaultRequired === isRequired;
                         return (
                             <div
                                 key={field.path}
+                                className={cn(
+                                    'flex items-start justify-between gap-4 rounded-md border border-border/60 p-4 transition-colors',
+                                    isRequired ? 'bg-muted/50' : 'bg-background'
+                                )}
+                                >
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium leading-none">{field.label}</p>
+                                            <Badge variant={isDefault ? 'outline' : 'secondary'}>
+                                                {isRequired ? 'Required' : 'Optional'}
+                                            </Badge>
+                                        </div>
+                                        {field.description && (
+                                            <p className="text-sm text-muted-foreground">{field.description}</p>
+                                        )}
+                                    </div>
+                                    <Switch
+                                        checked={isRequired}
+                                        onCheckedChange={() => handleToggle('complaintSubmissionRequirements', field.path, isRequired)}
+                                        disabled={isLoading || isUpdating || isRefetching}
+                                        aria-label={`Toggle requirement for ${field.label}`}
+                                    />
+                                </div>
+                            );
+                    })}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Investigation Form</CardTitle>
+                    <CardDescription>
+                        Choose which investigation fields must be completed before moving complaints forward.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {INVESTIGATION_FIELDS.map((field) => {
+                        const isRequired = investigationRequirementMap[field.path] ?? field.defaultRequired;
+                        const isDefault = field.defaultRequired === isRequired;
+                        return (
+                            <div
+                                key={`investigation-${field.path}`}
                                 className={cn(
                                     'flex items-start justify-between gap-4 rounded-md border border-border/60 p-4 transition-colors',
                                     isRequired ? 'bg-muted/50' : 'bg-background'
@@ -96,7 +151,49 @@ const SiteSettingsPage = () => {
                                 </div>
                                 <Switch
                                     checked={isRequired}
-                                    onCheckedChange={() => handleToggle(field.path, isRequired)}
+                                    onCheckedChange={() => handleToggle('investigationRequirements', field.path, isRequired)}
+                                    disabled={isLoading || isUpdating || isRefetching}
+                                    aria-label={`Toggle requirement for ${field.label}`}
+                                />
+                            </div>
+                        );
+                    })}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Customer Communication Form</CardTitle>
+                    <CardDescription>
+                        Decide which follow-up details are mandatory when logging customer communication.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {CUSTOMER_COMMUNICATION_FIELDS.map((field) => {
+                        const isRequired = customerRequirementMap[field.path] ?? field.defaultRequired;
+                        const isDefault = field.defaultRequired === isRequired;
+                        return (
+                            <div
+                                key={`communication-${field.path}`}
+                                className={cn(
+                                    'flex items-start justify-between gap-4 rounded-md border border-border/60 p-4 transition-colors',
+                                    isRequired ? 'bg-muted/50' : 'bg-background'
+                                )}
+                            >
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-medium leading-none">{field.label}</p>
+                                        <Badge variant={isDefault ? 'outline' : 'secondary'}>
+                                            {isRequired ? 'Required' : 'Optional'}
+                                        </Badge>
+                                    </div>
+                                    {field.description && (
+                                        <p className="text-sm text-muted-foreground">{field.description}</p>
+                                    )}
+                                </div>
+                                <Switch
+                                    checked={isRequired}
+                                    onCheckedChange={() => handleToggle('customerCommunicationRequirements', field.path, isRequired)}
                                     disabled={isLoading || isUpdating || isRefetching}
                                     aria-label={`Toggle requirement for ${field.label}`}
                                 />
