@@ -2,6 +2,7 @@ import {
     ComplaintSubmissionRequirementMap,
     InvestigationRequirementMap,
     CustomerCommunicationRequirementMap,
+    ComplaintClosureRequirementMap,
 } from '@/config/formRequirements';
 
 export type LoginMode = 'OTP' | 'PASSWORD';
@@ -12,6 +13,7 @@ export interface SiteConfig {
     complaintSubmissionRequirements: ComplaintSubmissionRequirementMap;
     investigationRequirements: InvestigationRequirementMap;
     customerCommunicationRequirements: CustomerCommunicationRequirementMap;
+    complaintClosureRequirements: ComplaintClosureRequirementMap;
     updatedBy?: {
         id?: string;
         name?: string;
@@ -25,4 +27,5 @@ export interface SiteConfigUpdatePayload {
     complaintSubmissionRequirements?: Partial<ComplaintSubmissionRequirementMap>;
     investigationRequirements?: Partial<InvestigationRequirementMap>;
     customerCommunicationRequirements?: Partial<CustomerCommunicationRequirementMap>;
+    complaintClosureRequirements?: Partial<ComplaintClosureRequirementMap>;
 }

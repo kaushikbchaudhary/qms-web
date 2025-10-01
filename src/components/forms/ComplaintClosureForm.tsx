@@ -1,7 +1,7 @@
 "use client"
-import { useFieldArray, useForm } from "react-hook-form"
+import { Resolver, useFieldArray, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { complaintClosureSchema, ComplaintClosureFormData } from "@/lib/validations/complaint"
+import { ComplaintClosureFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,9 @@ import { Badge } from "@/components/ui/badge"
 import { SignaturePreviewModal } from "@/components/forms/SignaturePreviewModal"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useComplaintClosureRequirements } from "@/hooks/useComplaintFormRequirements"
+import { buildComplaintClosureSchema } from "@/lib/validations/complaintSubmission"
+import { useEffect, useMemo } from "react"
 
 export const finalDispositionOptions = [
     "Confirmed Device Defect",
@@ -36,8 +39,12 @@ export function ComplaintClosureForm({
     defaultValues?: Partial<ComplaintClosureFormData>
     onSuccess?: () => void | Promise<void>
 }) {
+    const { requirements } = useComplaintClosureRequirements()
+    const schema = useMemo(() => buildComplaintClosureSchema(requirements), [requirements])
+    const resolver = useMemo(() => zodResolver(schema) as Resolver<ComplaintClosureFormData>, [schema])
+
     const form = useForm<ComplaintClosureFormData>({
-        resolver: zodResolver(complaintClosureSchema),
+        resolver,
         defaultValues: {
             final_disposition: "Customer Misuse",
             reviewed_by: [],
@@ -50,6 +57,10 @@ export function ComplaintClosureForm({
             ...defaultValues
         }
     })
+
+    useEffect(() => {
+        form.reset({ ...form.getValues() })
+    }, [schema, form])
 
     const { fields: reviewerFields, append: appendReviewer, remove: removeReviewer } = useFieldArray({
         control: form.control,
@@ -206,7 +217,10 @@ export function ComplaintClosureForm({
                                                                     <Input
                                                                         type="number"
                                                                         {...field}
-                                                                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                                                        onChange={(e) => {
+                                                                            const parsed = parseInt(e.target.value, 10);
+                                                                            field.onChange(Number.isNaN(parsed) ? undefined : parsed);
+                                                                        }}
                                                                     />
                                                                 </FormControl>
                                                                 <FormMessage />

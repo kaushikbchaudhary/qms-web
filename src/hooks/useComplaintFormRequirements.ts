@@ -4,6 +4,7 @@ import {
     DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
     DEFAULT_INVESTIGATION_REQUIREMENTS,
     DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
+    DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS,
 } from '@/config/formRequirements';
 
 export const useComplaintFormRequirements = () => {
@@ -38,6 +39,19 @@ export const useCustomerCommunicationRequirements = () => {
     const requirements = useMemo(() => {
         return data?.customerCommunicationRequirements ?? DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS;
     }, [data?.customerCommunicationRequirements]);
+
+    return {
+        requirements,
+        isLoading: isLoading || isFetching,
+    };
+};
+
+export const useComplaintClosureRequirements = () => {
+    const { data, isLoading, isFetching } = usePublicSiteConfig();
+
+    const requirements = useMemo(() => {
+        return data?.complaintClosureRequirements ?? DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS;
+    }, [data?.complaintClosureRequirements]);
 
     return {
         requirements,

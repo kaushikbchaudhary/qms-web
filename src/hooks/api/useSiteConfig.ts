@@ -7,6 +7,7 @@ import {
     DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
     DEFAULT_INVESTIGATION_REQUIREMENTS,
     DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
+    DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS,
 } from '@/config/formRequirements';
 
 export function usePublicSiteConfig() {
@@ -22,6 +23,8 @@ export function usePublicSiteConfig() {
                     response.data.investigationRequirements ?? DEFAULT_INVESTIGATION_REQUIREMENTS,
                 customerCommunicationRequirements:
                     response.data.customerCommunicationRequirements ?? DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
+                complaintClosureRequirements:
+                    response.data.complaintClosureRequirements ?? DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS,
             };
         },
         staleTime: 5 * 60 * 1000,
@@ -42,6 +45,8 @@ export function useSiteConfig() {
                     data.investigationRequirements ?? DEFAULT_INVESTIGATION_REQUIREMENTS,
                 customerCommunicationRequirements:
                     data.customerCommunicationRequirements ?? DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
+                complaintClosureRequirements:
+                    data.complaintClosureRequirements ?? DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS,
             };
         },
     });

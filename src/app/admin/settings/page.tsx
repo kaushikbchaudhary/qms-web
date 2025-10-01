@@ -14,6 +14,8 @@ import {
     DEFAULT_INVESTIGATION_REQUIREMENTS,
     CUSTOMER_COMMUNICATION_FIELDS,
     DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS,
+    COMPLAINT_CLOSURE_FIELDS,
+    DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS,
 } from '@/config/formRequirements';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -28,9 +30,14 @@ const SiteSettingsPage = () => {
     const complaintRequirementMap = siteConfig?.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS;
     const investigationRequirementMap = siteConfig?.investigationRequirements ?? DEFAULT_INVESTIGATION_REQUIREMENTS;
     const customerRequirementMap = siteConfig?.customerCommunicationRequirements ?? DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS;
+    const closureRequirementMap = siteConfig?.complaintClosureRequirements ?? DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS;
 
     const handleToggle = (
-        section: 'complaintSubmissionRequirements' | 'investigationRequirements' | 'customerCommunicationRequirements',
+        section:
+            | 'complaintSubmissionRequirements'
+            | 'investigationRequirements'
+            | 'customerCommunicationRequirements'
+            | 'complaintClosureRequirements',
         fieldPath: string,
         currentRequired: boolean
     ) => {
@@ -194,6 +201,48 @@ const SiteSettingsPage = () => {
                                 <Switch
                                     checked={isRequired}
                                     onCheckedChange={() => handleToggle('customerCommunicationRequirements', field.path, isRequired)}
+                                    disabled={isLoading || isUpdating || isRefetching}
+                                    aria-label={`Toggle requirement for ${field.label}`}
+                                />
+                            </div>
+                        );
+                    })}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Complaint Closure Form</CardTitle>
+                    <CardDescription>
+                        Configure which closure fields must be completed before finalizing a complaint.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {COMPLAINT_CLOSURE_FIELDS.map((field) => {
+                        const isRequired = closureRequirementMap[field.path] ?? field.defaultRequired;
+                        const isDefault = field.defaultRequired === isRequired;
+                        return (
+                            <div
+                                key={`closure-${field.path}`}
+                                className={cn(
+                                    'flex items-start justify-between gap-4 rounded-md border border-border/60 p-4 transition-colors',
+                                    isRequired ? 'bg-muted/50' : 'bg-background'
+                                )}
+                            >
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-medium leading-none">{field.label}</p>
+                                        <Badge variant={isDefault ? 'outline' : 'secondary'}>
+                                            {isRequired ? 'Required' : 'Optional'}
+                                        </Badge>
+                                    </div>
+                                    {field.description && (
+                                        <p className="text-sm text-muted-foreground">{field.description}</p>
+                                    )}
+                                </div>
+                                <Switch
+                                    checked={isRequired}
+                                    onCheckedChange={() => handleToggle('complaintClosureRequirements', field.path, isRequired)}
                                     disabled={isLoading || isUpdating || isRefetching}
                                     aria-label={`Toggle requirement for ${field.label}`}
                                 />

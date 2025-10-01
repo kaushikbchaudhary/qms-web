@@ -5,7 +5,9 @@ export const siteConfigApi = {
     getPublicConfig: async (): Promise<{
         success: boolean;
         message: string;
-        data: Pick<SiteConfig, 'loginMode' | 'complaintSubmissionRequirements' | 'investigationRequirements' | 'customerCommunicationRequirements'> & { updatedAt?: string | null };
+        data: Pick<SiteConfig, 'loginMode' | 'complaintSubmissionRequirements' | 'investigationRequirements' | 'customerCommunicationRequirements' | 'complaintClosureRequirements'> & {
+            updatedAt?: string | null;
+        };
     }> =>
         apiClient.get('/api/v1/site-config/public'),
     getConfig: async (): Promise<{ success: boolean; message: string; data: SiteConfig }> =>

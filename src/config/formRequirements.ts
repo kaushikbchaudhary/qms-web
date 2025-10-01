@@ -19,9 +19,17 @@ export interface CustomerCommunicationFieldDefinition {
     description?: string;
 }
 
+export interface ComplaintClosureFieldDefinition {
+    path: string;
+    label: string;
+    defaultRequired: boolean;
+    description?: string;
+}
+
 export type ComplaintSubmissionRequirementMap = Record<string, boolean>;
 export type InvestigationRequirementMap = Record<string, boolean>;
 export type CustomerCommunicationRequirementMap = Record<string, boolean>;
+export type ComplaintClosureRequirementMap = Record<string, boolean>;
 
 export const COMPLAINT_SUBMISSION_FIELDS: ComplaintSubmissionFieldDefinition[] = [
     { path: 'customer.name', label: 'Customer Name', defaultRequired: true },
@@ -98,3 +106,25 @@ export const buildDefaultCustomerCommunicationRequirements = (): CustomerCommuni
 
 export const DEFAULT_INVESTIGATION_REQUIREMENTS = buildDefaultInvestigationRequirements();
 export const DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS = buildDefaultCustomerCommunicationRequirements();
+
+export const COMPLAINT_CLOSURE_FIELDS: ComplaintClosureFieldDefinition[] = [
+    { path: 'final_disposition', label: 'Final Disposition', defaultRequired: true },
+    { path: 'reviewed_by', label: 'Reviewed By Entries', defaultRequired: true, description: 'Require at least one reviewer.' },
+    { path: 'reviewed_by.sr_no', label: 'Reviewer Serial Number', defaultRequired: true },
+    { path: 'reviewed_by.name', label: 'Reviewer Name', defaultRequired: true },
+    { path: 'reviewed_by.designation', label: 'Reviewer Designation', defaultRequired: true },
+    { path: 'reviewed_by.signature', label: 'Reviewer Signature', defaultRequired: false },
+    { path: 'approved_by.qa_head_name', label: 'QA Head Name', defaultRequired: true },
+    { path: 'approved_by.signature', label: 'QA Head Signature', defaultRequired: true },
+    { path: 'approved_by.date', label: 'QA Head Approval Date', defaultRequired: true },
+    { path: 'closure_comments', label: 'Closure Comments', defaultRequired: false },
+];
+
+export const buildDefaultComplaintClosureRequirements = (): ComplaintClosureRequirementMap => {
+    return COMPLAINT_CLOSURE_FIELDS.reduce<ComplaintClosureRequirementMap>((acc, field) => {
+        acc[field.path] = field.defaultRequired;
+        return acc;
+    }, {});
+};
+
+export const DEFAULT_COMPLAINT_CLOSURE_REQUIREMENTS = buildDefaultComplaintClosureRequirements();

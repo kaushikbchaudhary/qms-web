@@ -3,6 +3,7 @@ import {
     ComplaintSubmissionRequirementMap,
     InvestigationRequirementMap,
     CustomerCommunicationRequirementMap,
+    ComplaintClosureRequirementMap,
 } from '@/config/formRequirements';
 
 const preprocessOptionalString = () =>
@@ -181,6 +182,49 @@ const dateField = (
 
 const booleanField = (defaultValue = false) => z.boolean().default(defaultValue);
 
+const preprocessNumber = (value: unknown) => {
+    if (value === '' || value === null || value === undefined) {
+        return undefined;
+    }
+
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? undefined : parsed;
+    }
+
+    if (typeof value === 'number') {
+        return Number.isNaN(value) ? undefined : value;
+    }
+
+    return value;
+};
+
+const numberField = (
+    requirements: Record<string, boolean>,
+    path: string,
+    {
+        message,
+        min,
+    }: {
+        message: string;
+        min?: number;
+    }
+) => {
+    if (requirements[path]) {
+        let schema = z.preprocess(preprocessNumber, z.number({ required_error: message, invalid_type_error: message }));
+        if (typeof min === 'number') {
+            schema = schema.refine((value) => value >= min, { message });
+        }
+        return schema;
+    }
+
+    let schema = z.preprocess(preprocessNumber, z.number().optional());
+    if (typeof min === 'number') {
+        schema = schema.refine((value) => value === undefined || value >= min, { message });
+    }
+    return schema;
+};
+
 export const buildInvestigationFormSchema = (requirements: InvestigationRequirementMap) => {
     const rootCauseDescriptionRequired = requirements['root_cause.description'];
     const capaNumberRequired = requirements['capa.number'];
@@ -283,3 +327,57 @@ export const buildCustomerCommunicationSchema = (requirements: CustomerCommunica
         }),
         attachments: arrayOfStringsField(requirements, 'attachments'),
     });
+
+export const buildComplaintClosureSchema = (requirements: ComplaintClosureRequirementMap) => {
+    const reviewerSchema = z.object({
+        sr_no: numberField(requirements, 'reviewed_by.sr_no', {
+            message: 'Serial number is required',
+            min: 1,
+        }),
+        name: stringField(requirements, 'reviewed_by.name', {
+            message: 'Reviewer name is required',
+            minLength: 2,
+        }),
+        designation: stringField(requirements, 'reviewed_by.designation', {
+            message: 'Designation is required',
+            minLength: 2,
+        }),
+        signature: stringField(requirements, 'reviewed_by.signature', {
+            message: 'Signature is required',
+            minLength: 1,
+        }),
+    });
+
+    const reviewersArray = requirements['reviewed_by']
+        ? z.array(reviewerSchema).min(1, 'At least one reviewer is required')
+        : z.array(reviewerSchema).optional();
+
+    return z.object({
+        final_disposition: requirements['final_disposition']
+            ? z.enum(
+                  ['Confirmed Device Defect', 'No Fault Found', 'Customer Misuse', 'Duplicate Complaint', 'Other'] as const,
+                  {
+                      required_error: 'Final disposition is required',
+                  }
+              )
+            : z.enum(
+                  ['Confirmed Device Defect', 'No Fault Found', 'Customer Misuse', 'Duplicate Complaint', 'Other'] as const
+              ).optional(),
+        reviewed_by: reviewersArray,
+        approved_by: z.object({
+            qa_head_name: stringField(requirements, 'approved_by.qa_head_name', {
+                message: 'QA Head name is required',
+                minLength: 2,
+            }),
+            signature: stringField(requirements, 'approved_by.signature', {
+                message: 'QA Head signature is required',
+                minLength: 1,
+            }),
+            date: dateField(requirements, 'approved_by.date', 'Approval date is required'),
+        }),
+        closure_comments: stringField(requirements, 'closure_comments', {
+            message: 'Closure comments are required',
+            minLength: 5,
+        }),
+    });
+};
