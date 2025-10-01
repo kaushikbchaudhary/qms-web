@@ -30,9 +30,21 @@ export function InvestigationForm({
     const schema = useMemo(() => buildInvestigationFormSchema(requirements), [requirements])
     const resolver = useMemo(() => zodResolver(schema) as Resolver<InvestigationFormData>, [schema])
 
+    const initialValues = useMemo(() => {
+        if (!defaultValues) {
+            return {
+                completion_details: {},
+            } as Partial<InvestigationFormData>;
+        }
+        return {
+            ...defaultValues,
+            completion_details: defaultValues.completion_details ?? {},
+        } as Partial<InvestigationFormData>;
+    }, [defaultValues])
+
     const form = useForm<InvestigationFormData>({
         resolver,
-        defaultValues
+        defaultValues: initialValues,
     })
 
     useEffect(() => {

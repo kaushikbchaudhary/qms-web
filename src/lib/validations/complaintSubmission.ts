@@ -300,15 +300,19 @@ export const buildInvestigationFormSchema = (requirements: InvestigationRequirem
             minLength: 1,
         }),
         completion_details: z.object({
-            name: stringField(requirements, 'completion_details.name', {
-                message: 'Investigation completed by is required',
-                minLength: 1,
-            }),
-            signature: stringField(requirements, 'completion_details.signature', {
-                message: 'Investigator signature is required',
-                minLength: 1,
-            }),
-            date: dateField(requirements, 'completion_details.date', 'Completion date is required'),
+            name: preprocessOptionalString(),
+            signature: preprocessOptionalString(),
+            date: z
+                .union([z.date(), z.string()])
+                .optional()
+                .transform((value) => {
+                    if (value instanceof Date) return value;
+                    if (typeof value === 'string' && value.trim()) {
+                        const parsed = new Date(value);
+                        return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+                    }
+                    return undefined;
+                }),
         }),
     });
 };
