@@ -388,7 +388,11 @@ const ComplaintDetailPage = (params:Props) => {
                 : undefined,
             root_cause: rootCause,
             corrective_action: investigation.corrective_action ?? '',
-            capa: investigation.capa,
+            capa: {
+                initiated: Boolean(investigation.capa?.initiated),
+                number: investigation.capa?.number ?? undefined,
+                details: investigation.capa?.details ?? undefined,
+            },
             action_taken: investigation.action_taken ?? '',
         };
 

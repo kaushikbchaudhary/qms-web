@@ -32,9 +32,11 @@ const stringField = (
     }
 ) => {
     if (requirements[path]) {
-        let schema = z.string({ required_error: message }).trim();
+        let schema = z.string().trim();
         if (minLength) {
             schema = schema.min(minLength, message);
+        } else {
+            schema = schema.min(1, message);
         }
         if (email) {
             schema = schema.email('Invalid email address');
@@ -63,7 +65,7 @@ const enumField = <T extends readonly [string, ...string[]]>(
     message: string
 ) => {
     if (requirements[path]) {
-        return z.enum(options, { required_error: message });
+        return z.enum(options, { message });
     }
     return z.enum(options).optional();
 };
@@ -176,7 +178,7 @@ const dateField = (
     path: string,
     message: string
 ) => {
-    const base = z.date({ required_error: message });
+    const base = z.date();
     return requirements[path] ? base : base.optional();
 };
 
@@ -211,7 +213,7 @@ const numberField = (
     }
 ) => {
     if (requirements[path]) {
-        let schema = z.preprocess(preprocessNumber, z.number({ required_error: message, invalid_type_error: message }));
+        let schema = z.preprocess(preprocessNumber, z.number());
         if (typeof min === 'number') {
             schema = schema.refine((value) => value >= min, { message });
         }
@@ -239,10 +241,10 @@ export const buildInvestigationFormSchema = (requirements: InvestigationRequirem
             'No Fault Found',
             'Other',
         ] as const, {
-            required_error: 'Root cause selection is required',
+            message: 'Root cause selection is required',
         }),
         description: rootCauseDescriptionRequired
-            ? z.string({ required_error: 'Root cause description is required' }).min(1, 'Root cause description is required')
+            ? z.string().min(1, 'Root cause description is required')
             : preprocessOptionalString(),
     }).superRefine((data, ctx) => {
         if (data.identified === 'Other' && rootCauseDescriptionRequired && !data.description) {
@@ -322,7 +324,7 @@ export const buildCustomerCommunicationSchema = (requirements: CustomerCommunica
         response_date: dateField(requirements, 'response_date', 'Response date is required'),
         mode: requirements['mode']
             ? z.enum(['Email', 'Call', 'Letter', 'Other'] as const, {
-                  required_error: 'Communication mode is required',
+                  message: 'Communication mode is required',
               })
             : z.enum(['Email', 'Call', 'Letter', 'Other'] as const).optional(),
         summary: stringField(requirements, 'summary', {
@@ -361,7 +363,7 @@ export const buildComplaintClosureSchema = (requirements: ComplaintClosureRequir
             ? z.enum(
                   ['Confirmed Device Defect', 'No Fault Found', 'Customer Misuse', 'Duplicate Complaint', 'Other'] as const,
                   {
-                      required_error: 'Final disposition is required',
+                      message: 'Final disposition is required',
                   }
               )
             : z.enum(

@@ -107,18 +107,18 @@ export type Complaint = {
         email: string
     }
     product_details: {
-        model: string
-        serial_number: string
-        purchase_date: string
+        model?: string
+        serial_number?: string
+        purchase_date?: string
     }
     complaint_type: {
         name: string
         description: string | null
     }
     issue_details: {
-        description: string
-        problem_start_date: string
-        occurred_before: string
+        description?: string
+        problem_start_date?: string
+        occurred_before?: string
     }
     preferred_resolution_method: {
         name: string
@@ -328,13 +328,13 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         accessorKey: "issue_details.description",
         header: "Issue Description",
         cell: ({ row }) => {
-            const issue = row.original.issue_details
+            const issue = row.original.issue_details ?? {}
             return (
                 <div className="flex flex-col">
-                    <TruncatedText text={issue.description} maxLength={30} />
+                    <TruncatedText text={issue.description ?? ''} maxLength={30} />
                     {/*<span className="line-clamp-1">{issue.description}</span>*/}
                     <span className="text-xs text-muted-foreground">
-                        Started: {new Date(issue.problem_start_date).toLocaleDateString()}
+                        Started: {issue.problem_start_date ? new Date(issue.problem_start_date).toLocaleDateString() : '-'}
                     </span>
                     {issue.occurred_before && (
                         <span className="text-xs text-muted-foreground">
@@ -491,4 +491,3 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         },
     },
 ]
-

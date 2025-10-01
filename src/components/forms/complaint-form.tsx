@@ -120,10 +120,12 @@ export function ComplaintForm() {
                 },
                 complaint_type: {
                     ...values.complaint_type,
+                    name: values.complaint_type.name ?? '',
                     description: values.complaint_type.description ?? null,
                 },
                 preferred_resolution_method: {
                     ...values.preferred_resolution_method,
+                    name: values.preferred_resolution_method.name ?? '',
                     description: values.preferred_resolution_method.description ?? null,
                 },
                 replacement_details: values.replacement_details

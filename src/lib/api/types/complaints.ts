@@ -11,17 +11,17 @@ export interface Complaint {
 // };
 
 export interface ComplaintCustomer {
-    name: string;
+    name?: string;
     company?: string;
-    contact_number: string;
-    email: string;
+    contact_number?: string;
+    email?: string;
 }
 
 export interface ComplaintProductDetails {
-    model: string;
+    model?: string;
     batch_number?: string;
-    serial_number: string;
-    purchase_date: string;
+    serial_number?: string;
+    purchase_date?: string;
     config?: Record<string, unknown>;
 }
 
@@ -50,21 +50,21 @@ export interface MasterLookupResponse {
 
 
 export interface IssueDetails {
-    description: string;
-    problem_start_date: string;
-    occurred_before: "Yes" | "No";
-    replication_steps: string | null;
+    description?: string;
+    problem_start_date?: string;
+    occurred_before?: "Yes" | "No";
+    replication_steps?: string | null;
 }
 
 export interface PreviousContact {
-    reported_before: "Yes" | "No";
+    reported_before?: "Yes" | "No";
     reference_number?: string;
     contact_date?: string;
     person_contacted?: string;
 }
 
 export interface CustomerActions {
-    troubleshooting_done: "Yes" | "No";
+    troubleshooting_done?: "Yes" | "No";
     troubleshooting_description?: string;
 }
 
@@ -116,16 +116,16 @@ export interface InvestigationAssignment {
 }
 
 export interface CreateComplaintPayload {
-    customer: ComplaintCustomer;
-    product_details: ComplaintProductDetails;
-    complaint_type: LookupType;
-    issue_details: IssueDetails;
-    customer_impact: string;
-    previous_contact: PreviousContact;
-    customer_actions: CustomerActions;
-    preferred_resolution_method: PreferredResolutionMethod;
-    replacement_details: ReplacementDetails;
-    attachments: string[] | undefined;
+    customer?: ComplaintCustomer;
+    product_details?: ComplaintProductDetails;
+    complaint_type?: LookupType;
+    issue_details?: IssueDetails;
+    customer_impact?: string;
+    previous_contact?: PreviousContact;
+    customer_actions?: CustomerActions;
+    preferred_resolution_method?: PreferredResolutionMethod;
+    replacement_details?: ReplacementDetails;
+    attachments?: string[];
 }
 
 // types/complaints.ts
