@@ -6,13 +6,25 @@ interface UseNotificationsOptions {
   enabled?: boolean;
 }
 
+interface NotificationFilters {
+  status?: 'all' | 'unread';
+  scope?: 'all' | 'active';
+  limit?: number;
+}
+
 export const useNotifications = (
-  status: 'all' | 'unread' = 'all',
+  filters: NotificationFilters = {},
   options?: UseNotificationsOptions
 ) => {
+  const queryFilters: Required<Pick<NotificationFilters, 'status' | 'scope'>> & Pick<NotificationFilters, 'limit'> = {
+    status: filters.status ?? 'all',
+    scope: filters.scope ?? 'active',
+    ...(filters.limit !== undefined ? { limit: filters.limit } : {})
+  };
+
   return useQuery<NotificationItem[]>({
-    queryKey: ['notifications', status],
-    queryFn: () => notificationsApi.getNotifications({ status }),
+    queryKey: ['notifications', queryFilters.status, queryFilters.scope, queryFilters.limit ?? null],
+    queryFn: () => notificationsApi.getNotifications(queryFilters),
     refetchInterval: 60_000,
     enabled: options?.enabled ?? true
   });
@@ -23,7 +35,7 @@ export const useMarkNotificationRead = () => {
   return useMutation({
     mutationFn: (id: string) => notificationsApi.markNotificationRead(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false });
     },
     onError: showApiErrorToast
   });
@@ -34,7 +46,7 @@ export const useMarkAllNotificationsRead = () => {
   return useMutation({
     mutationFn: () => notificationsApi.markAllRead(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false });
     },
     onError: showApiErrorToast
   });

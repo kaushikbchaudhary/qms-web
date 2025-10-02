@@ -27,7 +27,13 @@ export function Header() {
   const router = useRouter();
   const [isReady, setIsReady] = useState(false);
   const user = useAuthStore((state) => state.user);
-  const { data: notifications = [], isFetching: notificationsLoading } = useNotifications('all', {
+  const [notificationView, setNotificationView] = useState<'pending' | 'all'>('pending');
+
+  const notificationFilters = notificationView === 'pending'
+    ? { status: 'unread' as const, scope: 'active' as const }
+    : { status: 'all' as const, scope: 'all' as const };
+
+  const { data: notifications = [], isFetching: notificationsLoading } = useNotifications(notificationFilters, {
     enabled: !!user
   });
   const unreadCount = notifications?.filter((notification) => !notification.read_at).length ?? 0;
@@ -76,6 +82,14 @@ export function Header() {
       manager: 'bg-purple-100 text-purple-800 hover:bg-purple-100',
     };
     return roleColors[role.toLowerCase()] || 'bg-gray-100 text-gray-800 hover:bg-gray-100';
+  };
+
+  const formatComplaintStatus = (status?: string | null) => {
+    if (!status) return 'Status unknown';
+    return status
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   if (!isReady) {
@@ -133,20 +147,47 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel className="flex items-center justify-between">
-                  <span>Notifications</span>
-                  {unreadCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={async (event) => {
-                        event.preventDefault();
-                        await markAllNotificationsRead();
-                      }}
-                    >
-                      Mark all as read
-                    </Button>
-                  )}
+                <DropdownMenuLabel className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async (event) => {
+                          event.preventDefault();
+                          await markAllNotificationsRead();
+                        }}
+                      >
+                        Mark all as read
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">View</span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={notificationView === 'pending' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setNotificationView('pending');
+                        }}
+                      >
+                        Pending
+                      </Button>
+                      <Button
+                        variant={notificationView === 'all' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setNotificationView('all');
+                        }}
+                      >
+                        All
+                      </Button>
+                    </div>
+                  </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {notificationsLoading ? (
@@ -166,14 +207,21 @@ export function Header() {
                     >
                       <div className="flex-1">
                         <div className="text-sm font-medium">
-                          {notification.payload?.complaint_number || 'Complaint update'}
+                          {notification.complaintNumber || notification.payload?.complaint_number || 'Complaint update'}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {notification.type === 'COMPLAINT_ASSIGNED'
-                            ? 'Complaint assigned to you'
-                            : notification.type === 'INVESTIGATION_ASSIGNED'
-                              ? 'Investigation task assigned'
-                              : 'Investigation updated'}
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>
+                            {notification.type === 'COMPLAINT_ASSIGNED'
+                              ? 'Complaint assigned to you'
+                              : notification.type === 'INVESTIGATION_ASSIGNED'
+                                ? 'Investigation task assigned'
+                                : 'Investigation updated'}
+                          </span>
+                          {notification.complaintStatus && (
+                            <Badge variant="outline" className="capitalize tracking-tight">
+                              {formatComplaintStatus(notification.complaintStatus)}
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           {formatDateTime(notification.created_at)}
@@ -183,7 +231,11 @@ export function Header() {
                     </DropdownMenuItem>
                   ))
                 ) : (
-                  <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    {notificationView === 'pending'
+                      ? 'No pending notifications'
+                      : 'No notifications available'}
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
