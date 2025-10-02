@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/footer'
 import {QueryProvider} from "@/providers/query-provider";
 import {Toaster} from "@/components/ui/sonner";
 import AuthInitializer from "@/providers/AuthInitializer";
+import { SocketProvider } from "@/providers/SocketProvider";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,22 +26,24 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
       <QueryProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div className="flex flex-col min-h-screen px-2 mx-auto">
-            <Header />
-            <main className="flex-1 container py-8 mx-auto">
+        <SocketProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <div className="flex flex-col min-h-screen px-2 mx-auto">
+              <Header />
+              <main className="flex-1 container py-8 mx-auto">
                 <AuthInitializer />
                 {children}
                 <Toaster position={'top-right'} duration={3000} closeButton={true} theme={'system'}/>
-            </main>
-            <Footer />
-          </div>
-        </ThemeProvider>
+              </main>
+              <Footer />
+            </div>
+          </ThemeProvider>
+        </SocketProvider>
       </QueryProvider>
       </body>
     </html>

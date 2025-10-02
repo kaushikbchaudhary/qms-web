@@ -26,6 +26,7 @@ const SiteSettingsPage = () => {
     const updateConfig = useUpdateSiteConfig();
 
     const currentMode: LoginMode = siteConfig?.loginMode ?? 'OTP';
+    const socketServiceEnabled = Boolean(siteConfig?.socketServiceEnabled);
     const isUpdating = updateConfig.isPending;
     const complaintRequirementMap = siteConfig?.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS;
     const investigationRequirementMap = siteConfig?.investigationRequirements ?? DEFAULT_INVESTIGATION_REQUIREMENTS;
@@ -49,7 +50,7 @@ const SiteSettingsPage = () => {
     };
 
     return (
-        <div className="container max-w-4xl py-10 space-y-8">
+        <div className="container max-w-4xl py-10 space-y-8 mx-auto">
             <Card>
                 <CardHeader>
                     <CardTitle>Site Authentication Settings</CardTitle>
@@ -81,6 +82,29 @@ const SiteSettingsPage = () => {
                             Encourage them to update it from their profile after signing in.
                         </AlertDescription>
                     </Alert>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Real-time Updates</CardTitle>
+                    <CardDescription>
+                        Toggle the socket service to deliver instant complaint and assignment updates without manual refreshes.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1 max-w-xl">
+                        <p className="font-medium leading-none">Socket Service</p>
+                        <p className="text-sm text-muted-foreground">
+                            Enable this when you want investigators and assignees to receive live updates in tables and notification feeds. Disable it to reduce background connections.
+                        </p>
+                    </div>
+                    <Switch
+                        checked={socketServiceEnabled}
+                        onCheckedChange={(value) => updateConfig.mutate({ socketServiceEnabled: value })}
+                        disabled={isLoading || isUpdating || isRefetching}
+                        aria-label="Toggle socket service"
+                    />
                 </CardContent>
             </Card>
 

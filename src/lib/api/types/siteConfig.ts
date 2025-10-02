@@ -10,6 +10,7 @@ export type LoginMode = 'OTP' | 'PASSWORD';
 export interface SiteConfig {
     _id?: string;
     loginMode: LoginMode;
+    socketServiceEnabled: boolean;
     complaintSubmissionRequirements: ComplaintSubmissionRequirementMap;
     investigationRequirements: InvestigationRequirementMap;
     customerCommunicationRequirements: CustomerCommunicationRequirementMap;
@@ -24,6 +25,7 @@ export interface SiteConfig {
 
 export interface SiteConfigUpdatePayload {
     loginMode?: LoginMode;
+    socketServiceEnabled?: boolean;
     complaintSubmissionRequirements?: Partial<ComplaintSubmissionRequirementMap>;
     investigationRequirements?: Partial<InvestigationRequirementMap>;
     customerCommunicationRequirements?: Partial<CustomerCommunicationRequirementMap>;

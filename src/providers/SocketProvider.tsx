@@ -1,0 +1,108 @@
+'use client';
+
+import { ReactNode, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { usePublicSiteConfig } from '@/hooks/api/useSiteConfig';
+import { initializeSocket, disconnectSocket, getSocket } from '@/lib/socket/client';
+import { useAuthStore } from '@/stores/authStore';
+
+interface SocketProviderProps {
+    children: ReactNode;
+}
+
+export function SocketProvider({ children }: SocketProviderProps) {
+    const queryClient = useQueryClient();
+    const { data: siteConfig } = usePublicSiteConfig();
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const handleNotification = () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        };
+
+        const handleComplaintChange = () => {
+            queryClient.invalidateQueries({ queryKey: ['complaints'] });
+            queryClient.invalidateQueries({ queryKey: ['complaint-stats'] });
+        };
+
+        const handleSocketDisabled = () => {
+            disconnectSocket();
+        };
+
+        const handleConnectError = (error: Error) => {
+            console.error('Socket connection error:', error.message);
+        };
+
+        let activeSocket = getSocket();
+
+        const detachListeners = (socket: ReturnType<typeof initializeSocket>) => {
+            if (!socket) return;
+            socket.off('notification:new', handleNotification);
+            socket.off('complaint:created', handleComplaintChange);
+            socket.off('complaint:updated', handleComplaintChange);
+            socket.off('socket:disabled', handleSocketDisabled);
+            socket.off('connect_error', handleConnectError);
+        };
+
+        const attachListeners = (socket: ReturnType<typeof initializeSocket>) => {
+            if (!socket) return;
+            socket.on('notification:new', handleNotification);
+            socket.on('complaint:created', handleComplaintChange);
+            socket.on('complaint:updated', handleComplaintChange);
+            socket.on('socket:disabled', handleSocketDisabled);
+            socket.on('connect_error', handleConnectError);
+        };
+
+        const cleanup = () => {
+            if (activeSocket) {
+                detachListeners(activeSocket);
+            }
+            disconnectSocket();
+            activeSocket = null;
+        };
+
+        const ensureSocket = () => {
+            const authState = useAuthStore.getState();
+            const isReady = Boolean(siteConfig?.socketServiceEnabled && authState.isAuthenticated && authState.user);
+
+            if (!isReady) {
+                cleanup();
+                return;
+            }
+
+            const token = localStorage.getItem('token') ?? undefined;
+            const socket = initializeSocket({ token });
+            if (!socket) {
+                return;
+            }
+
+            if (socket !== activeSocket) {
+                detachListeners(activeSocket);
+                activeSocket = socket;
+                attachListeners(socket);
+            }
+        };
+
+        ensureSocket();
+
+        const unsubscribe = useAuthStore.subscribe((state, prevState) => {
+            if (
+                state.isAuthenticated !== prevState.isAuthenticated ||
+                state.user?._id !== prevState.user?._id
+            ) {
+                ensureSocket();
+            }
+        });
+
+        return () => {
+            unsubscribe();
+            cleanup();
+        };
+    }, [siteConfig?.socketServiceEnabled, queryClient]);
+
+    return <>{children}</>;
+}
