@@ -1,6 +1,49 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {useAttachmentDelete, useAttachmentUpload} from "@/hooks/api/useComplaints";
 
+const createAttachmentId = (): string => {
+    if (typeof crypto !== 'undefined') {
+        if (typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+
+        if (typeof crypto.getRandomValues === 'function') {
+            const buffer = new Uint8Array(16);
+            crypto.getRandomValues(buffer);
+
+            // RFC 4122 version 4 UUID algorithm
+            buffer[6] = (buffer[6] & 0x0f) | 0x40;
+            buffer[8] = (buffer[8] & 0x3f) | 0x80;
+
+            const byteToHex: string[] = [];
+            for (let i = 0; i < 256; ++i) {
+                byteToHex.push((i + 0x100).toString(16).slice(1));
+            }
+
+            return (
+                byteToHex[buffer[0]] +
+                byteToHex[buffer[1]] +
+                byteToHex[buffer[2]] +
+                byteToHex[buffer[3]] + '-' +
+                byteToHex[buffer[4]] +
+                byteToHex[buffer[5]] + '-' +
+                byteToHex[buffer[6]] +
+                byteToHex[buffer[7]] + '-' +
+                byteToHex[buffer[8]] +
+                byteToHex[buffer[9]] + '-' +
+                byteToHex[buffer[10]] +
+                byteToHex[buffer[11]] +
+                byteToHex[buffer[12]] +
+                byteToHex[buffer[13]] +
+                byteToHex[buffer[14]] +
+                byteToHex[buffer[15]]
+            );
+        }
+    }
+
+    return `attachment-${Math.random().toString(16).slice(2)}-${Date.now().toString(16)}`;
+};
+
 export const useAttachmentManager = () => {
     const [attachments, setAttachments] = useState<any[]>([]);
     const { mutateAsync: uploadFile }  = useAttachmentUpload();
@@ -12,7 +55,7 @@ export const useAttachmentManager = () => {
     const addFiles = useCallback(async (newFiles: File[]) => {
         // Generate all new attachments first
         const newAttachments = newFiles.map(file => ({
-            id: crypto.randomUUID(),
+            id: createAttachmentId(),
             file,
             preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
             status: 'uploading' as const,
