@@ -2,14 +2,21 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import {useAttachmentDelete, useAttachmentUpload} from "@/hooks/api/useComplaints";
 
 const createAttachmentId = (): string => {
-    if (typeof crypto !== 'undefined') {
-        if (typeof crypto.randomUUID === 'function') {
-            return crypto.randomUUID();
+    const globalCrypto = typeof crypto !== 'undefined' ? crypto : undefined;
+
+    if (globalCrypto) {
+        try {
+            const randomUUID = globalCrypto.randomUUID;
+            if (typeof randomUUID === 'function') {
+                return randomUUID.call(globalCrypto);
+            }
+        } catch {
+            // Swallow and fallback so insecure contexts keep working
         }
 
-        if (typeof crypto.getRandomValues === 'function') {
+        if (typeof globalCrypto.getRandomValues === 'function') {
             const buffer = new Uint8Array(16);
-            crypto.getRandomValues(buffer);
+            globalCrypto.getRandomValues(buffer);
 
             // RFC 4122 version 4 UUID algorithm
             buffer[6] = (buffer[6] & 0x0f) | 0x40;
