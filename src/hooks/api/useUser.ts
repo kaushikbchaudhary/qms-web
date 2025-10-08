@@ -94,9 +94,12 @@ export function useUpdatePassword(userId?: string) {
 
 export function useUserSignatureUpload() {
     return useMutation({
-        mutationFn: async (file: File) => {
+        mutationFn: async ({ file, userId }: { file: File; userId?: string }) => {
             const formData = new FormData();
             formData.append('signature', file);
+            if (userId) {
+                formData.append('userId', userId);
+            }
             const response = await userApi.uploadSignature(formData);
             return response.data;
         },

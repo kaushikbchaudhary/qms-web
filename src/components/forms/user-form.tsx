@@ -71,7 +71,10 @@ export function UserForm({
 
     const handleSignatureUpload = async (file: File) => {
         try {
-            const result = await uploadSignature(file);
+            const result = await uploadSignature({
+                file,
+                userId: mode === 'edit' ? id : undefined,
+            });
             form.setValue('signature', result, { shouldDirty: true, shouldTouch: true });
             form.clearErrors('signature');
             toast.success('Signature uploaded successfully.');
