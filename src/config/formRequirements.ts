@@ -73,11 +73,8 @@ export const INVESTIGATION_FIELDS: InvestigationFieldDefinition[] = [
     { path: 'investigation_date', label: 'Date of Investigation', defaultRequired: true },
     { path: 'root_cause.identified', label: 'Root Cause Identified', defaultRequired: true },
     { path: 'root_cause.description', label: 'Root Cause Description', defaultRequired: false, description: 'Required when "Other" is selected.' },
-    { path: 'corrective_action', label: 'Corrective Action', defaultRequired: true },
     { path: 'capa.initiated', label: 'CAPA Initiated', defaultRequired: false },
     { path: 'capa.number', label: 'CAPA Number', defaultRequired: false, description: 'Required when CAPA is initiated.' },
-    { path: 'capa.details', label: 'CAPA Details', defaultRequired: false, description: 'Required when CAPA is initiated.' },
-    { path: 'action_taken', label: 'Action Taken', defaultRequired: true },
     { path: 'completion_details.name', label: 'Investigation Completed By', defaultRequired: true },
     { path: 'completion_details.signature', label: 'Investigator Signature', defaultRequired: true },
     { path: 'completion_details.date', label: 'Completion Date', defaultRequired: true },
@@ -87,7 +84,6 @@ export const CUSTOMER_COMMUNICATION_FIELDS: CustomerCommunicationFieldDefinition
     { path: 'response_date', label: 'Response Date', defaultRequired: true },
     { path: 'mode', label: 'Communication Mode', defaultRequired: true },
     { path: 'summary', label: 'Communication Summary', defaultRequired: true },
-    { path: 'attachments', label: 'Attachments', defaultRequired: false },
 ];
 
 export const buildDefaultInvestigationRequirements = (): InvestigationRequirementMap => {
@@ -109,6 +105,7 @@ export const DEFAULT_CUSTOMER_COMMUNICATION_REQUIREMENTS = buildDefaultCustomerC
 
 export const COMPLAINT_CLOSURE_FIELDS: ComplaintClosureFieldDefinition[] = [
     { path: 'final_disposition', label: 'Final Disposition', defaultRequired: true },
+    { path: 'final_disposition_other', label: 'Other Final Disposition Details', defaultRequired: false },
     { path: 'reviewed_by', label: 'Reviewed By Entries', defaultRequired: true, description: 'Require at least one reviewer.' },
     { path: 'reviewed_by.sr_no', label: 'Reviewer Serial Number', defaultRequired: true },
     { path: 'reviewed_by.name', label: 'Reviewer Name', defaultRequired: true },
@@ -117,7 +114,6 @@ export const COMPLAINT_CLOSURE_FIELDS: ComplaintClosureFieldDefinition[] = [
     { path: 'approved_by.qa_head_name', label: 'QA Head Name', defaultRequired: true },
     { path: 'approved_by.signature', label: 'QA Head Signature', defaultRequired: true },
     { path: 'approved_by.date', label: 'QA Head Approval Date', defaultRequired: true },
-    { path: 'closure_comments', label: 'Closure Comments', defaultRequired: false },
 ];
 
 export const buildDefaultComplaintClosureRequirements = (): ComplaintClosureRequirementMap => {

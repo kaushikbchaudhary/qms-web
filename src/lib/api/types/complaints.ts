@@ -203,13 +203,10 @@ export interface Complaint {
                 | 'Customer Misuse' | 'No Fault Found' | 'Other';
             description?: string;
         };
-        corrective_action: string;
         capa: {
             initiated: boolean;
             number?: string;
-            details?: string;
         };
-        action_taken: string;
         completion_details: {
             name: string;
             signature: string;
@@ -222,7 +219,6 @@ export interface Complaint {
         response_date: string;
         mode: 'Email' | 'Call' | 'Letter' | 'Other';
         summary: string;
-        attachments?: string[];
     };
 
     // Risk Management
@@ -235,6 +231,7 @@ export interface Complaint {
     closure?: {
         final_disposition: 'Confirmed Device Defect' | 'No Fault Found'
             | 'Customer Misuse' | 'Duplicate Complaint' | 'Other';
+        final_disposition_other?: string;
         reviewed_by: {
             sr_no: number;
             name: string;
@@ -246,7 +243,6 @@ export interface Complaint {
             signature: string;
             date: string;
         };
-        closure_comments?: string;
     };
 }
 
@@ -448,13 +444,10 @@ export interface InvestigationData {
     investigating_officers: InvestigatingOfficer[];
     assignments?: InvestigationAssignment[];
     root_cause: RootCause;
-    corrective_action: string;
     capa: {
         initiated: boolean;
         number?: string;
-        details?: string;
     };
-    action_taken: string;
     completion_details: {
         name: string;
         signature: string;

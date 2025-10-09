@@ -230,7 +230,6 @@ const numberField = (
 export const buildInvestigationFormSchema = (requirements: InvestigationRequirementMap) => {
     const rootCauseDescriptionRequired = requirements['root_cause.description'];
     const capaNumberRequired = requirements['capa.number'];
-    const capaDetailsRequired = requirements['capa.details'];
 
     const rootCauseSchema = z.object({
         identified: z.enum([
@@ -260,7 +259,6 @@ export const buildInvestigationFormSchema = (requirements: InvestigationRequirem
         .object({
             initiated: booleanField(false),
             number: preprocessOptionalString(),
-            details: preprocessOptionalString(),
         })
         .superRefine((data, ctx) => {
             if (!data.initiated) {
@@ -274,33 +272,16 @@ export const buildInvestigationFormSchema = (requirements: InvestigationRequirem
                     path: ['number'],
                 });
             }
-
-            if (capaDetailsRequired && !data.details) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'CAPA details are required when CAPA is initiated',
-                    path: ['details'],
-                });
-            }
         })
         .transform((value) => ({
             initiated: Boolean(value.initiated),
             number: value.number ?? undefined,
-            details: value.details ?? undefined,
         }));
 
     return z.object({
         investigation_date: dateField(requirements, 'investigation_date', 'Investigation date is required'),
         root_cause: rootCauseSchema,
-        corrective_action: stringField(requirements, 'corrective_action', {
-            message: 'Corrective action is required',
-            minLength: 1,
-        }),
         capa: capaSchema,
-        action_taken: stringField(requirements, 'action_taken', {
-            message: 'Action taken is required',
-            minLength: 1,
-        }),
         completion_details: z.object({
             name: preprocessOptionalString(),
             signature: preprocessOptionalString(),
@@ -331,7 +312,6 @@ export const buildCustomerCommunicationSchema = (requirements: CustomerCommunica
             message: 'Summary must be at least 10 characters long',
             minLength: 10,
         }),
-        attachments: arrayOfStringsField(requirements, 'attachments'),
     });
 
 export const buildComplaintClosureSchema = (requirements: ComplaintClosureRequirementMap) => {
@@ -358,8 +338,9 @@ export const buildComplaintClosureSchema = (requirements: ComplaintClosureRequir
         ? z.array(reviewerSchema).min(1, 'At least one reviewer is required')
         : z.array(reviewerSchema).optional();
 
-    return z.object({
-        final_disposition: requirements['final_disposition']
+    return z
+        .object({
+            final_disposition: requirements['final_disposition']
             ? z.enum(
                   ['Confirmed Device Defect', 'No Fault Found', 'Customer Misuse', 'Duplicate Complaint', 'Other'] as const,
                   {
@@ -369,21 +350,27 @@ export const buildComplaintClosureSchema = (requirements: ComplaintClosureRequir
             : z.enum(
                   ['Confirmed Device Defect', 'No Fault Found', 'Customer Misuse', 'Duplicate Complaint', 'Other'] as const
               ).optional(),
-        reviewed_by: reviewersArray,
-        approved_by: z.object({
-            qa_head_name: stringField(requirements, 'approved_by.qa_head_name', {
-                message: 'QA Head name is required',
-                minLength: 2,
+            final_disposition_other: preprocessOptionalString(),
+            reviewed_by: reviewersArray,
+            approved_by: z.object({
+                qa_head_name: stringField(requirements, 'approved_by.qa_head_name', {
+                    message: 'QA Head name is required',
+                    minLength: 2,
+                }),
+                signature: stringField(requirements, 'approved_by.signature', {
+                    message: 'QA Head signature is required',
+                    minLength: 1,
+                }),
+                date: dateField(requirements, 'approved_by.date', 'Approval date is required'),
             }),
-            signature: stringField(requirements, 'approved_by.signature', {
-                message: 'QA Head signature is required',
-                minLength: 1,
-            }),
-            date: dateField(requirements, 'approved_by.date', 'Approval date is required'),
-        }),
-        closure_comments: stringField(requirements, 'closure_comments', {
-            message: 'Closure comments are required',
-            minLength: 5,
-        }),
-    });
+        })
+        .superRefine((data, ctx) => {
+            if (data.final_disposition === 'Other' && !data.final_disposition_other) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Please provide details when selecting "Other".',
+                    path: ['final_disposition_other'],
+                });
+            }
+        });
 };

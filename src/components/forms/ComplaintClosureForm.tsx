@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Plus, Trash2, FileText, Eye, CheckCircle, UserCheck, Shield } from "lucide-react"
+import { CalendarIcon, Plus, Trash2, FileText, Eye, CheckCircle, UserCheck, Shield, UserPlus } from "lucide-react"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useComplaintClosureRequirements } from "@/hooks/useComplaintFormRequirements"
 import { buildComplaintClosureSchema } from "@/lib/validations/complaintSubmission"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 
 export const finalDispositionOptions = [
     "Confirmed Device Defect",
@@ -33,11 +33,18 @@ export const finalDispositionOptions = [
 export function ComplaintClosureForm({
                                          complaintId,
                                          defaultValues,
-                                         onSuccess
+                                         onSuccess,
+                                         investigators = []
                                      }: {
     complaintId: string
     defaultValues?: Partial<ComplaintClosureFormData>
     onSuccess?: () => void | Promise<void>
+    investigators?: Array<{
+        sr_no?: number | null;
+        name?: string | null;
+        designation?: string | null;
+        signature?: string | null;
+    }>
 }) {
     const { requirements } = useComplaintClosureRequirements()
     const schema = useMemo(() => buildComplaintClosureSchema(requirements), [requirements])
@@ -47,13 +54,13 @@ export function ComplaintClosureForm({
         resolver,
         defaultValues: {
             final_disposition: "Customer Misuse",
+            final_disposition_other: "",
             reviewed_by: [],
             approved_by: {
                 qa_head_name: "",
                 signature: "",
                 date: undefined
             },
-            closure_comments: "",
             ...defaultValues
         }
     })
@@ -62,10 +69,32 @@ export function ComplaintClosureForm({
         form.reset({ ...form.getValues() })
     }, [schema, form])
 
+    const selectedFinalDisposition = form.watch("final_disposition");
     const { fields: reviewerFields, append: appendReviewer, remove: removeReviewer } = useFieldArray({
         control: form.control,
         name: "reviewed_by"
     })
+
+    const investigatorOptions = useMemo(
+        () => (investigators ?? []).filter((inv) => inv && (inv.name || inv.designation || inv.signature)),
+        [investigators]
+    )
+
+    const hasSeededInvestigatorRef = useRef(false)
+
+    useEffect(() => {
+        if (hasSeededInvestigatorRef.current) return
+        if (reviewerFields.length === 0 && investigatorOptions.length > 0) {
+            hasSeededInvestigatorRef.current = true
+            const first = investigatorOptions[0]
+            appendReviewer({
+                sr_no: 1,
+                name: first?.name ?? '',
+                designation: first?.designation ?? 'Investigator',
+                signature: first?.signature ?? ''
+            })
+        }
+    }, [appendReviewer, investigatorOptions, reviewerFields.length])
 
     const { mutate: updateClosure, isPending } = useUpdateComplaintClosure(complaintId)
     const { mutateAsync: uploadSignature, isPending: isUploadingSignature } = useSignatureUpload()
@@ -112,6 +141,37 @@ export function ComplaintClosureForm({
             }
         }
         removeReviewer(index)
+    }
+
+    const addInvestigatorReviewer = () => {
+        const currentReviewers = form.getValues('reviewed_by') ?? []
+        const existingNames = new Set(
+            currentReviewers
+                .map((entry: any) => (entry?.name ?? '').trim().toLowerCase())
+                .filter(Boolean)
+        )
+
+        const candidate = investigatorOptions.find((inv) => {
+            const name = (inv?.name ?? '').trim().toLowerCase()
+            return name && !existingNames.has(name)
+        })
+
+        const nextIndex = reviewerFields.length + 1
+        const baseEntry = candidate
+            ? {
+                sr_no: nextIndex,
+                name: candidate?.name ?? '',
+                designation: candidate?.designation ?? 'Investigator',
+                signature: candidate?.signature ?? '',
+            }
+            : {
+                sr_no: nextIndex,
+                name: '',
+                designation: 'Investigator',
+                signature: '',
+            }
+
+        appendReviewer(baseEntry)
     }
 
     const addNewReviewer = () => {
@@ -169,27 +229,58 @@ export function ComplaintClosureForm({
                                             </FormItem>
                                         )}
                                     />
+                                    {selectedFinalDisposition === "Other" && (
+                                        <FormField
+                                            control={form.control}
+                                            name="final_disposition_other"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Other Final Disposition Details *</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            {...field}
+                                                            value={field.value ?? ''}
+                                                            placeholder="Provide additional details for the selected disposition"
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    )}
                                 </CardContent>
                             </Card>
 
                             {/* Reviewed By Section */}
                             <Card>
                                 <CardHeader>
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-between items-center flex-wrap gap-3">
                                         <CardTitle className="text-lg flex items-center gap-2">
                                             <UserCheck className="h-4 w-4" />
                                             Reviewed By
                                         </CardTitle>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={addNewReviewer}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            Add Reviewer
-                                        </Button>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={addInvestigatorReviewer}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <UserPlus className="h-4 w-4" />
+                                                Add Investigator
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={addNewReviewer}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                Add Reviewer
+                                            </Button>
+                                        </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
@@ -417,35 +508,6 @@ export function ComplaintClosureForm({
                                 </CardContent>
                             </Card>
 
-                            {/* Closure Comments Section */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Closure Comments
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <FormField
-                                        control={form.control}
-                                        name="closure_comments"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Final Closure Comments</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        {...field}
-                                                        placeholder="Provide final comments regarding the complaint closure, lessons learned, and any recommendations for future prevention..."
-                                                        className="min-h-[120px]"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </CardContent>
-                            </Card>
-
                             {/* Closure Guidelines */}
                             <Alert>
                                 <CheckCircle className="h-4 w-4" />
@@ -509,7 +571,7 @@ export function ComplaintClosureForm({
 //             required_error: "Approval date is required"
 //         })
 //     }),
-//     closure_comments: z.string().optional()
+//     final_disposition_other: z.string().optional()
 // })
 //
 // export type ComplaintClosureFormData = z.infer<typeof complaintClosureSchema>

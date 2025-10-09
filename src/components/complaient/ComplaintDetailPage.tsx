@@ -18,7 +18,6 @@ import {
     Search,
     Users,
     Target,
-    ClipboardList,
     ShieldCheck,
     Info,
     PhoneCall,
@@ -387,13 +386,10 @@ const ComplaintDetailPage = (params:Props) => {
                 ? new Date(investigation.investigation_date)
                 : undefined,
             root_cause: rootCause,
-            corrective_action: investigation.corrective_action ?? '',
             capa: {
                 initiated: Boolean(investigation.capa?.initiated),
                 number: investigation.capa?.number ?? undefined,
-                details: investigation.capa?.details ?? undefined,
             },
-            action_taken: investigation.action_taken ?? '',
         };
 
         if (investigation.completion_details) {
@@ -424,8 +420,8 @@ const ComplaintDetailPage = (params:Props) => {
 
         const defaults: Partial<ComplaintClosureFormData> = {
             final_disposition: closure.final_disposition,
+            final_disposition_other: closure.final_disposition_other ?? '',
             reviewed_by: closure.reviewed_by,
-            closure_comments: closure.closure_comments,
         };
 
         if (closure.approved_by?.date) {
@@ -722,6 +718,7 @@ const ComplaintDetailPage = (params:Props) => {
                     <ComplaintClosureForm
                         complaintId={complaint._id}
                         defaultValues={closureFormDefaults}
+                        investigators={complaint.investigation?.investigating_officers ?? []}
                         onSuccess={async () => {
                             try {
                                 setDrawerOpen(false);
@@ -1486,30 +1483,6 @@ const ComplaintDetailPage = (params:Props) => {
                                     </Card>
                                 )}
 
-                                {/* Corrective Actions */}
-                                {complaint.investigation.corrective_action && (
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center">
-                                                <ClipboardList className="h-5 w-5 mr-2" />
-                                                Corrective Actions
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div>
-                                                <span className="font-medium text-sm">Action Taken:</span>
-                                                <p className="mt-1 text-sm text-muted-foreground">{complaint.investigation.corrective_action}</p>
-                                            </div>
-                                            {complaint.investigation.action_taken && (
-                                                <div>
-                                                    <span className="font-medium text-sm">Implementation Details:</span>
-                                                    <p className="mt-1 text-sm text-muted-foreground">{complaint.investigation.action_taken}</p>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                )}
-
                                 {/* CAPA Details */}
                                 {complaint.investigation.capa && complaint.investigation.capa.initiated && (
                                     <Card>
@@ -1529,12 +1502,6 @@ const ComplaintDetailPage = (params:Props) => {
                                                     <span className="text-sm font-mono">{complaint.investigation.capa.number}</span>
                                                 )}
                                             </div>
-                                            {complaint.investigation.capa.details && (
-                                                <div>
-                                                    <span className="font-medium text-sm">CAPA Details:</span>
-                                                    <p className="mt-1 text-sm text-muted-foreground">{complaint.investigation.capa.details}</p>
-                                                </div>
-                                            )}
                                         </CardContent>
                                     </Card>
                                 )}
@@ -1654,20 +1621,6 @@ const ComplaintDetailPage = (params:Props) => {
                                                 <p className="mt-1 text-sm text-muted-foreground bg-muted p-3 rounded-md">
                                                     {complaint.customer_communication.summary}
                                                 </p>
-                                            </div>
-                                        )}
-
-                                        {complaint.customer_communication.attachments && complaint.customer_communication.attachments.length > 0 && (
-                                            <div>
-                                                <span className="font-medium text-sm mb-2 block">Attachments:</span>
-                                                <div className="space-y-2">
-                                                    {complaint.customer_communication.attachments.map((attachment, index) => (
-                                                        <div key={index} className="flex items-center text-sm p-2 border rounded-md">
-                                                            <Paperclip className="h-4 w-4 mr-2 text-muted-foreground" />
-                                                            <span>{attachment}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
                                             </div>
                                         )}
                                     </CardContent>

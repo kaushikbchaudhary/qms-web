@@ -468,7 +468,7 @@ export function ComplaintForm() {
                             name="issue_details.occurred_before"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel>Has the issue occurred before? ☐ Yes / ☐ No</FormLabel>
+                                    <FormLabel>Has the issue occurred before?</FormLabel>
                                     <FormControl>
                                         <RadioGroup
                                             onValueChange={field.onChange}

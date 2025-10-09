@@ -143,28 +143,6 @@ export function InvestigationForm({
                     />
                 </div>
 
-                {/* Corrective Action Section */}
-                <div className="space-y-4">
-                    <h3 className="font-medium">Corrective/Preventive Action (if applicable)</h3>
-                    <FormField
-                        control={form.control}
-                        name="corrective_action"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Corrective/Preventive Action Details</FormLabel>
-                                <FormControl>
-                                    <Textarea
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        placeholder="Describe the corrective action taken"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
                 {/* CAPA Section */}
                 <div className="space-y-4">
                     <h3 className="font-medium">Corrective and Preventive Action (CAPA)</h3>
@@ -172,9 +150,10 @@ export function InvestigationForm({
                         control={form.control}
                         name="capa.initiated"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border border-yellow-300 bg-yellow-50 p-4 shadow-sm">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">CAPA Initiated?</FormLabel>
+                                    <FormLabel className="text-base font-semibold text-yellow-900">CAPA Initiated?</FormLabel>
+                                    <p className="text-xs text-yellow-800">Toggle to select Yes or No and surface CAPA tracking.</p>
                                 </div>
                                 <FormControl>
                                     <Switch
@@ -199,57 +178,15 @@ export function InvestigationForm({
                                                 {...field}
                                                 value={field.value ?? ''}
                                                 placeholder="Enter CAPA number"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="capa.details"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>CAPA Details</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                {...field}
-                                                value={field.value ?? ''}
-                                                placeholder="Describe the CAPA details"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         </>
                     )}
                 </div>
-
-                {/* Action Taken Section */}
-                <div className="space-y-4">
-                    <h3 className="font-medium">Action Taken (if any)</h3>
-                    <FormField
-                        control={form.control}
-                        name="action_taken"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Action Taken Description</FormLabel>
-                                <FormControl>
-                                    <Textarea
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        placeholder="Describe the action taken"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-
 
                 <Button type="submit" disabled={form.formState.isSubmitting || isPending}>
                     {form.formState.isSubmitting || isPending ? "Saving..." : "Save Investigation"}
