@@ -12,7 +12,6 @@ import { format } from "date-fns"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Textarea} from "@/components/ui/textarea";
 import {useUpdateInvestigation} from "@/hooks/api/useComplaints";
-import {Switch} from "@/components/ui/switch";
 import { useInvestigationFormRequirements } from "@/hooks/useComplaintFormRequirements";
 import { buildInvestigationFormSchema } from "@/lib/validations/complaintSubmission";
 import { useEffect, useMemo } from "react";
@@ -150,16 +149,28 @@ export function InvestigationForm({
                         control={form.control}
                         name="capa.initiated"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border border-yellow-300 bg-yellow-50 p-4 shadow-sm">
-                                <div className="space-y-0.5">
-                                    <FormLabel className="text-base font-semibold text-yellow-900">CAPA Initiated?</FormLabel>
-                                    <p className="text-xs text-yellow-800">Toggle to select Yes or No and surface CAPA tracking.</p>
-                                </div>
+                            <FormItem className="rounded-lg border border-yellow-300 bg-yellow-50 p-4 shadow-sm">
+                                <FormLabel className="text-base font-semibold text-yellow-900">CAPA Initiated?</FormLabel>
+                                <p className="text-xs text-yellow-800 mb-3">Select Yes or No to capture CAPA status.</p>
                                 <FormControl>
-                                    <Switch
-                                        checked={!!field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant={field.value ? "default" : "outline"}
+                                            onClick={() => field.onChange(true)}
+                                            className="min-w-[64px]"
+                                        >
+                                            Yes
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={field.value === false ? "default" : "outline"}
+                                            onClick={() => field.onChange(false)}
+                                            className="min-w-[64px]"
+                                        >
+                                            No
+                                        </Button>
+                                    </div>
                                 </FormControl>
                             </FormItem>
                         )}
