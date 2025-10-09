@@ -1,26 +1,93 @@
 "use client"
-import { Resolver, useFieldArray, useForm } from "react-hook-form"
+import { Resolver, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ComplaintClosureFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Plus, Trash2, FileText, Eye, CheckCircle, UserCheck, Shield, UserPlus } from "lucide-react"
-import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useAttachmentDelete, useSignatureUpload, useUpdateComplaintClosure } from "@/hooks/api/useComplaints"
-import { cn } from "@/lib/utils"
+import { useUpdateComplaintClosure } from "@/hooks/api/useComplaints"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { SignaturePreviewModal } from "@/components/forms/SignaturePreviewModal"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useComplaintClosureRequirements } from "@/hooks/useComplaintFormRequirements"
 import { buildComplaintClosureSchema } from "@/lib/validations/complaintSubmission"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo } from "react"
+import { FileText, Shield } from "lucide-react"
+import { format } from "date-fns"
+import { useAuthStore } from "@/stores/authStore"
+
+const isMongoId = (value?: string | null): boolean => !!value && /^[a-f\d]{24}$/i.test(value)
+
+const normalizeRoleLabel = (input: string | undefined) =>
+    input
+        ? input
+            .split(/[-_]/g)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ")
+        : undefined
+
+const resolveUserId = (entry: any): string | undefined => {
+    if (!entry) return undefined
+    if (typeof entry === "string") return entry
+    if (entry?._id) return entry._id
+    if (entry?.id) return entry.id
+    return undefined
+}
+
+const buildInvestigatorMap = (investigators: any[] = []) => {
+    const map = new Map<string, any>()
+    investigators.forEach((inv, index) => {
+        const userId = resolveUserId(inv?.user)
+        if (!userId) return
+        map.set(userId, {
+            sr_no: inv?.sr_no ?? index + 1,
+            name: typeof inv?.name === "string" ? inv.name : "",
+            designation: typeof inv?.designation === "string" ? inv.designation : "",
+            signature: typeof inv?.signature === "string" ? inv.signature : "",
+        })
+    })
+    return map
+}
+
+const formatUserName = (user: any, fallbackName: string, index: number): string => {
+    if (user) {
+        const nameParts = [user.firstName, user.lastName].filter((part: string | undefined) => part && part.trim())
+        if (nameParts.length) return nameParts.join(" ")
+        if (typeof user.fullName === "string" && user.fullName.trim().length) return user.fullName
+        if (typeof user.name === "string" && user.name.trim().length) return user.name
+        if (typeof user.emailId === "string" && user.emailId.trim().length) return user.emailId
+        if (typeof user.email === "string" && user.email.trim().length) return user.email
+    }
+    if (!fallbackName || isMongoId(fallbackName)) {
+        return `Investigator ${index + 1}`
+    }
+    return fallbackName
+}
+
+const formatDesignation = (user: any, fallbackDesignation: string, index: number): string => {
+    const userDesignation = normalizeRoleLabel(user?.designation)
+    if (userDesignation) return userDesignation
+
+    const role = Array.isArray(user?.role) ? user.role[0] : user?.role
+    const normalizedRole = normalizeRoleLabel(role)
+    if (normalizedRole) return normalizedRole
+
+    if (fallbackDesignation && !isMongoId(fallbackDesignation)) {
+        return fallbackDesignation
+    }
+
+    return `Investigation Officer`
+}
+
+const resolveSignaturePath = (user: any, fallbackSignature: string): string => {
+    const userSignature = user?.signature
+    if (userSignature) {
+        if (typeof userSignature === "string") return userSignature
+        if (typeof userSignature?.path === "string") return userSignature.path
+    }
+    return fallbackSignature ?? ""
+}
 
 export const finalDispositionOptions = [
     "Confirmed Device Defect",
@@ -34,17 +101,14 @@ export function ComplaintClosureForm({
                                          complaintId,
                                          defaultValues,
                                          onSuccess,
-                                         investigators = []
+                                         investigators = [],
+                                         assignments = [],
                                      }: {
     complaintId: string
     defaultValues?: Partial<ComplaintClosureFormData>
     onSuccess?: () => void | Promise<void>
-    investigators?: Array<{
-        sr_no?: number | null;
-        name?: string | null;
-        designation?: string | null;
-        signature?: string | null;
-    }>
+    investigators?: Array<any>
+    assignments?: Array<any>
 }) {
     const { requirements } = useComplaintClosureRequirements()
     const schema = useMemo(() => buildComplaintClosureSchema(requirements), [requirements])
@@ -69,40 +133,109 @@ export function ComplaintClosureForm({
         form.reset({ ...form.getValues() })
     }, [schema, form])
 
-    const selectedFinalDisposition = form.watch("final_disposition");
-    const { fields: reviewerFields, append: appendReviewer, remove: removeReviewer } = useFieldArray({
-        control: form.control,
-        name: "reviewed_by"
-    })
+    const currentUser = useAuthStore((state) => state.user)
+    const selectedFinalDisposition = form.watch("final_disposition")
 
-    const investigatorOptions = useMemo(
-        () => (investigators ?? []).filter((inv) => inv && (inv.name || inv.designation || inv.signature)),
-        [investigators]
-    )
+    const investigatorMap = useMemo(() => buildInvestigatorMap(investigators), [investigators])
 
-    const hasSeededInvestigatorRef = useRef(false)
+    const assignmentReviewers = useMemo(() => {
+        if (!Array.isArray(assignments) || assignments.length === 0) return [] as any[]
+
+        return assignments
+            .map((assignment: any, index: number) => {
+                const user = assignment && typeof assignment.user === "object" ? assignment.user : null
+                const userId = resolveUserId(assignment?.user) ?? resolveUserId(user)
+                const fallback = userId ? investigatorMap.get(userId) : undefined
+                const srNo = fallback?.sr_no ?? index + 1
+                const fallbackName = fallback?.name ?? ""
+                const fallbackDesignation = fallback?.designation ?? ""
+                const fallbackSignature = fallback?.signature ?? ""
+
+                const name = formatUserName(user, fallbackName, index)
+                const designation = formatDesignation(user, fallbackDesignation, index)
+                const signature = resolveSignaturePath(user, fallbackSignature)
+
+                return {
+                    sr_no: srNo,
+                    name,
+                    designation,
+                    signature,
+                }
+            })
+            .filter((reviewer: any) => reviewer.name && reviewer.name.trim().length > 0)
+    }, [assignments, investigatorMap])
+
+    const fallbackReviewers = useMemo(() => {
+        if (assignmentReviewers.length > 0) return assignmentReviewers
+
+        if (investigatorMap.size > 0) {
+            return Array.from(investigatorMap.values()).map((inv, index) => ({
+                sr_no: inv?.sr_no ?? index + 1,
+                name: inv?.name && !isMongoId(inv.name) ? inv.name : `Investigator ${index + 1}`,
+                designation: inv?.designation && !isMongoId(inv.designation)
+                    ? inv.designation
+                    : `Investigation Officer`,
+                signature: inv?.signature ?? "",
+            }))
+        }
+
+        return defaultValues?.reviewed_by ?? []
+    }, [assignmentReviewers, investigatorMap, defaultValues?.reviewed_by])
+
+    const derivedReviewers = assignmentReviewers.length ? assignmentReviewers : fallbackReviewers
+
+    const qaHeadName = useMemo(() => {
+        if (currentUser) {
+            const parts = [currentUser.firstName, currentUser.lastName].filter(Boolean)
+            if (parts.length) return parts.join(" ")
+            if (currentUser.emailId) return currentUser.emailId
+        }
+        return defaultValues?.approved_by?.qa_head_name ?? "QA Head"
+    }, [currentUser, defaultValues?.approved_by?.qa_head_name])
+
+    const qaSignature = useMemo(() => {
+        const userSignature = (currentUser as any)?.signature?.path
+        return (userSignature || defaultValues?.approved_by?.signature || "").toString()
+    }, [currentUser, defaultValues?.approved_by?.signature])
 
     useEffect(() => {
-        if (hasSeededInvestigatorRef.current) return
-        if (reviewerFields.length === 0 && investigatorOptions.length > 0) {
-            hasSeededInvestigatorRef.current = true
-            const first = investigatorOptions[0]
-            appendReviewer({
-                sr_no: 1,
-                name: first?.name ?? '',
-                designation: first?.designation ?? 'Investigator',
-                signature: first?.signature ?? ''
-            })
-        }
-    }, [appendReviewer, investigatorOptions, reviewerFields.length])
+        form.setValue("reviewed_by", derivedReviewers, { shouldValidate: false })
+    }, [form, derivedReviewers])
+
+    useEffect(() => {
+        form.setValue("approved_by.qa_head_name", qaHeadName, { shouldValidate: false })
+        form.setValue("approved_by.signature", qaSignature, { shouldValidate: false })
+    }, [form, qaHeadName, qaSignature])
+
+    useEffect(() => {
+        const existingDate = defaultValues?.approved_by?.date
+        const fallbackDate = existingDate ? new Date(existingDate) : new Date()
+        form.setValue("approved_by.date", fallbackDate, { shouldValidate: false })
+    }, [form, defaultValues?.approved_by?.date])
+
+    const approvalDateValue = form.watch("approved_by.date")
+    const approvalDisplayDate = useMemo(() => {
+        const dateValue = approvalDateValue instanceof Date ? approvalDateValue : approvalDateValue ? new Date(approvalDateValue) : null
+        if (!dateValue || Number.isNaN(dateValue.getTime())) return format(new Date(), "PPP")
+        return format(dateValue, "PPP")
+    }, [approvalDateValue])
 
     const { mutate: updateClosure, isPending } = useUpdateComplaintClosure(complaintId)
-    const { mutateAsync: uploadSignature, isPending: isUploadingSignature } = useSignatureUpload()
-    const { mutate: deleteSignature } = useAttachmentDelete()
 
     async function onSubmit(data: ComplaintClosureFormData) {
-        console.log("Complaint Closure Data:", data)
-        updateClosure(data, {
+        const submissionDate = new Date()
+        form.setValue("approved_by.date", submissionDate, { shouldValidate: false })
+        const payload: ComplaintClosureFormData = {
+            ...data,
+            reviewed_by: derivedReviewers,
+            approved_by: {
+                qa_head_name: qaHeadName,
+                signature: qaSignature,
+                date: submissionDate,
+            },
+        }
+
+        updateClosure(payload, {
             onSuccess: async () => {
                 if (onSuccess) {
                     await onSuccess()
@@ -111,86 +244,11 @@ export function ComplaintClosureForm({
         })
     }
 
-    const handleReviewerSignatureUpload = async (file: File, index: number) => {
-        try {
-            const uploadResult = await uploadSignature(file)
-            console.log("Reviewer signature uploaded successfully:", uploadResult)
-            form.setValue(`reviewed_by.${index}.signature`, uploadResult.path)
-        } catch (error) {
-            console.error("Error uploading reviewer signature:", error)
-        }
-    }
-
-    const handleApproverSignatureUpload = async (file: File) => {
-        try {
-            const uploadResult = await uploadSignature(file)
-            console.log("Approver signature uploaded successfully:", uploadResult)
-            form.setValue("approved_by.signature", uploadResult.path)
-        } catch (error) {
-            console.error("Error uploading approver signature:", error)
-        }
-    }
-
-    const handleReviewerRemove = async (index: number) => {
-        const signature = form.getValues(`reviewed_by.${index}.signature`)
-        if (signature) {
-            try {
-                await deleteSignature(signature)
-            } catch (e) {
-                console.warn("Reviewer signature deletion failed", e)
-            }
-        }
-        removeReviewer(index)
-    }
-
-    const addInvestigatorReviewer = () => {
-        const currentReviewers = form.getValues('reviewed_by') ?? []
-        const existingNames = new Set(
-            currentReviewers
-                .map((entry: any) => (entry?.name ?? '').trim().toLowerCase())
-                .filter(Boolean)
-        )
-
-        const candidate = investigatorOptions.find((inv) => {
-            const name = (inv?.name ?? '').trim().toLowerCase()
-            return name && !existingNames.has(name)
-        })
-
-        const nextIndex = reviewerFields.length + 1
-        const baseEntry = candidate
-            ? {
-                sr_no: nextIndex,
-                name: candidate?.name ?? '',
-                designation: candidate?.designation ?? 'Investigator',
-                signature: candidate?.signature ?? '',
-            }
-            : {
-                sr_no: nextIndex,
-                name: '',
-                designation: 'Investigator',
-                signature: '',
-            }
-
-        appendReviewer(baseEntry)
-    }
-
-    const addNewReviewer = () => {
-        appendReviewer({
-            sr_no: reviewerFields.length + 1,
-            name: "",
-            designation: "",
-            signature: ""
-        })
-    }
-
     return (
         <div className="w-full max-w-6xl mx-auto space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        Complaint Closure Details
-                    </CardTitle>
+                    <CardTitle className="text-lg font-semibold">Complaint Closure Details</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
@@ -251,158 +309,6 @@ export function ComplaintClosureForm({
                                 </CardContent>
                             </Card>
 
-                            {/* Reviewed By Section */}
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex justify-between items-center flex-wrap gap-3">
-                                        <CardTitle className="text-lg flex items-center gap-2">
-                                            <UserCheck className="h-4 w-4" />
-                                            Reviewed By
-                                        </CardTitle>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={addInvestigatorReviewer}
-                                                className="flex items-center gap-2"
-                                            >
-                                                <UserPlus className="h-4 w-4" />
-                                                Add Investigator
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={addNewReviewer}
-                                                className="flex items-center gap-2"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                                Add Reviewer
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {reviewerFields.length === 0 && (
-                                        <Alert>
-                                            <UserCheck className="h-4 w-4" />
-                                            <AlertDescription>
-                                                No reviewers added yet. Click "Add Reviewer" to add complaint reviewers.
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-
-                                    {reviewerFields.map((field, index) => (
-                                        <Card key={field.id} className="border-l-4 border-l-blue-500">
-                                            <CardContent className="pt-4">
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                    {/* Serial Number */}
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`reviewed_by.${index}.sr_no`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>Sr. No</FormLabel>
-                                                                <FormControl>
-                                                                    <Input
-                                                                        type="number"
-                                                                        {...field}
-                                                                        onChange={(e) => {
-                                                                            const parsed = parseInt(e.target.value, 10);
-                                                                            field.onChange(Number.isNaN(parsed) ? undefined : parsed);
-                                                                        }}
-                                                                    />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-
-                                                    {/* Name */}
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`reviewed_by.${index}.name`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>Reviewer Name *</FormLabel>
-                                                                <FormControl>
-                                                                    <Input {...field} placeholder="Enter reviewer name" />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-
-                                                    {/* Designation */}
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`reviewed_by.${index}.designation`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>Designation *</FormLabel>
-                                                                <FormControl>
-                                                                    <Input {...field} placeholder="Enter designation" />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-
-                                                    {/* Signature */}
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`reviewed_by.${index}.signature`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>Digital Signature</FormLabel>
-                                                                <FormControl>
-                                                                    <div className="space-y-2">
-                                                                        {field.value && (
-                                                                            <div className="flex items-center gap-2">
-                                                                                <SignaturePreviewModal signaturePath={field.value} />
-                                                                                <Badge variant="secondary" className="text-xs">
-                                                                                    Signed
-                                                                                </Badge>
-                                                                            </div>
-                                                                        )}
-                                                                        <Input
-                                                                            type="file"
-                                                                            accept="image/*"
-                                                                            onChange={(e) => {
-                                                                                const file = e.target.files?.[0]
-                                                                                if (file) {
-                                                                                    handleReviewerSignatureUpload(file, index)
-                                                                                }
-                                                                            }}
-                                                                            className="text-sm"
-                                                                        />
-                                                                    </div>
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                </div>
-
-                                                <div className="flex justify-end mt-4">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleReviewerRemove(index)}
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    >
-                                                        <Trash2 className="h-4 w-4 mr-1" />
-                                                        Remove Reviewer
-                                                    </Button>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </CardContent>
-                            </Card>
-
                             {/* Approved By Section */}
                             <Card>
                                 <CardHeader>
@@ -411,106 +317,26 @@ export function ComplaintClosureForm({
                                         QA Head Approval
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* QA Head Name */}
-                                        <FormField
-                                            control={form.control}
-                                            name="approved_by.qa_head_name"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>QA Head Name *</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} placeholder="Enter QA Head name" />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        {/* Approval Date */}
-                                        <FormField
-                                            control={form.control}
-                                            name="approved_by.date"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col">
-                                                    <FormLabel>Approval Date *</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className={cn(
-                                                                        "pl-3 text-left font-normal",
-                                                                        !field.value && "text-muted-foreground"
-                                                                    )}
-                                                                >
-                                                                    {field.value ? (
-                                                                        format(field.value, "PPP")
-                                                                    ) : (
-                                                                        <span>Pick approval date</span>
-                                                                    )}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={field.value}
-                                                                onSelect={field.onChange}
-                                                                disabled={(date) =>
-                                                                    date > new Date() || date < new Date("1900-01-01")
-                                                                }
-                                                                initialFocus
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                <CardContent className="space-y-3 text-sm">
+                                    <div>
+                                    <FormLabel className="text-xs uppercase text-muted-foreground">QA Head Name</FormLabel>
+                                    <p className="font-medium">{qaHeadName}</p>
                                     </div>
-
-                                    {/* QA Head Signature */}
-                                    <FormField
-                                        control={form.control}
-                                        name="approved_by.signature"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>QA Head Digital Signature *</FormLabel>
-                                                <FormControl>
-                                                    <div className="space-y-3">
-                                                        {field.value && (
-                                                            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-md border border-green-200">
-                                                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                                                <span className="text-sm text-green-800">QA Head signature uploaded</span>
-                                                                <SignaturePreviewModal signaturePath={field.value} />
-                                                            </div>
-                                                        )}
-                                                        <Input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            onChange={(e) => {
-                                                                const file = e.target.files?.[0]
-                                                                if (file) {
-                                                                    handleApproverSignatureUpload(file)
-                                                                }
-                                                            }}
-                                                            className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                                        />
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div>
+                                        <FormLabel className="text-xs uppercase text-muted-foreground">Approval Date</FormLabel>
+                                        <p className="font-medium">{approvalDisplayDate}</p>
+                                    </div>
+                                    <div>
+                                        <FormLabel className="text-xs uppercase text-muted-foreground">Digital Signature</FormLabel>
+                                        <p className="text-xs text-muted-foreground">
+                                            Stored automatically and included in the PDF report.
+                                        </p>
+                                    </div>
                                 </CardContent>
                             </Card>
 
                             {/* Closure Guidelines */}
                             <Alert>
-                                <CheckCircle className="h-4 w-4" />
                                 <AlertDescription>
                                     <strong>Closure Checklist:</strong> Ensure all investigation activities are complete, customer communication is finalized,
                                     CAPA actions are initiated (if required), and all required approvals are obtained before closing the complaint.
@@ -521,13 +347,13 @@ export function ComplaintClosureForm({
 
                             {/* Submit Section */}
                             <div className="flex justify-end gap-4 pt-6">
-                                <Button
+                                {/* <Button
                                     type="button"
                                     variant="outline"
                                     onClick={() => form.reset()}
                                 >
                                     Reset Form
-                                </Button>
+                                </Button> */}
                                 <Button
                                     type="submit"
                                     disabled={form.formState.isSubmitting || isPending}

@@ -156,7 +156,7 @@ const ComplaintDetailPage = (params:Props) => {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION, COMPLAINT_STATUS.REJECTED],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.REJECTED],
-                [COMPLAINT_STATUS.RESOLVED]: [COMPLAINT_STATUS.CLOSED, COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.RESOLVED]: [COMPLAINT_STATUS.CLOSED],
                 [COMPLAINT_STATUS.REJECTED]: [],
                 [COMPLAINT_STATUS.CLOSED]: []
             },
@@ -719,6 +719,7 @@ const ComplaintDetailPage = (params:Props) => {
                         complaintId={complaint._id}
                         defaultValues={closureFormDefaults}
                         investigators={complaint.investigation?.investigating_officers ?? []}
+                        assignments={complaint.investigation?.assignments ?? []}
                         onSuccess={async () => {
                             try {
                                 setDrawerOpen(false);
@@ -1423,7 +1424,7 @@ const ComplaintDetailPage = (params:Props) => {
                                 </Card>
 
                                 {/* Investigating Officers */}
-                                {complaint.investigation.investigating_officers && complaint.investigation.investigating_officers.length > 0 && (
+                                {/* {complaint.investigation.investigating_officers && complaint.investigation.investigating_officers.length > 0 && (
                                     <Card>
                                         <CardHeader>
                                             <CardTitle className="flex items-center">
@@ -1453,7 +1454,7 @@ const ComplaintDetailPage = (params:Props) => {
                                             </div>
                                         </CardContent>
                                     </Card>
-                                )}
+                                )} */}
 
                                 {/* Root Cause Analysis */}
                                 {complaint.investigation.root_cause && (
