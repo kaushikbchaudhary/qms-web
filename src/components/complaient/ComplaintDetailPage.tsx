@@ -41,7 +41,7 @@ import {
     useTransitionComplaintStatus,
     useUpdateReceivedInfo
 } from "@/hooks/api/useComplaints";
-import {Complaint} from "@/lib/api/types/complaints";
+import {Complaint, DeadlineSummary} from "@/lib/api/types/complaints";
 import type { InvestigationFormData, ComplaintClosureFormData } from '@/lib/validations/complaint';
 import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer";
 import {InvestigationForm} from "@/components/forms/InvestigationForm";
@@ -67,6 +67,9 @@ const ComplaintDetailPage = (params:Props) => {
         REJECTED: 'REJECTED',
         CLOSED: 'CLOSED'
     } as const satisfies Record<string, Complaint['status']>;
+
+    const INVESTIGATION_LIMIT = 20;
+    const CLOSURE_LIMIT = 30;
 
     type ComplaintStatus = Complaint['status'];
     type RolePermission = {
@@ -759,6 +762,90 @@ const ComplaintDetailPage = (params:Props) => {
         ] as ComplaintStatus[]
     ).includes(complaint.status);
 
+    const deadlines = complaint.deadlines;
+
+    const formatDeadlineDate = (date?: string | null) => (date ? formatDate(date) : '—');
+
+    const getDeadlineStatusMeta = (deadline?: DeadlineSummary) => {
+        if (!deadline || !deadline.startDate) {
+            return {
+                label: 'Not Started',
+                variant: 'outline' as const,
+                message: 'Timeline will begin once work is assigned.',
+                highlightClass: '',
+            };
+        }
+
+        const remaining = deadline.workingDaysRemaining ?? 0;
+        switch (deadline.status) {
+            case 'overdue':
+                return {
+                    label: 'Overdue',
+                    variant: 'destructive' as const,
+                    message: `${deadline.overdueBy ?? Math.abs(remaining)} working day(s) past the limit.`,
+                    highlightClass: 'text-destructive font-semibold',
+                };
+            case 'due_soon':
+                return {
+                    label: 'Due Soon',
+                    variant: 'secondary' as const,
+                    message: `${remaining} working day(s) remaining.`,
+                    highlightClass: 'text-amber-600 font-medium',
+                };
+            case 'on_track':
+                return {
+                    label: 'On Track',
+                    variant: 'secondary' as const,
+                    message: `${remaining} working day(s) remaining.`,
+                    highlightClass: '',
+                };
+            default:
+                return {
+                    label: 'Not Started',
+                    variant: 'outline' as const,
+                    message: 'Timeline will begin once work is assigned.',
+                    highlightClass: '',
+                };
+        }
+    };
+
+    const renderDeadlineCard = (title: string, deadline?: DeadlineSummary, limit?: number) => {
+        const meta = getDeadlineStatusMeta(deadline);
+        const workingDaysUsed = Math.max(deadline?.workingDaysUsed ?? 0, 0);
+        const workingDaysAllotted = deadline?.workingDaysAllotted ?? limit ?? 0;
+        const remaining = deadline?.workingDaysRemaining ?? null;
+
+        return (
+            <Card>
+                <CardHeader className="flex items-center justify-between pb-4">
+                    <CardTitle className="text-base font-semibold">{title}</CardTitle>
+                    <Badge variant={meta.variant}>{meta.label}</Badge>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Due Date</span>
+                        <span className="font-medium">{formatDeadlineDate(deadline?.dueDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Working Days Used</span>
+                        <span>{workingDaysUsed} / {workingDaysAllotted}</span>
+                    </div>
+                    {remaining !== null && (
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Remaining</span>
+                            <span className={meta.highlightClass}>
+                                {remaining < 0
+                                    ? `${Math.abs(remaining)} day(s) overdue`
+                                    : `${remaining} day(s)`}
+                            </span>
+                        </div>
+                    )}
+                    <p className="text-xs text-muted-foreground leading-5">{meta.message}</p>
+                </CardContent>
+            </Card>
+        );
+    };
+
     return (
         <div className="container mx-auto p-6 space-y-6">
             {/* Header */}
@@ -804,6 +891,20 @@ const ComplaintDetailPage = (params:Props) => {
                     )}
                 </div>
             </div>
+
+            {deadlines && (
+                <Card className="bg-muted/40">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base font-semibold">Timeline Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {renderDeadlineCard('Investigation Deadline', deadlines.investigation, INVESTIGATION_LIMIT)}
+                            {renderDeadlineCard('Closure Deadline', deadlines.closure, CLOSURE_LIMIT)}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Action Buttons */}
             {(availableTransitions.length > 0 || isResolutionBlockedByInvestigation) && (

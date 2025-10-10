@@ -49,6 +49,24 @@ export interface MasterLookupResponse {
 }
 
 
+export type DeadlineStatus = 'not_started' | 'on_track' | 'due_soon' | 'overdue';
+
+export interface DeadlineSummary {
+    startDate: string | null;
+    dueDate: string | null;
+    workingDaysAllotted: number;
+    workingDaysUsed: number;
+    workingDaysRemaining: number | null;
+    overdueBy: number | null;
+    status: DeadlineStatus;
+}
+
+export interface ComplaintDeadlines {
+    investigation?: DeadlineSummary;
+    closure?: DeadlineSummary;
+}
+
+
 export interface IssueDetails {
     description?: string;
     problem_start_date?: string;
@@ -244,6 +262,7 @@ export interface Complaint {
             date: string;
         };
     };
+    deadlines?: ComplaintDeadlines;
 }
 
 // Supporting interfaces
