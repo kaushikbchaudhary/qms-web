@@ -300,19 +300,47 @@ export const buildInvestigationFormSchema = (requirements: InvestigationRequirem
     });
 };
 
-export const buildCustomerCommunicationSchema = (requirements: CustomerCommunicationRequirementMap) =>
-    z.object({
-        response_date: dateField(requirements, 'response_date', 'Response date is required'),
-        mode: requirements['mode']
-            ? z.enum(['Email', 'Call', 'Letter', 'Other'] as const, {
-                  message: 'Communication mode is required',
-              })
-            : z.enum(['Email', 'Call', 'Letter', 'Other'] as const).optional(),
-        summary: stringField(requirements, 'summary', {
-            message: 'Summary must be at least 10 characters long',
-            minLength: 10,
-        }),
-    });
+export const buildCustomerCommunicationSchema = (requirements: CustomerCommunicationRequirementMap) => {
+    const riskManagementSchema = z
+        .object({
+            update_required: z.boolean().default(false),
+            details: preprocessOptionalString(),
+        })
+        .superRefine((value, ctx) => {
+            if (value.update_required && (!value.details || value.details.trim().length === 0)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Please provide details when a risk management update is required.',
+                    path: ['details'],
+                });
+            }
+        })
+        .transform((value) => ({
+            update_required: Boolean(value.update_required),
+            ...(value.details && value.details.trim().length > 0
+                ? { details: value.details.trim() }
+                : {}),
+        }));
+
+    return z
+        .object({
+            response_date: dateField(requirements, 'response_date', 'Response date is required'),
+            mode: requirements['mode']
+                ? z.enum(['Email', 'Call', 'Letter', 'Other'] as const, {
+                      message: 'Communication mode is required',
+                  })
+                : z.enum(['Email', 'Call', 'Letter', 'Other'] as const).optional(),
+            summary: stringField(requirements, 'summary', {
+                message: 'Summary must be at least 10 characters long',
+                minLength: 10,
+            }),
+            risk_management: riskManagementSchema.default({ update_required: false }),
+        })
+        .transform((value) => ({
+            ...value,
+            risk_management: value.risk_management ?? { update_required: false },
+        }));
+};
 
 export const buildComplaintClosureSchema = (requirements: ComplaintClosureRequirementMap) => {
     const reviewerSchema = z.object({

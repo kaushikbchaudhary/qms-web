@@ -42,7 +42,7 @@ import {
     useUpdateReceivedInfo
 } from "@/hooks/api/useComplaints";
 import {Complaint, DeadlineSummary} from "@/lib/api/types/complaints";
-import type { InvestigationFormData, ComplaintClosureFormData } from '@/lib/validations/complaint';
+import type { InvestigationFormData, ComplaintClosureFormData, CustomerCommunicationFormData } from '@/lib/validations/complaint';
 import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer";
 import {InvestigationForm} from "@/components/forms/InvestigationForm";
 import {formatDate, formatDateTime, showApiErrorToast} from "@/lib/utils";
@@ -163,7 +163,7 @@ const ComplaintDetailPage = (params:Props) => {
                 [COMPLAINT_STATUS.REJECTED]: [],
                 [COMPLAINT_STATUS.CLOSED]: []
             },
-            canEdit: ['received_info', 'customer_communication'],
+            canEdit: ['received_info', 'customer_communication', 'risk_management'],
             label: 'Support Team'
         },
         qa: {
@@ -467,6 +467,39 @@ const ComplaintDetailPage = (params:Props) => {
         return roleConfig?.canEdit?.includes(section);
     };
 
+    const customerCommunicationFormDefaults = useMemo((): Partial<CustomerCommunicationFormData> => {
+        if (!complaint) return {}
+
+        const defaults: Partial<CustomerCommunicationFormData> = {
+            summary: complaint.customer_communication?.summary ?? '',
+            risk_management: {
+                update_required: complaint.risk_management?.update_required ?? false,
+                details: complaint.risk_management?.details ?? '',
+            },
+        }
+
+        if (complaint.customer_communication?.response_date) {
+            defaults.response_date = new Date(complaint.customer_communication.response_date)
+        }
+
+        if (complaint.customer_communication?.mode) {
+            defaults.mode = complaint.customer_communication.mode as CustomerCommunicationFormData['mode']
+        }
+
+        return defaults
+    }, [complaint])
+
+    const customerCommunicationFormProps = complaint
+        ? {
+            complaintId: complaint._id,
+            defaultValues: customerCommunicationFormDefaults,
+            canEditRiskManagement: canEditSection('risk_management'),
+            onSuccess: async () => {
+                await refetch();
+            },
+        }
+        : null;
+
     const getUserDisplayName = (user: any) => {
         if (!user) return 'Unassigned';
         if (typeof user === 'string') {
@@ -692,6 +725,8 @@ const ComplaintDetailPage = (params:Props) => {
     const troubleshootingAttempted = normalizeYesNo(complaint?.customer_actions?.troubleshooting_done);
 
     const attachments = Array.isArray(complaint?.attachments) ? complaint.attachments : [];
+    const riskUpdateRequired = Boolean(complaint.risk_management?.update_required);
+    const riskDetails = complaint.risk_management?.details ?? '';
 
     const handleEditClick = (section: string) => {
         setActiveEditSection(section);
@@ -710,9 +745,13 @@ const ComplaintDetailPage = (params:Props) => {
                     </div>
                 );
             case "customer_communication":
-                return <div className={"container mx-auto flex-1 overflow-y-auto mb-2"}>
-                    <CustomerCommunicationForm complaintId={complaint._id} />
-                </div>;
+                return (
+                    <div className="container mx-auto flex-1 overflow-y-auto mb-2">
+                        {customerCommunicationFormProps && (
+                            <CustomerCommunicationForm {...customerCommunicationFormProps} />
+                        )}
+                    </div>
+                );
                 // return <div className="p-4">Communication Form</div>;
             case "history":
                 return <div className="p-4">History Notes Form</div>;
@@ -1643,31 +1682,6 @@ const ComplaintDetailPage = (params:Props) => {
                                     </Card>
                                 )}
 
-                                {/* Risk Management */}
-                                {complaint.risk_management && (
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center">
-                                                <AlertTriangle className="h-5 w-5 mr-2" />
-                                                Risk Management
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="flex items-center">
-                                                <span className="font-medium text-sm mr-2">Risk Assessment Update Required:</span>
-                                                <Badge variant={complaint.risk_management.update_required ? "destructive" : "secondary"}>
-                                                    {complaint.risk_management.update_required ? "Yes" : "No"}
-                                                </Badge>
-                                            </div>
-                                            {complaint.risk_management.details && (
-                                                <div>
-                                                    <span className="font-medium text-sm">Details:</span>
-                                                    <p className="mt-1 text-sm text-muted-foreground">{complaint.risk_management.details}</p>
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                )}
                             </>
                         ) : (
                             <Alert>
@@ -1683,21 +1697,21 @@ const ComplaintDetailPage = (params:Props) => {
                 {/* Communication Tab */}
                 <TabsContent value="communication">
                     <div className="space-y-6">
-                        {complaint.customer_communication ? (
-                            <>
-                                <Card>
-                                    <CardHeader className="flex flex-row items-center justify-between">
-                                        <CardTitle className="flex items-center">
-                                            <MessageSquare className="h-5 w-5 mr-2" />
-                                            Customer Communication
-                                        </CardTitle>
-                                        {canEditSection('customer_communication') && (
-                                            <Button variant="ghost" size="sm" onClick={() => handleEditClick("customer_communication")}>
-                                                <Edit3 className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="flex items-center">
+                                    <MessageSquare className="h-5 w-5 mr-2" />
+                                    Customer Communication
+                                </CardTitle>
+                                {canEditSection('customer_communication') && (
+                                    <Button variant="ghost" size="sm" onClick={() => handleEditClick("customer_communication")}>
+                                        <Edit3 className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {complaint.customer_communication ? (
+                                    <>
                                         <div className="grid md:grid-cols-2 gap-4">
                                             {complaint.customer_communication.response_date && (
                                                 <div className="flex items-center text-sm">
@@ -1725,17 +1739,44 @@ const ComplaintDetailPage = (params:Props) => {
                                                 </p>
                                             </div>
                                         )}
-                                    </CardContent>
-                                </Card>
-                            </>
-                        ) : (
-                            <Alert>
-                                <Info className="h-4 w-4" />
-                                <AlertDescription>
-                                    No customer communication records available yet.
-                                </AlertDescription>
-                            </Alert>
-                        )}
+                                    </>
+                                ) : (
+                                    <Alert>
+                                        <Info className="h-4 w-4" />
+                                        <AlertDescription>
+                                            No customer communication records available yet.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
+                                <div className="border-t pt-4 space-y-2">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                        <div className="flex items-center text-sm">
+                                            <AlertTriangle className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            <span className="font-medium">Risk Management Report Update Required:</span>
+                                        </div>
+                                        <Badge variant={riskUpdateRequired ? "destructive" : "secondary"}>
+                                            {riskUpdateRequired ? "Yes" : "No"}
+                                        </Badge>
+                                    </div>
+                                    {riskUpdateRequired ? (
+                                        riskDetails ? (
+                                            <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                                                {riskDetails}
+                                            </p>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">
+                                                Risk management update marked as required; details pending.
+                                            </p>
+                                        )
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            No risk management update is required for this complaint.
+                                        </p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </TabsContent>
 

@@ -3,7 +3,7 @@ import { useForm, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CustomerCommunicationFormData } from "@/lib/validations/complaint"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, FileText } from "lucide-react"
@@ -20,43 +20,89 @@ import { buildCustomerCommunicationSchema } from "@/lib/validations/complaintSub
 export const communicationModes = ["Email", "Call", "Letter", "Other"]
 
 export function CustomerCommunicationForm({
-                                              complaintId,
-                                              defaultValues,
-                                              onSuccess
-                                          }: {
+    complaintId,
+    defaultValues,
+    canEditRiskManagement = true,
+    onSuccess,
+}: {
     complaintId: string
     defaultValues?: Partial<CustomerCommunicationFormData>
-    onSuccess?: () => void
+    canEditRiskManagement?: boolean
+    onSuccess?: () => void | Promise<void>
 }) {
     const { requirements } = useCustomerCommunicationRequirements()
     const schema = useMemo(() => buildCustomerCommunicationSchema(requirements), [requirements])
     const resolver = useMemo(() => zodResolver(schema) as Resolver<CustomerCommunicationFormData>, [schema])
 
+    const initialValues = useMemo((): CustomerCommunicationFormData => {
+        const responseDateValue = defaultValues?.response_date
+            ? defaultValues.response_date instanceof Date
+                ? defaultValues.response_date
+                : new Date(defaultValues.response_date)
+            : new Date()
+        return {
+            response_date: responseDateValue,
+            mode: (defaultValues?.mode as CustomerCommunicationFormData['mode']) ?? "Email",
+            summary: defaultValues?.summary ?? "",
+            risk_management: {
+                update_required: defaultValues?.risk_management?.update_required ?? false,
+                details: defaultValues?.risk_management?.details ?? "",
+            },
+        }
+    }, [defaultValues])
+
     const form = useForm<CustomerCommunicationFormData>({
         resolver,
-        defaultValues: {
-            response_date: new Date(),
-            mode: "Email",
-            summary: "",
-            ...defaultValues
-        }
+        defaultValues: initialValues,
     })
 
     useEffect(() => {
-        form.reset({ ...form.getValues() })
-    }, [schema, form])
+        form.reset(initialValues)
+    }, [schema, form, initialValues])
 
     const { mutate: updateCommunication, isPending } = useUpdateCustomerCommunication(complaintId)
 
-    const handleSuccess = () => {
+    const handleSuccess = async () => {
         if (onSuccess) {
-            onSuccess()
+            await onSuccess()
         }
     }
 
+    const riskUpdateRequired = form.watch('risk_management.update_required')
+
+    useEffect(() => {
+        if (!riskUpdateRequired) {
+            form.setValue('risk_management.details', '', { shouldDirty: false, shouldValidate: false })
+        }
+    }, [riskUpdateRequired, form])
+
     async function onSubmit(data: CustomerCommunicationFormData) {
-        updateCommunication(data, {
-            onSuccess: handleSuccess,
+        const riskRequired = Boolean(data.risk_management?.update_required)
+        const riskDetails = data.risk_management?.details?.trim() ?? ''
+
+        const payload = {
+            response_date: data.response_date,
+            mode: data.mode,
+            summary: data.summary,
+            risk_management: {
+                update_required: riskRequired,
+                ...(riskRequired && riskDetails ? { details: riskDetails } : {}),
+            },
+        }
+
+        updateCommunication(payload, {
+            onSuccess: async () => {
+                form.reset({
+                    response_date: data.response_date,
+                    mode: data.mode,
+                    summary: data.summary,
+                    risk_management: {
+                        update_required: riskRequired,
+                        details: riskRequired ? riskDetails : '',
+                    },
+                })
+                await handleSuccess()
+            },
         })
     }
 
@@ -159,6 +205,75 @@ export function CustomerCommunicationForm({
                                 </FormItem>
                             )}
                         />
+
+                        <div className="space-y-4 border-t pt-6">
+                            <FormField
+                                control={form.control}
+                                name="risk_management.update_required"
+                                render={({ field }) => {
+                                    const value = field.value ?? false
+                                    return (
+                                        <FormItem>
+                                            <FormLabel>Update to Risk Management Report required?</FormLabel>
+                                            <FormDescription>
+                                                Indicate whether this customer communication requires an update to the risk management report.
+                                            </FormDescription>
+                                            <FormControl>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant={value ? "default" : "outline"}
+                                                        disabled={!canEditRiskManagement}
+                                                        onClick={() => field.onChange(true)}
+                                                    >
+                                                        Yes
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant={!value ? "default" : "outline"}
+                                                        disabled={!canEditRiskManagement}
+                                                        onClick={() => field.onChange(false)}
+                                                    >
+                                                        No
+                                                    </Button>
+                                                </div>
+                                            </FormControl>
+                                            {!canEditRiskManagement && (
+                                                <FormDescription className="text-muted-foreground">
+                                                    You can view the current risk management status but do not have permission to modify it.
+                                                </FormDescription>
+                                            )}
+                                            <FormMessage />
+                                        </FormItem>
+                                    )
+                                }}
+                            />
+
+                            {riskUpdateRequired && (
+                                <FormField
+                                    control={form.control}
+                                    name="risk_management.details"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Risk Management Update Details</FormLabel>
+                                            <FormDescription>
+                                                Provide the rationale and references for updating the risk management report.
+                                            </FormDescription>
+                                            <FormControl>
+                                                <Textarea
+                                                    {...field}
+                                                    value={field.value ?? ''}
+                                                    placeholder="Describe why the risk management report needs to be updated..."
+                                                    className="min-h-[120px]"
+                                                    disabled={!canEditRiskManagement}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                        </div>
 
                         {/* Submit Button */}
                         <div className="flex justify-end gap-4 pt-6 border-t">
