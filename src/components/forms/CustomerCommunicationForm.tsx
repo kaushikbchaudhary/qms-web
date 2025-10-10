@@ -192,7 +192,7 @@ export function CustomerCommunicationForm({
                             name="summary"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Communication Summary</FormLabel>
+                                    <FormLabel>Summary of Response Provided:</FormLabel>
                                     <FormControl>
                                         <Textarea
                                             {...field}
