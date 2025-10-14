@@ -41,7 +41,7 @@ export default function AdminDashboardPage() {
   const { data, isLoading, isError } = useComplaintStats()
 
   const statusCounts = data?.statusCounts ?? {}
-  const assignmentSummary = data?.assignmentSummary ?? { assigned: 0, unassigned: 0 }
+  const investigatorAssignmentSummary = data?.assignmentSummary ?? { assigned: 0, unassigned: 0 }
   const totalComplaints = valueOrZero(data?.total)
   const inProgress = valueOrZero(statusCounts['UNDER_INVESTIGATION'])
   const submitted = valueOrZero(statusCounts['SUBMITTED'])
@@ -122,11 +122,11 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Unassigned complaints</CardDescription>
-            <CardTitle className="text-3xl">{assignmentSummary.unassigned}</CardTitle>
+            <CardDescription>Complaints without investigator</CardDescription>
+            <CardTitle className="text-3xl">{investigatorAssignmentSummary.unassigned}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" /> Waiting for assignment
+            <Users className="h-4 w-4" /> Waiting for investigator assignment
           </CardContent>
         </Card>
       </div>
@@ -158,17 +158,17 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>Assignment overview</CardTitle>
-            <CardDescription>How workload is distributed</CardDescription>
+            <CardTitle>Investigation coverage</CardTitle>
+            <CardDescription>Investigator assignment overview</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
-              <span>Assigned</span>
-              <Badge variant="secondary">{assignmentSummary.assigned}</Badge>
+              <span>Assigned to investigators</span>
+              <Badge variant="secondary">{investigatorAssignmentSummary.assigned}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span>Unassigned</span>
-              <Badge variant="destructive">{assignmentSummary.unassigned}</Badge>
+              <span>No investigator assigned</span>
+              <Badge variant="destructive">{investigatorAssignmentSummary.unassigned}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -177,19 +177,19 @@ export default function AdminDashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Top assignees</CardTitle>
-            <CardDescription>Team members handling the most complaints</CardDescription>
+            <CardTitle>Top investigators</CardTitle>
+            <CardDescription>Team members handling the most investigations</CardDescription>
           </CardHeader>
           <CardContent>
             {data.topAssignees.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No assignments recorded yet.</p>
+              <p className="text-sm text-muted-foreground">No investigator assignments recorded yet.</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Team member</TableHead>
+                    <TableHead>Investigator</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead className="text-right">Active complaints</TableHead>
+                    <TableHead className="text-right">Active assignments</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
