@@ -199,6 +199,39 @@ const ComplaintDetailPage = (params:Props) => {
             canEdit: ['investigation', 'customer_communication'],
             label: 'Software Team'
         },
+        [roles.HARDWARE]: {
+            canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
+            },
+            canEdit: ['investigation', 'customer_communication'],
+            label: 'Hardware Team'
+        },
+        [roles.AI_ML_TEAM]: {
+            canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
+            },
+            canEdit: ['investigation', 'customer_communication'],
+            label: 'AI/ML Team'
+        },
+        [roles.QC_TEAM]: {
+            canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
+            },
+            canEdit: ['investigation', 'customer_communication'],
+            label: 'Quality Control Team'
+        },
         [roles.SUPER_ADMIN]: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION, COMPLAINT_STATUS.REJECTED, COMPLAINT_STATUS.CLOSED],

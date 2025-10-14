@@ -5,6 +5,9 @@ export enum roles {
     QA = 'qa',
     PRODUCTION = 'production',
     SOFTWARE = 'software',
+    HARDWARE = 'hardware',
+    AI_ML_TEAM = 'ai/ml team',
+    QC_TEAM = 'qc team',
 }
 
 export const ROLE_ACCESS = {
@@ -27,7 +30,19 @@ export const ROLE_ACCESS = {
     [roles.SOFTWARE]: {
         routes: ['/', '/profile','/dashboard/complaints', '/dashboard/complaints/new','/dashboard/complaints/[id]'],
         redirect: '/'
-    }
+    },
+    [roles.HARDWARE]: {
+        routes: ['/', '/profile','/dashboard/complaints', '/dashboard/complaints/new','/dashboard/complaints/[id]'],
+        redirect: '/'
+    },
+    [roles.AI_ML_TEAM]: {
+        routes: ['/', '/profile','/dashboard/complaints', '/dashboard/complaints/new','/dashboard/complaints/[id]'],
+        redirect: '/'
+    },
+    [roles.QC_TEAM]: {
+        routes: ['/', '/profile','/dashboard/complaints', '/dashboard/complaints/new','/dashboard/complaints/[id]'],
+        redirect: '/'
+    },
 } as const;
 
 export type UserRole = keyof typeof ROLE_ACCESS;
