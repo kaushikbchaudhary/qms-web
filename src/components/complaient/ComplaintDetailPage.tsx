@@ -188,6 +188,17 @@ const ComplaintDetailPage = (params:Props) => {
             canEdit: ['investigation', 'customer_communication'],
             label: 'Production Team'
         },
+        [roles.SOFTWARE]: {
+            canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
+            },
+            canEdit: ['investigation', 'customer_communication'],
+            label: 'Software Team'
+        },
         [roles.SUPER_ADMIN]: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION, COMPLAINT_STATUS.REJECTED, COMPLAINT_STATUS.CLOSED],

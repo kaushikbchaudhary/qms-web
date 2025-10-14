@@ -4,6 +4,7 @@ export enum roles {
     SUPPORT = 'support',
     QA = 'qa',
     PRODUCTION = 'production',
+    SOFTWARE = 'software',
 }
 
 export const ROLE_ACCESS = {
@@ -20,6 +21,10 @@ export const ROLE_ACCESS = {
         redirect: '/staff/patients'
     },
     [roles.PRODUCTION]: {
+        routes: ['/', '/profile','/dashboard/complaints', '/dashboard/complaints/new','/dashboard/complaints/[id]'],
+        redirect: '/'
+    },
+    [roles.SOFTWARE]: {
         routes: ['/', '/profile','/dashboard/complaints', '/dashboard/complaints/new','/dashboard/complaints/[id]'],
         redirect: '/'
     }
