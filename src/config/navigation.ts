@@ -40,6 +40,16 @@ export const mainNav: NavItem[] = [
     roles: [ roles.SUPPORT, roles.SUPER_ADMIN,roles.QA,roles.PRODUCTION ],
   },
   {
+    title: "Device Requests",
+    href: "/dashboard/device-material-issues",
+    roles: [roles.SUPPORT, roles.SUPER_ADMIN, roles.QA, roles.PRODUCTION],
+  },
+  {
+    title: "New Device Request",
+    href: "/dashboard/device-material-issues/new",
+    roles: [roles.SUPPORT, roles.SUPER_ADMIN],
+  },
+  {
     title: "QA Dashboard",
     href: "/staff/patients",
     roles: [roles.QA],
