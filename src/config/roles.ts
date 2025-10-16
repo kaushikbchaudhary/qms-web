@@ -2,7 +2,7 @@
 export enum roles {
     SUPER_ADMIN = 'super-admin',
     SUPPORT = 'support',
-    QA = 'qa',
+    QA = 'quality-assurance',
     PRODUCTION = 'production',
     SOFTWARE = 'software',
     HARDWARE = 'hardware',

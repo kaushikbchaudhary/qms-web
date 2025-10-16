@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, AlertCircle, XCircle, Lock, User, FileText, Eye, MessageSquare } from 'lucide-react';
+import { formatRoleLabel } from '@/config/roles';
 
 const ComplaintWorkflowSystem = () => {
     // Define complaint stages based on your schema
@@ -229,6 +230,9 @@ const ComplaintWorkflowSystem = () => {
         return roles.length > 0 ? roles[0] : 'support';
     };
 
+    const getRoleLabel = (roleKey?: string) =>
+        roleKey ? formatRoleLabel(roleKey) || roleKey : '';
+
     // Check if user can transition complaint to target status
     const canTransitionToStatus = (complaint: WorkflowComplaint, targetStatus: ComplaintStatus) => {
         const userRole = getUserRole(currentUser);
@@ -394,7 +398,7 @@ const ComplaintWorkflowSystem = () => {
                     <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
                         <User size={16} className="text-blue-600" />
                         <span className="text-sm font-medium text-blue-800">
-              {currentUser.firstName} {currentUser.lastName} ({getUserRole(currentUser)})
+              {currentUser.firstName} {currentUser.lastName} ({getRoleLabel(getUserRole(currentUser))})
             </span>
                     </div>
                 </div>
@@ -409,7 +413,7 @@ const ComplaintWorkflowSystem = () => {
                                 onClick={() => setCurrentUser({
                                     ...currentUser,
                                     role: [role],
-                                    firstName: role.charAt(0).toUpperCase() + role.slice(1),
+                                    firstName: getRoleLabel(role) || role,
                                     lastName: 'User'
                                 })}
                                 className={`px-3 py-1 rounded text-sm ${
@@ -532,7 +536,7 @@ const ComplaintWorkflowSystem = () => {
                 {/* Current Role Permissions */}
                 <div className="mt-8 p-4 bg-gray-50 rounded-lg">
                     <h3 className="font-semibold text-gray-800 mb-3">
-                        Current Role Permissions ({getUserRole(currentUser)})
+                        Current Role Permissions ({getRoleLabel(getUserRole(currentUser))})
                     </h3>
                     <div className="text-sm text-gray-600 space-y-2">
                         {Object.entries(ROLE_WORKFLOW[getUserRole(currentUser)]?.canTransitionTo || {}).map(([fromStatus, toStatuses]) => {
