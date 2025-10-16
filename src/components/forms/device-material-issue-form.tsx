@@ -19,11 +19,12 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+type FormInputs = z.input<typeof schema>;
 
 export function DeviceMaterialIssueForm() {
   const { mutateAsync, isPending } = useCreateDeviceMaterialIssue();
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormInputs>({
     resolver: zodResolver(schema),
     defaultValues: {
       deviceName: '',
@@ -33,15 +34,16 @@ export function DeviceMaterialIssueForm() {
     },
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: FormInputs) => {
+    const parsed = schema.parse(values);
     const payload: CreateDeviceMaterialIssuePayload = {
       device_details: {
-        category: values.deviceName.trim(),
-        model: values.modelNumber?.trim() || undefined,
-        quantity: values.quantity,
+        category: parsed.deviceName.trim(),
+        model: parsed.modelNumber?.trim() || undefined,
+        quantity: parsed.quantity,
       },
       purpose: {
-        description: values.purpose.trim(),
+        description: parsed.purpose.trim(),
       },
       priority: 'MEDIUM' as DeviceMaterialIssuePriority,
       autoSubmit: true,

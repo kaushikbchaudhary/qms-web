@@ -18,6 +18,7 @@ import { mainNav, NavItem } from "@/config/navigation";
 import { useLogout } from "@/hooks/api/useAuth";
 import { useAuthStore } from "@/stores/authStore";
 import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead } from '@/hooks/api/useNotifications';
+import { formatRoleLabel } from '@/config/roles';
 import { User, LogOut, Settings, Shield, Bell } from 'lucide-react';
 import { cn, formatDateTime } from '@/lib/utils';
 
@@ -329,7 +330,7 @@ export function Header() {
                                 variant="secondary"
                                 className={cn("text-xs", getRoleColor(user.role[0]))}
                             >
-                              {user.role[0]}
+                              {formatRoleLabel(user.role[0])}
                             </Badge>
                             {!user.isVerified && (
                                 <Badge variant="destructive" className="text-xs">

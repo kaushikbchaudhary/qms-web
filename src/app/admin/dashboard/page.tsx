@@ -20,18 +20,14 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Loader2, AlertTriangle, Users, ClipboardList, Target, Rocket } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import { formatRoleLabel } from '@/config/roles'
 
-const formatRoleLabel = (roleValue: any): string => {
+const formatRoleList = (roleValue: any): string => {
   if (!roleValue) return ''
   const roleArray = Array.isArray(roleValue) ? roleValue : [roleValue]
   return roleArray
     .filter(Boolean)
-    .map((role: string) =>
-      role
-        .split(/[-_]/)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ')
-    )
+    .map((role: string) => formatRoleLabel(role) || role)
     .join(', ')
 }
 
@@ -200,7 +196,7 @@ export default function AdminDashboardPage() {
                     return (
                       <TableRow key={index}>
                         <TableCell className="font-medium">{name}</TableCell>
-                        <TableCell>{formatRoleLabel(entry.user?.role)}</TableCell>
+                        <TableCell>{formatRoleList(entry.user?.role)}</TableCell>
                         <TableCell className="text-right">{entry.count}</TableCell>
                       </TableRow>
                     )

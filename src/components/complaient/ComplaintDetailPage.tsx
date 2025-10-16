@@ -33,7 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {useAuthStore, UserData} from "@/stores/authStore";
-import {roles} from "@/config/roles";
+import { roles, formatRoleLabel } from "@/config/roles";
 import {
     useAssignInvestigators,
     useComplaintWithWorkflow,
@@ -110,17 +110,12 @@ const ComplaintDetailPage = (params:Props) => {
             description: 'Complaint has been closed'
         }
     };
-    const formatRoleLabel = (roleValue: any): string => {
+    const formatRoleList = (roleValue: any): string => {
         if (!roleValue) return '';
         const roleArray = Array.isArray(roleValue) ? roleValue : [roleValue];
         return roleArray
             .filter(Boolean)
-            .map((role: string) =>
-                role
-                    .split(/[-_]/)
-                    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-                    .join(' ')
-            )
+            .map((role: string) => formatRoleLabel(role) || role)
             .join(', ');
     };
 
@@ -139,7 +134,7 @@ const ComplaintDetailPage = (params:Props) => {
             || changedBy._id
             || 'Unknown user';
 
-        const roleLabel = formatRoleLabel(changedBy.role);
+        const roleLabel = formatRoleList(changedBy.role);
         const tooltipParts = [
             name,
             roleLabel ? `Role: ${roleLabel}` : '',

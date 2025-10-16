@@ -30,6 +30,7 @@ import {
 } from '@/lib/api/types/deviceMaterialIssue';
 import { showApiErrorToast } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
+import { roles } from '@/config/roles';
 
 const STATUS_SEQUENCE: DeviceMaterialIssueStatus[] = [
   'DRAFT',
@@ -77,7 +78,10 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const [batchNumber, setBatchNumber] = useState('');
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const userRoles = user?.role ?? [];
-  const canRecordStoreSignoff = userRoles.includes('production') || userRoles.includes('super-admin');
+  const canRecordStoreSignoff =
+    userRoles.includes(roles.PRODUCTION) ||
+    userRoles.includes(roles.STORE_INVENTORY) ||
+    userRoles.includes(roles.SUPER_ADMIN);
 
   const request = data as DeviceMaterialIssue | undefined;
   const currentStatus = request?.status;

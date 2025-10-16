@@ -16,16 +16,12 @@ import { useEffect, useMemo } from "react"
 import { FileText, Shield } from "lucide-react"
 import { format } from "date-fns"
 import { useAuthStore } from "@/stores/authStore"
+import { formatRoleLabel } from '@/config/roles';
 
 const isMongoId = (value?: string | null): boolean => !!value && /^[a-f\d]{24}$/i.test(value)
 
 const normalizeRoleLabel = (input: string | undefined) =>
-    input
-        ? input
-            .split(/[-_]/g)
-            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-            .join(" ")
-        : undefined
+    input ? formatRoleLabel(input) || undefined : undefined
 
 const resolveUserId = (entry: any): string | undefined => {
     if (!entry) return undefined

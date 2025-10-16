@@ -2,6 +2,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatRoleLabel } from '@/config/roles';
 
 export const userColumns: ColumnDef<any>[] = [
     {
@@ -30,7 +31,7 @@ export const userColumns: ColumnDef<any>[] = [
                         key={role}
                         className="px-2 py-1 bg-secondary rounded-md text-xs"
                     >
-            {role}
+            {formatRoleLabel(role)}
           </span>
                 ))}
             </div>
