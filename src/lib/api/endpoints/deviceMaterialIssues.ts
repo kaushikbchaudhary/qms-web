@@ -7,6 +7,7 @@ import {
   DeviceMaterialIssueQueryParams,
   DeviceMaterialIssueSignaturePayload,
   DeviceMaterialIssueStatusUpdatePayload,
+  DeviceMaterialIssueStoreIssuePayload,
   UpdateDeviceMaterialIssuePayload,
 } from '@/lib/api/types/deviceMaterialIssue';
 
@@ -56,6 +57,11 @@ export const deviceMaterialIssuesApi = {
 
   deleteAttachment: (id: string, path: string) =>
     apiClient.delete(`api/v1/device-issue/${id}/attachments`, { params: { path } }).then(extractData),
+
+  storeIssue: (id: string, payload: DeviceMaterialIssueStoreIssuePayload) =>
+    apiClient
+      .post(`api/v1/device-issue/${id}/store-issue`, payload)
+      .then((response) => extractData<DeviceMaterialIssue>(response)),
 
   downloadAttachment: (path: string) =>
     apiFileClient

@@ -7,6 +7,7 @@ import {
   DeviceMaterialIssueQueryParams,
   DeviceMaterialIssueSignaturePayload,
   DeviceMaterialIssueStatusUpdatePayload,
+  DeviceMaterialIssueStoreIssuePayload,
   UpdateDeviceMaterialIssuePayload,
 } from '@/lib/api/types/deviceMaterialIssue';
 import { showApiErrorToast } from '@/lib/utils';
@@ -95,6 +96,20 @@ export const useDeviceMaterialIssueSignatureUpload = () =>
     mutationFn: (formData: FormData) => deviceMaterialIssuesApi.uploadSignature(formData),
     onError: showApiErrorToast,
   });
+
+export const useDeviceMaterialIssueStoreSignoff = (id: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: DeviceMaterialIssueStoreIssuePayload) =>
+      deviceMaterialIssuesApi.storeIssue(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['device-material-issue', id] });
+      queryClient.invalidateQueries({ queryKey: ['device-material-issues'] });
+      toast.success('Store issuance recorded');
+    },
+    onError: showApiErrorToast,
+  });
+};
 
 export const useDeviceMaterialIssueAcknowledge = (id: string) => {
   const queryClient = useQueryClient();

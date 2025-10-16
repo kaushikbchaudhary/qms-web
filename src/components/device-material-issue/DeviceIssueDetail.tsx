@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Download, Loader2, RefreshCw } from 'lucide-react';
-import { SignaturePadDialog } from '@/components/forms/SignaturePadDialog';
 import {
   useDeviceMaterialIssue,
   useDeviceMaterialIssueAcknowledge,
@@ -21,7 +20,7 @@ import {
   useDeviceMaterialIssueQueueHead,
   useDeviceMaterialIssueReopen,
   useDeviceMaterialIssueStatusTransition,
-  useDeviceMaterialIssueSignatureUpload,
+  useDeviceMaterialIssueStoreSignoff,
 } from '@/hooks/api/useDeviceMaterialIssues';
 import { deviceMaterialIssuesApi } from '@/lib/api/endpoints/deviceMaterialIssues';
 import {
@@ -30,6 +29,7 @@ import {
   DeviceMaterialIssueStatusUpdatePayload,
 } from '@/lib/api/types/deviceMaterialIssue';
 import { showApiErrorToast } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
 
 const STATUS_SEQUENCE: DeviceMaterialIssueStatus[] = [
   'DRAFT',
@@ -63,20 +63,21 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const transitionMutation = useDeviceMaterialIssueStatusTransition(id);
   const attachmentUploadMutation = useDeviceMaterialIssueAttachmentUpload(id);
   const attachmentDeleteMutation = useDeviceMaterialIssueAttachmentDelete(id);
-  const signatureUploadMutation = useDeviceMaterialIssueSignatureUpload();
+  const storeSignoffMutation = useDeviceMaterialIssueStoreSignoff(id);
   const acknowledgeMutation = useDeviceMaterialIssueAcknowledge(id);
   const pdfMutation = useDeviceMaterialIssuePdf(id);
   const reopenMutation = useDeviceMaterialIssueReopen(id);
+  const { user } = useAuthStore();
 
   const [statusPayload, setStatusPayload] = useState<DeviceMaterialIssueStatusUpdatePayload>({
     newStatus: data?.status ?? 'SUBMITTED',
     notes: '',
     override: false,
   });
-  const [acknowledgeName, setAcknowledgeName] = useState('');
-  const [acknowledgeNotes, setAcknowledgeNotes] = useState('');
-  const [signaturePath, setSignaturePath] = useState<string | null>(null);
+  const [batchNumber, setBatchNumber] = useState('');
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const userRoles = user?.role ?? [];
+  const canRecordStoreSignoff = userRoles.includes('production') || userRoles.includes('super-admin');
 
   const request = data as DeviceMaterialIssue | undefined;
   const currentStatus = request?.status;
@@ -86,6 +87,14 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
       setStatusPayload((prev) => ({ ...prev, newStatus: currentStatus }));
     }
   }, [currentStatus]);
+
+  useEffect(() => {
+    if (request?.production?.batch_number) {
+      setBatchNumber(request.production.batch_number);
+    } else {
+      setBatchNumber('');
+    }
+  }, [request?.production?.batch_number]);
 
   const isQueueHead = request && queueHeadQuery.data && queueHeadQuery.data?.request_number === request.request_number;
 
@@ -125,28 +134,24 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
     }
   };
 
-  const handleSignatureSave = async (file: File) => {
-    const formData = new FormData();
-    formData.append('signature', file);
-    const response = await signatureUploadMutation.mutateAsync(formData);
-    setSignaturePath(response.path);
-  };
-
-  const handleAcknowledge = async () => {
-    if (!signaturePath) {
-      showApiErrorToast(new Error('Signature is required'));
+  const handleStoreSignoff = async () => {
+    const trimmedBatch = batchNumber.trim();
+    if (!trimmedBatch) {
+      showApiErrorToast(new Error('Batch or lot number is required.'));
       return;
     }
 
     try {
-      await acknowledgeMutation.mutateAsync({
-        name: acknowledgeName,
-        acknowledgement: acknowledgeNotes,
-        signature_path: signaturePath,
-      });
-      setSignaturePath(null);
-      setAcknowledgeName('');
-      setAcknowledgeNotes('');
+      await storeSignoffMutation.mutateAsync({ batch_number: trimmedBatch });
+      await refetch();
+    } catch (error) {
+      showApiErrorToast(error);
+    }
+  };
+
+  const handleAcknowledge = async () => {
+    try {
+      await acknowledgeMutation.mutateAsync({});
       await refetch();
     } catch (error) {
       showApiErrorToast(error);
@@ -249,7 +254,10 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
             <div><span className="font-medium">Category:</span> {request.device_details.category}</div>
             <div><span className="font-medium">Model:</span> {request.device_details.model ?? '—'}</div>
             <div><span className="font-medium">Quantity:</span> {request.device_details.quantity} {request.device_details.unit ?? ''}</div>
-            <div><span className="font-medium">Serial / Lot:</span> {request.device_details.serial_number ?? '—'}</div>
+            <div>
+              <span className="font-medium">Serial / Lot:</span>{' '}
+              {request.production?.batch_number ?? request.device_details.serial_number ?? '—'}
+            </div>
             <div><span className="font-medium">Expected use:</span> {request.device_details.expected_use_duration ?? '—'}</div>
           </CardContent>
         </Card>
@@ -458,39 +466,82 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Store issuance</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <p className="text-sm font-medium">Recorded batch / lot number</p>
+              <p className="text-sm text-muted-foreground">
+                {request.production?.batch_number ?? '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Signed by</p>
+              <p className="text-sm text-muted-foreground">
+                {request.pickup?.store_signed_name ?? '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Signed on</p>
+              <p className="text-sm text-muted-foreground">
+                {formatDateTime(request.pickup?.store_signed_at)}
+              </p>
+            </div>
+          </div>
+          {canRecordStoreSignoff && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="batch-number-input">Update batch / lot number</Label>
+                <Input
+                  id="batch-number-input"
+                  value={batchNumber}
+                  onChange={(event) => setBatchNumber(event.target.value)}
+                  placeholder="Enter batch or lot number"
+                  disabled={storeSignoffMutation.isPending}
+                />
+              </div>
+              <Button
+                onClick={handleStoreSignoff}
+                disabled={storeSignoffMutation.isPending || batchNumber.trim().length === 0}
+              >
+                {storeSignoffMutation.isPending ? 'Saving…' : 'Save store sign-off'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Recipient acknowledgement</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="recipient-name">Recipient name</Label>
-              <Input
-                id="recipient-name"
-                value={acknowledgeName}
-                onChange={(event) => setAcknowledgeName(event.target.value)}
-                placeholder="Entered by the person collecting the device"
-              />
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <p className="text-sm font-medium">Recipient</p>
+              <p className="text-sm text-muted-foreground">{request.recipient?.name ?? '—'}</p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="recipient-notes">Notes</Label>
-              <Textarea
-                id="recipient-notes"
-                value={acknowledgeNotes}
-                onChange={(event) => setAcknowledgeNotes(event.target.value)}
-                placeholder="Optional remarks"
-                rows={3}
-              />
+            <div>
+              <p className="text-sm font-medium">Signed on</p>
+              <p className="text-sm text-muted-foreground">{formatDateTime(request.recipient?.signed_at)}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Signature</p>
+              <p className="text-sm text-muted-foreground">
+                {request.recipient?.signature_path ? 'Stored' : '—'}
+              </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <SignaturePadDialog
-              triggerLabel={signaturePath ? 'Signature captured' : 'Capture signature'}
-              onSave={handleSignatureSave}
-            />
-            {signaturePath && <span className="text-sm text-muted-foreground">Signature stored</span>}
-          </div>
-          <Button onClick={handleAcknowledge} disabled={acknowledgeMutation.isPending}>
-            {acknowledgeMutation.isPending ? 'Saving…' : 'Confirm pickup'}
+          <Button
+            onClick={handleAcknowledge}
+            disabled={acknowledgeMutation.isPending || Boolean(request.recipient?.signed_at)}
+          >
+            {request.recipient?.signed_at
+              ? 'Pickup confirmed'
+              : acknowledgeMutation.isPending
+                ? 'Saving…'
+                : 'Confirm pickup'}
           </Button>
         </CardContent>
       </Card>

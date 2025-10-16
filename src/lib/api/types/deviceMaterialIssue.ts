@@ -63,6 +63,10 @@ export interface DeviceMaterialIssuePickup {
   location?: string;
   issued_by?: string;
   issued_at?: string;
+  store_signed_by?: string;
+  store_signature_path?: string;
+  store_signed_at?: string;
+  store_signed_name?: string;
   override_reason?: string;
   fifo_position?: number;
 }
@@ -119,6 +123,7 @@ export interface DeviceMaterialIssue {
   attachments?: DeviceMaterialIssueAttachment[];
   status_history?: DeviceMaterialIssueStatusHistory[];
   progress_metadata?: DeviceMaterialIssueProgressMetadata;
+  custom_fields?: Record<string, unknown>;
   created_at?: string;
   updated_at?: string;
 }
@@ -174,9 +179,9 @@ export interface DeviceMaterialIssueStatusUpdatePayload {
 }
 
 export interface DeviceMaterialIssueSignaturePayload {
-  name: string;
+  name?: string;
   acknowledgement?: string;
-  signature_path: string;
+  signature_path?: string;
   metadata?: {
     device_id?: string;
     ip_address?: string;
@@ -184,6 +189,10 @@ export interface DeviceMaterialIssueSignaturePayload {
   };
   override?: boolean;
   overrideReason?: string;
+}
+
+export interface DeviceMaterialIssueStoreIssuePayload {
+  batch_number: string;
 }
 
 export interface DeviceMaterialIssueAttachmentResponse {
