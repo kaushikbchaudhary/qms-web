@@ -55,6 +55,7 @@ import { Label } from '@/components/ui/label';
 import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { useGetUsers } from '@/hooks/api/useUser';
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
+import { ro } from 'date-fns/locale';
 interface Props {
     complaintId:any
 }
@@ -150,7 +151,7 @@ const ComplaintDetailPage = (params:Props) => {
 
     // Role-based permissions matching your user schema
     const ROLE_PERMISSIONS: Record<string, RolePermission> = {
-        support: {
+        [roles.SUPPORT]: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION, COMPLAINT_STATUS.REJECTED],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.REJECTED],
@@ -161,7 +162,7 @@ const ComplaintDetailPage = (params:Props) => {
             canEdit: ['received_info', 'customer_communication', 'risk_management'],
             label: 'Support Team'
         },
-        qa: {
+        [roles.QA]: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED, COMPLAINT_STATUS.REJECTED],
@@ -172,7 +173,7 @@ const ComplaintDetailPage = (params:Props) => {
             canEdit: ['investigation', 'closure', 'risk_management','customer_communication'],
             label: 'Quality Assurance'
         },
-        production: {
+        [roles.PRODUCTION]: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
@@ -561,7 +562,7 @@ const ComplaintDetailPage = (params:Props) => {
         ? getRoleConfig(currentUserRole)?.label || formatRoleLabel(currentUserRole) || 'User'
         : 'User';
 
-    const canAssignInvestigators = ['qa', roles.SUPER_ADMIN, 'support'].includes(currentUserRole);
+    const canAssignInvestigators = [roles.QA, roles.SUPER_ADMIN, roles.SUPPORT].includes(currentUserRole);
 
     const handleAssignInvestigators = async () => {
         if (!selectedInvestigators.length) {

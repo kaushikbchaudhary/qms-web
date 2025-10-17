@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { ColumnDef } from '@tanstack/react-table';
 import CustomizableTable, { useTableState } from '@/components/shared/CustomizableTable';
 import { DeviceMaterialIssue, DeviceMaterialIssueQueryParams } from '@/lib/api/types/deviceMaterialIssue';
 import { useDeviceMaterialIssueList } from '@/hooks/api/useDeviceMaterialIssues';
 import { showApiErrorToast } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const getCustomFieldString = (issue: DeviceMaterialIssue, key: string): string | undefined => {
   const raw = issue.custom_fields?.[key];
@@ -39,19 +41,66 @@ const formatDateValue = (value?: string | Date | null): string | undefined => {
   return format(date, 'dd MMM yyyy');
 };
 
-const formatSignatureCell = (name?: string | null, signedAt?: string | Date | null): string => {
-  const trimmedName = name?.trim();
+const resolveSignatureUrl = (path?: string | null): string | undefined => {
+  if (!path) return undefined;
+  if (/^(https?:)?\/\//i.test(path)) {
+    return path;
+  }
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+const resolveName = (input: unknown): string | undefined => {
+  if (!input) return undefined;
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+  if (typeof input === 'object') {
+    const person = input as any;
+    const parts = [person?.firstName, person?.middleName, person?.lastName].filter(Boolean);
+    if (parts.length) {
+      return parts.join(' ').trim();
+    }
+    if (typeof person?.emailId === 'string' && person.emailId.trim()) {
+      return person.emailId.trim();
+    }
+    if (typeof person?._id === 'string') {
+      return person._id;
+    }
+  }
+  return undefined;
+};
+
+const renderSignatureCell = (
+  signaturePath?: string | null,
+  signedAt?: string | Date | null,
+  name?: unknown,
+) => {
+  const resolvedName = resolveName(name);
   const dateText = formatDateValue(signedAt);
-  if (trimmedName && dateText) {
-    return `${trimmedName} • ${dateText}`;
+
+  if (!signaturePath && !resolvedName && !dateText) {
+    return '—';
   }
-  if (trimmedName) {
-    return trimmedName;
-  }
-  if (dateText) {
-    return dateText;
-  }
-  return '—';
+
+  const url = resolveSignatureUrl(signaturePath);
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      {url ? (
+        <img
+          src={url}
+          alt={resolvedName ? `${resolvedName} signature` : 'Signature'}
+          className="h-10 w-auto max-w-[140px] rounded border bg-white object-contain"
+        />
+      ) : null}
+      {dateText ? <span className="text-xs text-muted-foreground">{dateText}</span> : null}
+      {resolvedName ? <span className="text-xs font-medium text-foreground">{resolvedName}</span> : null}
+    </div>
+  );
 };
 
 export function DeviceIssueTable() {
@@ -119,7 +168,8 @@ export function DeviceIssueTable() {
             getCustomFieldString(request, 'requested_by_name') ?? request.requester_snapshot?.name;
           const signedAt =
             getCustomFieldDate(request, 'requested_by_signed_at') ?? request.progress_metadata?.requested_on;
-          return formatSignatureCell(name, signedAt);
+          const signaturePath = getCustomFieldString(request, 'requested_by_signature_path');
+          return renderSignatureCell(signaturePath, signedAt, name);
         },
       },
       {
@@ -137,7 +187,7 @@ export function DeviceIssueTable() {
         enableSorting: false,
         cell: ({ row }) => {
           const pickup = row.original.pickup;
-          return formatSignatureCell(pickup?.store_signed_name, pickup?.store_signed_at ?? null);
+          return renderSignatureCell(pickup?.store_signature_path, pickup?.store_signed_at ?? null, pickup?.store_signed_name);
         },
       },
       {
@@ -146,8 +196,20 @@ export function DeviceIssueTable() {
         enableSorting: false,
         cell: ({ row }) => {
           const recipient = row.original.recipient;
-          return formatSignatureCell(recipient?.name, recipient?.signed_at ?? null);
+          return renderSignatureCell(recipient?.signature_path, recipient?.signed_at ?? null, recipient?.name);
         },
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Link href={`/dashboard/device-material-issues/${row.original._id}`}>
+            <Button variant="outline" size="sm">
+              View
+            </Button>
+          </Link>
+        ),
       },
     ],
     [baseRowNumber],

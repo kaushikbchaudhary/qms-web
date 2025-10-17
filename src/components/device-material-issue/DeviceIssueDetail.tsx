@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -53,9 +54,52 @@ const formatDateTime = (value?: string) => {
 
 const formatStatus = (status: string) => status.replace(/_/g, ' ');
 
+const resolveSignatureUrl = (path?: string | null): string | undefined => {
+  if (!path) return undefined;
+  if (/^(https?:)?\/\//i.test(path)) {
+    return path;
+  }
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+const formatPersonName = (person: any): string => {
+  if (!person) return '—';
+  if (typeof person === 'string') {
+    const trimmed = person.trim();
+    return trimmed.length ? trimmed : '—';
+  }
+  if (typeof person === 'object') {
+    const candidateName = [person?.firstName, person?.middleName, person?.lastName]
+      .filter((value) => typeof value === 'string' && value.trim().length > 0)
+      .join(' ')
+      .trim();
+    if (candidateName) {
+      return candidateName;
+    }
+    if (typeof person?.name === 'string' && person.name.trim().length > 0) {
+      return person.name.trim();
+    }
+    if (typeof person?.emailId === 'string' && person.emailId.trim().length > 0) {
+      return person.emailId.trim();
+    }
+    if (typeof person?._id === 'string') {
+      return person._id;
+    }
+    if (typeof person?.id === 'string') {
+      return person.id;
+    }
+  }
+  return '—';
+};
+
 type DeviceIssueDetailProps = {
   id: string;
 };
+
+const STORE_ROLE_ALIASES = [roles.STORE_INVENTORY, 'store & inventory'];
 
 export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const { data, isLoading, refetch } = useDeviceMaterialIssue(id);
@@ -78,10 +122,19 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const [batchNumber, setBatchNumber] = useState('');
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const userRoles = user?.role ?? [];
+  const isStoreUser = userRoles.some((roleKey) => STORE_ROLE_ALIASES.includes(roleKey));
   const canRecordStoreSignoff =
     userRoles.includes(roles.PRODUCTION) ||
-    userRoles.includes(roles.STORE_INVENTORY) ||
+    isStoreUser ||
     userRoles.includes(roles.SUPER_ADMIN);
+
+  useEffect(() => {
+    if (data?.production?.batch_number) {
+      setBatchNumber(data.production.batch_number);
+    } else {
+      setBatchNumber('');
+    }
+  }, [data?.production?.batch_number]);
 
   const request = data as DeviceMaterialIssue | undefined;
   const currentStatus = request?.status;
@@ -206,6 +259,13 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
 
   return (
     <div className="space-y-6">
+      {isStoreUser && !request.production?.batch_number && (
+        <Alert>
+          <AlertDescription>
+            This request needs a batch or lot number before it can be issued. Add the number below to record the store sign-off.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Request {request.request_number}</h1>
@@ -287,11 +347,11 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
             <CardTitle>Production & approvals</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div><span className="font-medium">Assigned to:</span> {request.production?.assigned_to ?? '—'}</div>
+            <div><span className="font-medium">Assigned to:</span> {formatPersonName((request.production as any)?.assigned_to)}</div>
             <div><span className="font-medium">Batch number:</span> {request.production?.batch_number ?? '—'}</div>
             <div><span className="font-medium">Notes:</span> {request.production?.notes ?? '—'}</div>
             <Separator className="my-2" />
-            <div><span className="font-medium">Approved by:</span> {request.approval?.approved_by ?? '—'}</div>
+            <div><span className="font-medium">Approved by:</span> {formatPersonName((request.approval as any)?.approved_by)}</div>
             <div><span className="font-medium">Approval notes:</span> {request.approval?.notes ?? '—'}</div>
           </CardContent>
         </Card>
@@ -314,7 +374,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
             </div>
             <div>
               <p className="font-medium">Issued by</p>
-              <p>{request.pickup?.issued_by ?? '—'}</p>
+              <p>{formatPersonName((request.pickup as any)?.issued_by)}</p>
             </div>
             <div>
               <p className="font-medium">FIFO position</p>
@@ -344,7 +404,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
                   {entry.notes && <p className="mt-1 text-muted-foreground">{entry.notes}</p>}
                 </div>
                 <div className="text-right text-xs text-muted-foreground">
-                  <p>{entry.changed_by ?? 'System'}</p>
+                  <p>{formatPersonName(entry.changed_by) ?? 'System'}</p>
                   {entry.override && <Badge variant="outline">Override</Badge>}
                 </div>
               </div>
@@ -473,7 +533,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
           <CardTitle>Store issuance</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div>
               <p className="text-sm font-medium">Recorded batch / lot number</p>
               <p className="text-sm text-muted-foreground">
@@ -483,7 +543,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
             <div>
               <p className="text-sm font-medium">Signed by</p>
               <p className="text-sm text-muted-foreground">
-                {request.pickup?.store_signed_name ?? '—'}
+                {formatPersonName((request.pickup as any)?.store_signed_name)}
               </p>
             </div>
             <div>
@@ -492,9 +552,24 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
                 {formatDateTime(request.pickup?.store_signed_at)}
               </p>
             </div>
+            <div>
+              <p className="text-sm font-medium">Signature</p>
+              {request.pickup?.store_signature_path ? (
+                <img
+                  src={resolveSignatureUrl(request.pickup.store_signature_path)}
+                  alt="Store sign-off signature"
+                  className="mt-1 h-16 w-auto max-w-[200px] rounded border bg-white object-contain"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
+            </div>
           </div>
           {canRecordStoreSignoff && (
             <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Enter the batch or lot number assigned during issuance. Saving will attach your stored signature and move the request forward.
+              </p>
               <div className="space-y-2">
                 <Label htmlFor="batch-number-input">Update batch / lot number</Label>
                 <Input
@@ -524,7 +599,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <p className="text-sm font-medium">Recipient</p>
-              <p className="text-sm text-muted-foreground">{request.recipient?.name ?? '—'}</p>
+              <p className="text-sm text-muted-foreground">{formatPersonName(request.recipient?.name)}</p>
             </div>
             <div>
               <p className="text-sm font-medium">Signed on</p>
@@ -532,9 +607,15 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
             </div>
             <div>
               <p className="text-sm font-medium">Signature</p>
-              <p className="text-sm text-muted-foreground">
-                {request.recipient?.signature_path ? 'Stored' : '—'}
-              </p>
+              {request.recipient?.signature_path ? (
+                <img
+                  src={resolveSignatureUrl(request.recipient.signature_path)}
+                  alt="Recipient signature"
+                  className="mt-1 h-16 w-auto max-w-[200px] rounded border bg-white object-contain"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
             </div>
           </div>
           <Button

@@ -83,6 +83,11 @@ export const deviceMaterialIssuesApi = {
       .post(`api/v1/device-issue/${id}/signature`, payload)
       .then((response) => extractData<DeviceMaterialIssue>(response)),
 
+  getBatchNumberAndSignature: (id: string) =>
+    apiClient
+      .get(`api/v1/device-issue/${id}/batch`)
+      .then((response) => extractData<{ batch_number: string; store_signature_path?: string; store_signed_at?: string; store_signed_name?: string }>(response)),
+
   downloadPdf: (id: string) =>
     apiFileClient.get(`api/v1/device-issue/${id}/pdf`, { responseType: 'blob' }).then((response) => response.data as Blob),
 

@@ -422,7 +422,7 @@ const ComplaintWorkflowSystem = () => {
                                         : 'bg-white border border-yellow-300 text-yellow-700'
                                 }`}
                             >
-                                {role.replace('_', ' ')}
+                                {getRoleLabel(role) || role.replace(/[-_]/g, ' ')}
                             </button>
                         ))}
                     </div>
