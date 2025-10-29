@@ -138,6 +138,14 @@ export interface DataTableProps<TData, TValue> {
         manualFiltering?: boolean
         pageSizeOptions?: number[]
     }
+    /**
+     * Optional row click handler
+     */
+    onRowClick?: (row: TData, rowIndex: number) => void
+    /**
+     * Optional row className resolver
+     */
+    getRowClassName?: (row: TData, rowIndex: number) => string | undefined
 }
 
 export default function CustomizableTable<TData, TValue>({
@@ -170,6 +178,8 @@ export default function CustomizableTable<TData, TValue>({
                                                  manualFiltering: false,
                                                  pageSizeOptions: [10, 25, 50, 100],
                                              },
+                                             onRowClick,
+                                             getRowClassName,
                                          }: DataTableProps<TData, TValue>) {
     const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
         pageIndex: 0,
@@ -368,27 +378,46 @@ export default function CustomizableTable<TData, TValue>({
                         { error ? (
                             errorComponent || defaultErrorComponent
                         ) : table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={row.getIsSelected() && "selected"}
-                                    // className={row.column.columnDef.meta?.className ?? ""}
-                                >
-                                    {row.getVisibleCells().map((cell) => {
-                                        const cellMeta = cell.column.columnDef.meta as CustomColumnMeta | undefined;
-                                        const cellClassName = cellMeta?.className ?? cellMeta?.actionClassName ?? "";
+                            table.getRowModel().rows.map((row) => {
+                                const resolvedClassName = getRowClassName
+                                    ? getRowClassName(row.original, row.index) ?? ''
+                                    : '';
+                                const isClickable = Boolean(onRowClick) && !resolvedClassName.includes('cursor-not-allowed');
+                                const rowClasses = [
+                                    'transition-colors',
+                                    isClickable ? 'cursor-pointer hover:bg-muted/60' : '',
+                                    resolvedClassName,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' ');
 
-                                        return (
-                                            <TableCell key={cell.id} className={cellClassName}>
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </TableCell>
-                                        );
-                                    })}
-                                </TableRow>
-                            ))
+                                return (
+                                    <TableRow
+                                        key={row.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                        onClick={
+                                            onRowClick
+                                                ? () => onRowClick(row.original, row.index)
+                                                : undefined
+                                        }
+                                        className={rowClasses}
+                                    >
+                                        {row.getVisibleCells().map((cell) => {
+                                            const cellMeta = cell.column.columnDef.meta as CustomColumnMeta | undefined;
+                                            const cellClassName = cellMeta?.className ?? cellMeta?.actionClassName ?? "";
+
+                                            return (
+                                                <TableCell key={cell.id} className={cellClassName}>
+                                                    {flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
+                                );
+                            })
                         ) : (
                             emptyStateComponent || defaultEmptyStateComponent
                             )}

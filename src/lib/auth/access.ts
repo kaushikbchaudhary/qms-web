@@ -1,27 +1,44 @@
-import {ROLE_ACCESS, UserRole} from "@/config/roles";
+import { ROLE_ACCESS, UserRole, roles } from '@/config/roles';
 
-// export function hasAccess(pathname: string, roles: UserRole[]): boolean {
-//     return roles.some(role => {
-//         const allowedRoutes = ROLE_ACCESS[role].routes;
-//         return allowedRoutes.some(route =>  pathname === route);
-//     });
-// }
+const ROLE_SYNONYMS: Record<string, UserRole> = {
+  'store & inventory': roles.STORE_INVENTORY,
+};
+
+export const resolveRoleKey = (role: string): UserRole | undefined => {
+  if (!role) {
+    return undefined;
+  }
+  if (ROLE_ACCESS[role as UserRole]) {
+    return role as UserRole;
+  }
+  const normalized = role.trim().toLowerCase();
+  return ROLE_SYNONYMS[normalized] ?? undefined;
+};
+
 export function hasAccess(pathname: string, userRoles: string[]): boolean {
-    return userRoles.some(role => {
-        const allowedRoutes = ROLE_ACCESS[role as keyof typeof ROLE_ACCESS]?.routes || [];
-        return allowedRoutes.some(route => {
-            // Convert dynamic route pattern to regex
-            const routePattern = route
-                .replace(/\[([^\]]+)\]/g, '[^/]+') // Replace [param] with wildcard
-                .replace(/\//g, '\\/'); // Escape slashes
+  return userRoles.some((role) => {
+    const resolvedRole = resolveRoleKey(role);
+    if (!resolvedRole) {
+      return false;
+    }
+    const allowedRoutes = ROLE_ACCESS[resolvedRole]?.routes || [];
+    return allowedRoutes.some((route) => {
+      const routePattern = route
+        .replace(/\[([^\]]+)\]/g, '[^/]+')
+        .replace(/\//g, '\\/');
 
-            const regex = new RegExp(`^${routePattern}$`);
-            return regex.test(pathname);
-        });
+      const regex = new RegExp(`^${routePattern}$`);
+      return regex.test(pathname);
     });
+  });
 }
 
-export function getRedirectPath(roles: UserRole[]): string {
-    // Return first role's redirect path or home
-    return roles.length > 0 ? ROLE_ACCESS[roles[0]].redirect : '/';
+export function getRedirectPath(userRoles: string[]): string {
+  for (const role of userRoles) {
+    const resolvedRole = resolveRoleKey(role);
+    if (resolvedRole && ROLE_ACCESS[resolvedRole]?.redirect) {
+      return ROLE_ACCESS[resolvedRole].redirect;
+    }
+  }
+  return '/';
 }

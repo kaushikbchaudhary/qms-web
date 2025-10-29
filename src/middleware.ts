@@ -1,8 +1,9 @@
 // middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import {verifyJwt} from "@/lib/auth/auth";
-import {getRedirectPath, hasAccess} from "@/lib/auth/access";
+import { verifyJwt } from '@/lib/auth/auth';
+import { getRedirectPath, hasAccess, resolveRoleKey } from '@/lib/auth/access';
+import { UserRole } from '@/config/roles';
 
 const PUBLIC_ROUTES = ['/auth/login', '/register', '/about'];
 
@@ -28,9 +29,16 @@ export function middleware(request: NextRequest) {
     }
 
     // Handle roles array (your token shows role as array)
-    const userRoles = typeof user.role !== 'undefined' && Array.isArray(user.role) ? user.role : [user.role];
+    const rawRoles = (Array.isArray(user.role) ? user.role : [user.role]).filter(Boolean);
+    const normalizedRoles = rawRoles
+        .map((role: string) => resolveRoleKey(role))
+        .filter((role): role is UserRole => Boolean(role));
 
-    const redirectPath = getRedirectPath(userRoles);
+    if (normalizedRoles.length === 0) {
+        return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+
+    const redirectPath = getRedirectPath(normalizedRoles);
     const redirectUrl = new URL(
         redirectPath.startsWith('/')
             ? redirectPath
@@ -39,7 +47,10 @@ export function middleware(request: NextRequest) {
     );
 
     // Check access
-    if (!hasAccess(pathname, userRoles)) {
+    if (!hasAccess(pathname, normalizedRoles)) {
+        if (redirectUrl.pathname === pathname) {
+            return NextResponse.next();
+        }
         return NextResponse.redirect(redirectUrl);
     }
 
@@ -53,6 +64,4 @@ export const config = {
         '/((?!api|_next|favicon.ico).*)', // Excludes API & static files
     ],
 };
-
-
 

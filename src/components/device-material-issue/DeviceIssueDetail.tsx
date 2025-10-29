@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -256,6 +256,70 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   }
 
   const lastStatusChange = request.status_history?.[request.status_history.length - 1];
+
+  if (isStoreUser) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Request {request.request_number}</CardTitle>
+            <CardDescription className="flex items-center gap-2">
+              <Badge variant="secondary">{formatStatus(request.status)}</Badge>
+              <Badge>{request.priority}</Badge>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Provide the batch or lot number to issue this request. Saving will record your stored signature and move the request to the next stage.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="store-batch-number">Batch / lot number</Label>
+              <Input
+                id="store-batch-number"
+                value={batchNumber}
+                onChange={(event) => setBatchNumber(event.target.value)}
+                placeholder="Enter batch or lot number"
+                disabled={storeSignoffMutation.isPending}
+              />
+            </div>
+            <Button
+              onClick={handleStoreSignoff}
+              disabled={storeSignoffMutation.isPending || batchNumber.trim().length === 0}
+            >
+              {storeSignoffMutation.isPending ? 'Saving…' : 'Save store sign-off'}
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div>
+              <span className="font-medium">Device / material:</span>{' '}
+              {request.device_details?.category ?? '—'}
+            </div>
+            <div>
+              <span className="font-medium">Model:</span>{' '}
+              {request.device_details?.model ?? '—'}
+            </div>
+            <div>
+              <span className="font-medium">Quantity:</span>{' '}
+              {request.device_details?.quantity} {request.device_details?.unit ?? ''}
+            </div>
+            <div>
+              <span className="font-medium">Purpose:</span>{' '}
+              {request.purpose?.description ?? '—'}
+            </div>
+            <div>
+              <span className="font-medium">Requested by:</span>{' '}
+              {request.requester_snapshot?.name ?? '—'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
