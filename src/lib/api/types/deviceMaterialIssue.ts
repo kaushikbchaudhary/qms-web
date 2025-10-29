@@ -22,52 +22,24 @@ export interface DeviceMaterialIssueRequester {
 export interface DeviceMaterialIssueDeviceDetails {
   category: string;
   model?: string;
-  specification?: string;
-  serial_number?: string;
   quantity: number;
-  unit?: string;
-  expected_use_duration?: string;
 }
 
 export interface DeviceMaterialIssuePurpose {
   description: string;
-  project_code?: string;
-  client_reference?: string;
-  justification?: string;
 }
 
 export interface DeviceMaterialIssueProduction {
-  assigned_to?: string;
-  assigned_at?: string;
-  notes?: string;
   batch_number?: string;
-  lot_numbers?: string[];
-  prepared_on?: string;
-}
-
-export interface DeviceMaterialIssueApproval {
-  approved_by?: string;
-  approved_at?: string;
-  notes?: string;
-}
-
-export interface DeviceMaterialIssueQualityChecks {
-  checklist?: string[];
-  completed_by?: string;
-  completed_at?: string;
-  remarks?: string;
 }
 
 export interface DeviceMaterialIssuePickup {
-  scheduled_for?: string;
-  location?: string;
   issued_by?: string;
   issued_at?: string;
   store_signed_by?: string;
   store_signature_path?: string;
   store_signed_at?: string;
   store_signed_name?: string;
-  override_reason?: string;
   fifo_position?: number;
 }
 
@@ -77,14 +49,6 @@ export interface DeviceMaterialIssueRecipient {
   acknowledgement?: string;
   signature_path?: string;
   signed_at?: string;
-}
-
-export interface DeviceMaterialIssueAttachment {
-  filename: string;
-  path: string;
-  description?: string;
-  uploaded_by?: string;
-  uploaded_at?: string;
 }
 
 export interface DeviceMaterialIssueStatusHistory {
@@ -116,11 +80,8 @@ export interface DeviceMaterialIssue {
   device_details: DeviceMaterialIssueDeviceDetails;
   purpose: DeviceMaterialIssuePurpose;
   production?: DeviceMaterialIssueProduction;
-  approval?: DeviceMaterialIssueApproval;
-  quality_checks?: DeviceMaterialIssueQualityChecks;
   pickup?: DeviceMaterialIssuePickup;
   recipient?: DeviceMaterialIssueRecipient;
-  attachments?: DeviceMaterialIssueAttachment[];
   status_history?: DeviceMaterialIssueStatusHistory[];
   progress_metadata?: DeviceMaterialIssueProgressMetadata;
   custom_fields?: Record<string, unknown>;
@@ -166,16 +127,12 @@ export interface UpdateDeviceMaterialIssuePayload {
   purpose?: DeviceMaterialIssuePurpose;
   priority?: DeviceMaterialIssuePriority;
   production?: DeviceMaterialIssueProduction;
-  approval?: DeviceMaterialIssueApproval;
-  pickup?: DeviceMaterialIssuePickup;
-  quality_checks?: DeviceMaterialIssueQualityChecks;
   custom_fields?: Record<string, unknown>;
 }
 
 export interface DeviceMaterialIssueStatusUpdatePayload {
   newStatus: DeviceMaterialIssueStatus;
   notes?: string;
-  override?: boolean;
 }
 
 export interface DeviceMaterialIssueSignaturePayload {
@@ -187,18 +144,15 @@ export interface DeviceMaterialIssueSignaturePayload {
     ip_address?: string;
     user_agent?: string;
   };
-  override?: boolean;
-  overrideReason?: string;
 }
 
 export interface DeviceMaterialIssueStoreIssuePayload {
   batch_number: string;
 }
 
-export interface DeviceMaterialIssueAttachmentResponse {
-  filename: string;
-  path: string;
-  description?: string;
-  uploaded_by?: string;
-  uploaded_at?: string;
-}
+export type DeviceMaterialIssueExportPayload = Partial<
+  Pick<
+    DeviceMaterialIssueQueryParams,
+    'status' | 'priority' | 'requested_by' | 'filters' | 'global_filter' | 'global_value' | 'sort_by' | 'sort_order'
+  >
+>;

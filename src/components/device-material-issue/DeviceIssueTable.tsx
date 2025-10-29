@@ -9,8 +9,8 @@ import { DeviceMaterialIssue, DeviceMaterialIssueQueryParams } from '@/lib/api/t
 import { useDeviceMaterialIssueList } from '@/hooks/api/useDeviceMaterialIssues';
 import { showApiErrorToast } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { deviceMaterialIssuesApi } from '@/lib/api/endpoints/deviceMaterialIssues';
 import { Download } from 'lucide-react';
+import { deviceMaterialIssuesApi } from '@/lib/api/endpoints/deviceMaterialIssues';
 import { useAuthStore } from '@/stores/authStore';
 import { roles } from '@/config/roles';
 import {
@@ -141,11 +141,11 @@ export function DeviceIssueTable() {
   const restrictToSelf = !isSuperAdmin && !isStoreUser ? user?._id : undefined;
 
   const { pagination, setPagination } = useTableState(20);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'SUBMITTED' | 'READY_FOR_PICKUP' | 'ISSUED'>('SUBMITTED');
   const [isBatchDialogOpen, setBatchDialogOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<DeviceMaterialIssue | null>(null);
   const [batchInput, setBatchInput] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryParams: DeviceMaterialIssueQueryParams = useMemo(
     () => ({
@@ -195,22 +195,38 @@ export function DeviceIssueTable() {
     },
   });
 
-  const handleDownload = useCallback(async (issue: DeviceMaterialIssue) => {
+  const handleExport = useCallback(async () => {
+    if (!isSuperAdmin || statusFilter !== 'ISSUED') {
+      return;
+    }
+
     try {
-      setDownloadingId(issue._id);
-      const blob = await deviceMaterialIssuesApi.downloadPdf(issue._id);
+      setIsExporting(true);
+      const exportPayload = {
+        status: queryParams.status,
+        priority: queryParams.priority,
+        requested_by: queryParams.requested_by,
+        filters: queryParams.filters,
+        global_filter: queryParams.global_filter,
+        global_value: queryParams.global_value,
+        sort_by: queryParams.sort_by,
+        sort_order: queryParams.sort_order,
+      };
+
+      const blob = await deviceMaterialIssuesApi.downloadListPdf(exportPayload);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${issue.request_number ?? 'device-material-issue'}.pdf`;
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.download = `device-material-issues-${statusFilter.toLowerCase()}-${timestamp}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      showApiErrorToast(err);
+    } catch (error) {
+      showApiErrorToast(error);
     } finally {
-      setDownloadingId(null);
+      setIsExporting(false);
     }
-  }, []);
+  }, [isSuperAdmin, statusFilter, queryParams]);
 
   const handleRowSelect = useCallback(
     (issue: DeviceMaterialIssue, rowIndex: number) => {
@@ -296,25 +312,21 @@ export function DeviceIssueTable() {
             }
 
             const category = request.device_details?.category;
-            const specification = request.device_details?.specification;
-            if (!category && !specification) {
+            if (!category) {
               return '—';
             }
             return (
               <div className="flex flex-col">
-                {category ? (
-                  isStoreUser ? (
-                    <span className="text-sm font-medium text-foreground">{category}</span>
-                  ) : (
-                    <Link
-                      href={`/dashboard/device-material-issues/${request._id}`}
-                      className="text-sm font-medium text-primary hover:underline"
-                    >
-                      {category}
-                    </Link>
-                  )
-                ) : null}
-                {specification ? <span className="text-xs text-muted-foreground">{specification}</span> : null}
+                {isStoreUser ? (
+                  <span className="text-sm font-medium text-foreground">{category}</span>
+                ) : (
+                  <Link
+                    href={`/dashboard/device-material-issues/${request._id}`}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {category}
+                  </Link>
+                )}
               </div>
             );
           },
@@ -328,16 +340,11 @@ export function DeviceIssueTable() {
             if (hideDetails) {
               return <span className="text-xs text-muted-foreground">{resolvedLockedMessage}</span>;
             }
-            const { model, serial_number: serialNumber } = row.original.device_details ?? {};
-            if (!model && !serialNumber) {
+            const { model } = row.original.device_details ?? {};
+            if (!model) {
               return '—';
             }
-            return (
-              <div className="flex flex-col">
-                {model ? <span>{model}</span> : null}
-                {serialNumber ? <span className="text-xs text-muted-foreground">Serial: {serialNumber}</span> : null}
-              </div>
-            );
+            return <span>{model}</span>;
           },
         },
         {
@@ -361,11 +368,11 @@ export function DeviceIssueTable() {
             if (hideDetails) {
               return <span className="text-xs text-muted-foreground">—</span>;
             }
-            const { quantity, unit } = row.original.device_details ?? {};
+            const { quantity } = row.original.device_details ?? {};
             if (quantity === undefined || quantity === null) {
               return '—';
             }
-            return `${quantity}${unit ? ` ${unit}` : ''}`;
+            return `${quantity}`;
           },
         },
         {
@@ -395,11 +402,7 @@ export function DeviceIssueTable() {
             if (hideDetails) {
               return <span className="text-xs text-muted-foreground">—</span>;
             }
-            return (
-              row.original.production?.batch_number ||
-              row.original.device_details?.serial_number ||
-              '—'
-            );
+            return row.original.production?.batch_number || '—';
           },
         },
         {
@@ -438,45 +441,39 @@ export function DeviceIssueTable() {
         },
       ];
 
-      if (isSuperAdmin) {
-        columnDefs.push({
-          id: 'download',
-          header: 'Download',
-          enableSorting: false,
-          cell: ({ row }) => (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDownload(row.original)}
-              disabled={downloadingId === row.original._id}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {downloadingId === row.original._id ? 'Preparing…' : 'PDF'}
-            </Button>
-          ),
-        });
-      }
-
       return columnDefs;
     },
-    [baseRowNumber, downloadingId, handleDownload, isStoreUser, statusFilter, isSuperAdmin],
+    [baseRowNumber, isStoreUser, statusFilter],
   );
 
   const issues = data?.list ?? [];
 
   return (
     <div className="w-full space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {STATUS_FILTERS.map((option) => (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {STATUS_FILTERS.map((option) => (
+            <Button
+              key={option.key}
+              variant={statusFilter === option.key ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter(option.key)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+        {isSuperAdmin && statusFilter === 'ISSUED' ? (
           <Button
-            key={option.key}
-            variant={statusFilter === option.key ? 'default' : 'outline'}
+            variant="outline"
             size="sm"
-            onClick={() => setStatusFilter(option.key)}
+            onClick={handleExport}
+            disabled={isExporting}
           >
-            {option.label}
+            <Download className="mr-2 h-4 w-4" />
+            {isExporting ? 'Preparing…' : 'Download PDF'}
           </Button>
-        ))}
+        ) : null}
       </div>
       {isStoreUser && statusFilter === 'SUBMITTED' ? (
         <p className="text-xs text-muted-foreground">

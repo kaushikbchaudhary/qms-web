@@ -74,23 +74,6 @@ export const useDeviceMaterialIssueStatusTransition = (id: string) => {
   });
 };
 
-export const useDeviceMaterialIssueAttachmentUpload = (id: string) =>
-  useMutation({
-    mutationFn: (formData: FormData) => deviceMaterialIssuesApi.uploadAttachment(id, formData),
-    onError: showApiErrorToast,
-  });
-
-export const useDeviceMaterialIssueAttachmentDelete = (id: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (path: string) => deviceMaterialIssuesApi.deleteAttachment(id, path),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['device-material-issue', id] });
-    },
-    onError: showApiErrorToast,
-  });
-};
-
 export const useDeviceMaterialIssueSignatureUpload = () =>
   useMutation({
     mutationFn: (formData: FormData) => deviceMaterialIssuesApi.uploadSignature(formData),
@@ -124,12 +107,6 @@ export const useDeviceMaterialIssueAcknowledge = (id: string) => {
     onError: showApiErrorToast,
   });
 };
-
-export const useDeviceMaterialIssuePdf = (id: string) =>
-  useMutation({
-    mutationFn: () => deviceMaterialIssuesApi.downloadPdf(id),
-    onError: showApiErrorToast,
-  });
 
 export const useDeviceMaterialIssueReopen = (id: string) => {
   const queryClient = useQueryClient();

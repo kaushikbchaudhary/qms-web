@@ -6,24 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, Circle, Clock3, Download, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Circle, Clock3, Loader2, RefreshCw } from 'lucide-react';
 import {
   useDeviceMaterialIssue,
   useDeviceMaterialIssueAcknowledge,
-  useDeviceMaterialIssueAttachmentDelete,
-  useDeviceMaterialIssueAttachmentUpload,
-  useDeviceMaterialIssuePdf,
   useDeviceMaterialIssueQueueHead,
   useDeviceMaterialIssueReopen,
   useDeviceMaterialIssueStatusTransition,
   useDeviceMaterialIssueStoreSignoff,
 } from '@/hooks/api/useDeviceMaterialIssues';
-import { deviceMaterialIssuesApi } from '@/lib/api/endpoints/deviceMaterialIssues';
 import {
   DeviceMaterialIssue,
   DeviceMaterialIssueStatus,
@@ -116,26 +110,20 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const queueHeadQuery = useDeviceMaterialIssueQueueHead();
 
   const transitionMutation = useDeviceMaterialIssueStatusTransition(id);
-  const attachmentUploadMutation = useDeviceMaterialIssueAttachmentUpload(id);
-  const attachmentDeleteMutation = useDeviceMaterialIssueAttachmentDelete(id);
   const storeSignoffMutation = useDeviceMaterialIssueStoreSignoff(id);
   const acknowledgeMutation = useDeviceMaterialIssueAcknowledge(id);
-  const pdfMutation = useDeviceMaterialIssuePdf(id);
   const reopenMutation = useDeviceMaterialIssueReopen(id);
   const { user } = useAuthStore();
 
   const [statusPayload, setStatusPayload] = useState<DeviceMaterialIssueStatusUpdatePayload>({
     newStatus: data?.status ?? 'SUBMITTED',
     notes: '',
-    override: false,
   });
   const [batchNumber, setBatchNumber] = useState('');
-  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const userRoles = user?.role ?? [];
   const isStoreUser = userRoles.some((roleKey) => STORE_ROLE_ALIASES.includes(roleKey));
   const canRecordStoreSignoff = isStoreUser;
   const canUpdateStatus = false;
-  const canOverrideStatus = false;
 
   useEffect(() => {
     if (data?.production?.batch_number) {
@@ -173,33 +161,6 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
     }
   };
 
-  const handleAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    const formData = new FormData();
-    formData.append('attachment', file);
-    setIsUploadingAttachment(true);
-    try {
-      await attachmentUploadMutation.mutateAsync(formData);
-      await refetch();
-      event.target.value = '';
-    } catch (error) {
-      showApiErrorToast(error);
-    } finally {
-      setIsUploadingAttachment(false);
-    }
-  };
-
-  const handleAttachmentDelete = async (path: string) => {
-    try {
-      await attachmentDeleteMutation.mutateAsync(path);
-      await refetch();
-    } catch (error) {
-      showApiErrorToast(error);
-    }
-  };
-
   const handleStoreSignoff = async () => {
     const trimmedBatch = batchNumber.trim();
     if (!trimmedBatch) {
@@ -219,20 +180,6 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
     try {
       await acknowledgeMutation.mutateAsync({});
       await refetch();
-    } catch (error) {
-      showApiErrorToast(error);
-    }
-  };
-
-  const handleDownloadPdf = async () => {
-    try {
-      const blob = await pdfMutation.mutateAsync();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `${request?.request_number ?? 'device-request'}.pdf`;
-      anchor.click();
-      URL.revokeObjectURL(url);
     } catch (error) {
       showApiErrorToast(error);
     }
@@ -348,7 +295,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
             </div>
             <div>
               <span className="font-medium">Quantity:</span>{' '}
-              {request.device_details?.quantity} {request.device_details?.unit ?? ''}
+              {request.device_details?.quantity ?? '—'}
             </div>
             <div>
               <span className="font-medium">Purpose:</span>{' '}
@@ -420,9 +367,6 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
-          <Button variant="outline" onClick={handleDownloadPdf} disabled={pdfMutation.isPending}>
-            <Download className="mr-2 h-4 w-4" /> Download PDF
-          </Button>
           {request.status === 'REJECTED' || request.status === 'CLOSED' ? (
             <Button onClick={handleReopen} disabled={reopenMutation.isPending}>
               Reopen
@@ -451,10 +395,10 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
           <CardContent className="space-y-2 text-sm">
             <div><span className="font-medium">Category:</span> {request.device_details.category}</div>
             <div><span className="font-medium">Model:</span> {request.device_details.model ?? '—'}</div>
-            <div><span className="font-medium">Quantity:</span> {request.device_details.quantity} {request.device_details.unit ?? ''}</div>
+            <div><span className="font-medium">Quantity:</span> {request.device_details.quantity}</div>
             <div>
               <span className="font-medium">Serial / Lot:</span>{' '}
-              {request.production?.batch_number ?? request.device_details.serial_number ?? '—'}
+              {request.production?.batch_number ?? '—'}
             </div>
           </CardContent>
         </Card>
@@ -513,23 +457,6 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
                   ))}
                 </select>
               </div>
-              {canOverrideStatus && (
-                <div className="flex items-center justify-between gap-4 rounded-md border p-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="override-toggle">Override FIFO / permissions</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Super-admin only—use when FIFO must be bypassed.
-                    </p>
-                  </div>
-                  <Switch
-                    id="override-toggle"
-                    checked={Boolean(statusPayload.override)}
-                    onCheckedChange={(checked) =>
-                      setStatusPayload((prev) => ({ ...prev, override: checked }))
-                    }
-                  />
-                </div>
-              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="status-notes">Notes</Label>
