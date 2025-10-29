@@ -69,7 +69,7 @@ export const mainNav: NavItem[] = [
   {
     title: "New Device Request",
     href: "/dashboard/device-material-issues/new",
-    roles: [roles.SUPPORT, roles.SALES_MARKETING, roles.SUPER_ADMIN],
+    roles: [roles.HARDWARE_FIRMWARE_ENGINEER,roles.AI_ML_TEAM,roles.ENGINEERING_MAINTENANCE,roles.ENGINEERING_MAINTENANCE,roles.STORE_INVENTORY,roles.REGULATORY_AFFAIRS,roles.HARDWARE_FIRMWARE_ENGINEER,roles.HARDWARE,roles.SUPPORT, roles.SALES_MARKETING, roles.SUPER_ADMIN, roles.QA, roles.QUALITY_ANALYST_SOFTWARE, roles.QA_HARDWARE, roles.PRODUCTION,roles.ENGINEERING_MAINTENANCE],
   },
   {
     title: "QA Dashboard",

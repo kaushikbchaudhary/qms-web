@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Download, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Circle, Clock3, Download, Loader2, RefreshCw } from 'lucide-react';
 import {
   useDeviceMaterialIssue,
   useDeviceMaterialIssueAcknowledge,
@@ -100,6 +100,16 @@ type DeviceIssueDetailProps = {
 };
 
 const STORE_ROLE_ALIASES = [roles.STORE_INVENTORY, 'store & inventory'];
+const STATUS_MANAGER_ROLES = [
+  roles.SUPER_ADMIN,
+  // roles.SUPPORT,
+  // roles.QA,
+  // roles.QUALITY_ANALYST_SOFTWARE,
+  // roles.QA_HARDWARE,
+  // roles.PRODUCTION,
+  // roles.ENGINEERING_MAINTENANCE,
+  // roles.HARDWARE_FIRMWARE_ENGINEER,
+];
 
 export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const { data, isLoading, refetch } = useDeviceMaterialIssue(id);
@@ -123,10 +133,9 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const userRoles = user?.role ?? [];
   const isStoreUser = userRoles.some((roleKey) => STORE_ROLE_ALIASES.includes(roleKey));
-  const canRecordStoreSignoff =
-    userRoles.includes(roles.PRODUCTION) ||
-    isStoreUser ||
-    userRoles.includes(roles.SUPER_ADMIN);
+  const canRecordStoreSignoff = isStoreUser;
+  const canUpdateStatus = false;
+  const canOverrideStatus = false;
 
   useEffect(() => {
     if (data?.production?.batch_number) {
@@ -256,6 +265,40 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   }
 
   const lastStatusChange = request.status_history?.[request.status_history.length - 1];
+  const requestedOn = request.progress_metadata?.requested_on ?? request.created_at;
+  const storeSignoffComplete = Boolean(
+    request.production?.batch_number &&
+    request.pickup?.store_signed_at &&
+    request.pickup?.store_signature_path,
+  );
+  const storeSignoffInProgress = !storeSignoffComplete && isStoreUser;
+  const recipientAcknowledged = Boolean(request.recipient?.signed_at);
+  const awaitingRecipient = !recipientAcknowledged;
+
+  const workflowSteps = [
+    {
+      id: 'submitted',
+      label: 'Request submitted',
+      status: 'done' as const,
+      meta: `${formatDateTime(requestedOn)} · ${formatPersonName(request.requester_snapshot?.name ?? request.requested_by)}`,
+    },
+    {
+      id: 'store',
+      label: 'Store sign-off',
+      status: storeSignoffComplete ? 'done' : storeSignoffInProgress ? 'in-progress' : 'pending',
+      meta: storeSignoffComplete
+        ? `Batch ${request.production?.batch_number ?? '—'} recorded by ${formatPersonName((request.pickup as any)?.store_signed_name)} on ${formatDateTime(request.pickup?.store_signed_at)}`
+        : 'Waiting for Store & Inventory to record batch / lot number.',
+    },
+    {
+      id: 'pickup',
+      label: 'Pickup acknowledgement',
+      status: recipientAcknowledged ? 'done' : storeSignoffComplete ? 'in-progress' : 'pending',
+      meta: recipientAcknowledged
+        ? `Acknowledged by ${formatPersonName(request.recipient?.name)} on ${formatDateTime(request.recipient?.signed_at)}`
+        : 'Recipient confirmation pending.',
+    },
+  ];
 
   if (isStoreUser) {
     return (
@@ -330,6 +373,33 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
           </AlertDescription>
         </Alert>
       )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Workflow status</CardTitle>
+          <CardDescription>Track the request as it progresses from submission to pickup.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {workflowSteps.map((step) => {
+            const icon = step.status === 'done' ? (
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            ) : step.status === 'in-progress' ? (
+              <Clock3 className="h-5 w-5 text-amber-500" />
+            ) : (
+              <Circle className="h-5 w-5 text-muted-foreground" />
+            );
+
+            return (
+              <div key={step.id} className="flex items-start gap-3">
+                <div className="mt-1">{icon}</div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{step.label}</p>
+                  <p className="text-xs text-muted-foreground">{step.meta}</p>
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Request {request.request_number}</h1>
@@ -386,68 +456,6 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
               <span className="font-medium">Serial / Lot:</span>{' '}
               {request.production?.batch_number ?? request.device_details.serial_number ?? '—'}
             </div>
-            <div><span className="font-medium">Expected use:</span> {request.device_details.expected_use_duration ?? '—'}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Purpose</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div>{request.purpose?.description ?? '—'}</div>
-            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-              <span>Project code</span>
-              <span className="text-foreground">{request.purpose?.project_code ?? '—'}</span>
-              <span>Client reference</span>
-              <span className="text-foreground">{request.purpose?.client_reference ?? '—'}</span>
-            </div>
-            {request.purpose?.justification && (
-              <p className="text-sm text-muted-foreground">Justification: {request.purpose.justification}</p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Production & approvals</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div><span className="font-medium">Assigned to:</span> {formatPersonName((request.production as any)?.assigned_to)}</div>
-            <div><span className="font-medium">Batch number:</span> {request.production?.batch_number ?? '—'}</div>
-            <div><span className="font-medium">Notes:</span> {request.production?.notes ?? '—'}</div>
-            <Separator className="my-2" />
-            <div><span className="font-medium">Approved by:</span> {formatPersonName((request.approval as any)?.approved_by)}</div>
-            <div><span className="font-medium">Approval notes:</span> {request.approval?.notes ?? '—'}</div>
-          </CardContent>
-        </Card>
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Pickup details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2 text-sm md:grid-cols-3">
-            <div>
-              <p className="font-medium">Scheduled for</p>
-              <p>{formatDateTime(request.pickup?.scheduled_for)}</p>
-            </div>
-            <div>
-              <p className="font-medium">Location</p>
-              <p>{request.pickup?.location ?? '—'}</p>
-            </div>
-            <div>
-              <p className="font-medium">Issued at</p>
-              <p>{formatDateTime(request.pickup?.issued_at)}</p>
-            </div>
-            <div>
-              <p className="font-medium">Issued by</p>
-              <p>{formatPersonName((request.pickup as any)?.issued_by)}</p>
-            </div>
-            <div>
-              <p className="font-medium">FIFO position</p>
-              <p>{request.pickup?.fifo_position ?? '—'}</p>
-            </div>
-            <div>
-              <p className="font-medium">Override reason</p>
-              <p>{request.pickup?.override_reason ?? '—'}</p>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -480,121 +488,78 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Update status</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="status-select">New status</Label>
-              <select
-                id="status-select"
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={statusPayload.newStatus}
-                onChange={(event) =>
-                  setStatusPayload((prev) => ({ ...prev, newStatus: event.target.value as DeviceMaterialIssueStatus }))
-                }
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-md border p-3">
-              <div className="space-y-1">
-                <Label htmlFor="override-toggle">Override FIFO / permissions</Label>
-                <p className="text-xs text-muted-foreground">
-                  Requires super-admin privileges.
-                </p>
+      {canUpdateStatus && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Update status</CardTitle>
+            <CardDescription>Use carefully—each transition triggers notifications and audit history.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="status-select">New status</Label>
+                <select
+                  id="status-select"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={statusPayload.newStatus}
+                  onChange={(event) =>
+                    setStatusPayload((prev) => ({ ...prev, newStatus: event.target.value as DeviceMaterialIssueStatus }))
+                  }
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <Switch
-                id="override-toggle"
-                checked={Boolean(statusPayload.override)}
-                onCheckedChange={(checked) =>
-                  setStatusPayload((prev) => ({ ...prev, override: checked }))
-                }
+              {canOverrideStatus && (
+                <div className="flex items-center justify-between gap-4 rounded-md border p-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="override-toggle">Override FIFO / permissions</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Super-admin only—use when FIFO must be bypassed.
+                    </p>
+                  </div>
+                  <Switch
+                    id="override-toggle"
+                    checked={Boolean(statusPayload.override)}
+                    onCheckedChange={(checked) =>
+                      setStatusPayload((prev) => ({ ...prev, override: checked }))
+                    }
+                  />
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status-notes">Notes</Label>
+              <Textarea
+                id="status-notes"
+                value={statusPayload.notes ?? ''}
+                onChange={(event) => setStatusPayload((prev) => ({ ...prev, notes: event.target.value }))}
+                placeholder="Add context for the status change"
+                rows={3}
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="status-notes">Notes</Label>
-            <Textarea
-              id="status-notes"
-              value={statusPayload.notes ?? ''}
-              onChange={(event) => setStatusPayload((prev) => ({ ...prev, notes: event.target.value }))}
-              placeholder="Add context for the status change"
-              rows={3}
-            />
-          </div>
-          <Button onClick={handleStatusChange} disabled={transitionMutation.isPending}>
-            {transitionMutation.isPending ? 'Updating…' : 'Update status'}
-          </Button>
-        </CardContent>
-      </Card>
+            <Button onClick={handleStatusChange} disabled={transitionMutation.isPending}>
+              {transitionMutation.isPending ? 'Updating…' : 'Update status'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Attachments intentionally omitted: inventory module tracks metadata only. */}
 
       <Card>
         <CardHeader>
-          <CardTitle>Attachments</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Label className="font-medium">Upload new file</Label>
-            <Input type="file" onChange={handleAttachmentUpload} disabled={isUploadingAttachment} className="max-w-sm" />
-            {isUploadingAttachment && <span className="text-sm text-muted-foreground">Uploading…</span>}
-          </div>
-          <div className="grid gap-2">
-            {(request.attachments ?? []).length === 0 && (
-              <p className="text-sm text-muted-foreground">No attachments uploaded yet.</p>
-            )}
-            {(request.attachments ?? []).map((attachment) => (
-              <div
-                key={attachment.path}
-                className="flex flex-wrap items-center justify-between rounded-md border p-3 text-sm"
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium">{attachment.filename}</span>
-                  <span className="text-xs text-muted-foreground">Uploaded {formatDateTime(attachment.uploaded_at)}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        const blob = await deviceMaterialIssuesApi.downloadAttachment(attachment.path);
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = attachment.filename;
-                        link.click();
-                        URL.revokeObjectURL(url);
-                      } catch (error) {
-                        showApiErrorToast(error);
-                      }
-                    }}
-                  >
-                    <Download className="mr-2 h-4 w-4" /> Download
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleAttachmentDelete(attachment.path)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Store issuance</CardTitle>
+          <CardTitle>Store sign-off</CardTitle>
+          <CardDescription>
+            {storeSignoffComplete
+              ? 'Batch number recorded. Contact the store team if a correction is required.'
+              : isStoreUser
+                ? 'Store & Inventory must record the batch or lot number before the device can be issued.'
+                : 'Awaiting Store & Inventory to record the batch or lot number.'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
@@ -631,9 +596,6 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
           </div>
           {canRecordStoreSignoff && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Enter the batch or lot number assigned during issuance. Saving will attach your stored signature and move the request forward.
-              </p>
               <div className="space-y-2">
                 <Label htmlFor="batch-number-input">Update batch / lot number</Label>
                 <Input
@@ -658,6 +620,11 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
       <Card>
         <CardHeader>
           <CardTitle>Recipient acknowledgement</CardTitle>
+          <CardDescription>
+            {recipientAcknowledged
+              ? 'Pickup has been confirmed. Capture a new acknowledgement only if you need to override the previous record.'
+              : 'Once the device is handed over, capture the recipient name and signature to complete the workflow.'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
