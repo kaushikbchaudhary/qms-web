@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {useAuthStore, UserData} from "@/stores/authStore";
 import { roles, formatRoleLabel } from "@/config/roles";
+import { resolveRoleKey } from "@/lib/auth/access";
 import {
     useAssignInvestigators,
     useComplaintWithWorkflow,
@@ -55,7 +56,17 @@ import { Label } from '@/components/ui/label';
 import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { useGetUsers } from '@/hooks/api/useUser';
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
-import { ro } from 'date-fns/locale';
+
+const ROLE_VALUE_SET = new Set<string>(Object.values(roles));
+
+const normalizeRole = (roleValue?: string | null): roles | null => {
+    if (!roleValue) return null;
+    const resolvedRole = resolveRoleKey(roleValue) ?? roleValue;
+    return ROLE_VALUE_SET.has(resolvedRole) ? (resolvedRole as roles) : null;
+};
+
+const INVESTIGATOR_ASSIGN_ROLES: roles[] = [roles.QA, roles.SUPER_ADMIN, roles.SUPPORT];
+
 interface Props {
     complaintId:any
 }
@@ -371,8 +382,9 @@ const ComplaintDetailPage = (params:Props) => {
     }, [complaint, myInvestigationAssignment]);
 
     // Helper functions
-    const getUserRole = (user: UserData | null | undefined) => user?.role?.[0] ?? '';
-    const getRoleConfig = (role: string) =>
+    const getUserRole = (user: UserData | null | undefined): roles | null =>
+        normalizeRole(user?.role?.[0]);
+    const getRoleConfig = (role: roles | null) =>
         role ? ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] : undefined;
     const mapButtonVariant = (variant: string): 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' => {
         if (variant === 'destructive' || variant === 'outline' || variant === 'secondary' || variant === 'ghost' || variant === 'link') {
@@ -501,10 +513,11 @@ const ComplaintDetailPage = (params:Props) => {
             return isAssignedInvestigator;
         }
 
-        if (roleConfig?.canEdit === 'all') return true;
+        if (!roleConfig) return false;
+        if (roleConfig.canEdit === 'all') return true;
 
         console.log('Role Config:', roleConfig);
-        return roleConfig?.canEdit?.includes(section);
+        return Array.isArray(roleConfig.canEdit) ? roleConfig.canEdit.includes(section) : false;
     };
 
     const customerCommunicationFormDefaults = useMemo((): Partial<CustomerCommunicationFormData> => {
@@ -562,7 +575,9 @@ const ComplaintDetailPage = (params:Props) => {
         ? getRoleConfig(currentUserRole)?.label || formatRoleLabel(currentUserRole) || 'User'
         : 'User';
 
-    const canAssignInvestigators = [roles.QA, roles.SUPER_ADMIN, roles.SUPPORT].includes(currentUserRole);
+    const canAssignInvestigators = currentUserRole
+        ? INVESTIGATOR_ASSIGN_ROLES.includes(currentUserRole)
+        : false;
 
     const handleAssignInvestigators = async () => {
         if (!selectedInvestigators.length) {
@@ -620,7 +635,7 @@ const ComplaintDetailPage = (params:Props) => {
             if (targetStatus === COMPLAINT_STATUS.UNDER_INVESTIGATION && currentUser) {
                 await reciverInfo({
                     receiver_name: currentUserDisplayName,
-                    receiver_role: getUserRole(currentUser),
+                    receiver_role: currentUserRole ?? '',
                     received_date: new Date().toISOString()
                 });
             } else {

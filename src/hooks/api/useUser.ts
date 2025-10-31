@@ -11,7 +11,7 @@ export function useCreateUser() {
         {
             return userApi.createUser(userData);
         },
-        onSuccess: (response) => {
+        onSuccess: () => {
             // Invalidate queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['users'] })
             // toast.success('User created successfully!');

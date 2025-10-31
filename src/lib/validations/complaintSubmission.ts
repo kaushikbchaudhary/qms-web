@@ -176,8 +176,9 @@ export const buildComplaintSubmissionSchema = (requirements: ComplaintSubmission
 const dateField = (
     requirements: Record<string, boolean>,
     path: string,
-    message: string
+    _message: string
 ) => {
+    void _message;
     const base = z.date();
     return requirements[path] ? base : base.optional();
 };

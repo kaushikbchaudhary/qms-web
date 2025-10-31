@@ -7,7 +7,7 @@ export function verifyJwt(token: string) {
         const decoded = jwt.decode(token);
         // jwt.verify(token, SECRET, { algorithms: ['HS256'] });
         return decoded;
-    } catch (err) {
+    } catch {
         return null;
     }
 }

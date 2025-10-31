@@ -1,6 +1,5 @@
 import {apiClient, apiFileClient} from '../client';
 import {
-    Complaint,
     ComplaintCreateResponse,
     ComplaintQueryParams,
     CreateComplaintPayload, MasterLookupItem,

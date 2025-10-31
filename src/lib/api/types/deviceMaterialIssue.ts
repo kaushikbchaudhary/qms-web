@@ -76,6 +76,7 @@ export interface DeviceMaterialIssue {
   request_number: string;
   status: DeviceMaterialIssueStatus;
   priority: DeviceMaterialIssuePriority;
+  requested_by?: string;
   requester_snapshot?: DeviceMaterialIssueRequester;
   device_details: DeviceMaterialIssueDeviceDetails;
   purpose: DeviceMaterialIssuePurpose;

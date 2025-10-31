@@ -13,7 +13,7 @@ import { SocketProvider } from "@/providers/SocketProvider";
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Complaint Management System',
+  title: 'QMS System',
   description: 'Submit and manage product complaints',
 }
 

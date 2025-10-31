@@ -277,13 +277,13 @@ export function CustomerCommunicationForm({
 
                         {/* Submit Button */}
                         <div className="flex justify-end gap-4 pt-6 border-t">
-                            <Button
+                            {/* <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => form.reset()}
                             >
                                 Reset Form
-                            </Button>
+                            </Button> */}
                             <Button
                                 type="submit"
                                 disabled={form.formState.isSubmitting || isPending}

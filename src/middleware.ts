@@ -32,7 +32,7 @@ export function middleware(request: NextRequest) {
     const rawRoles = (Array.isArray(user.role) ? user.role : [user.role]).filter(Boolean);
     const normalizedRoles = rawRoles
         .map((role: string) => resolveRoleKey(role))
-        .filter((role): role is UserRole => Boolean(role));
+        .filter((role: UserRole | undefined): role is UserRole => Boolean(role));
 
     if (normalizedRoles.length === 0) {
         return NextResponse.redirect(new URL('/auth/login', request.url));
@@ -64,4 +64,3 @@ export const config = {
         '/((?!api|_next|favicon.ico).*)', // Excludes API & static files
     ],
 };
-
