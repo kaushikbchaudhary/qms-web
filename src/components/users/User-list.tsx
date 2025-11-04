@@ -1,22 +1,18 @@
 'use client';
-import {useEffect, useState} from 'react';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import {
-    useReactTable,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    ColumnFiltersState,
-    SortingState,
-} from '@tanstack/react-table';
+import {useEffect, useMemo, useState} from 'react';
 import { userColumns } from './user-columns';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {roles} from "@/config/roles";
+import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {formatRoleLabel, roles} from "@/config/roles";
 import CustomizableTable, {useTableState} from "@/components/shared/CustomizableTable";
-import {ComplaintQueryParams} from "@/lib/api/types/complaints";
+import {ComplaintQueryParams, Filter} from "@/lib/api/types/complaints";
 import {showApiErrorToast} from "@/lib/utils";
 import {useDebounce} from "@/hooks/debounceHook";
 import {useGetUsers} from "@/hooks/api/useUser";
@@ -29,29 +25,53 @@ export function UserList() {
     //     pageSize: 10,
     // });
     const tableState = useTableState()
-    const { pagination, sorting ,columnVisibility, rowSelection} = tableState
+    const { pagination, setPagination, sorting, setSorting, columnVisibility, setColumnVisibility, rowSelection, setRowSelection, columnFilters, setColumnFilters } = tableState
     const [globalFilter, setGlobalFilter] = useState("")
-    const [globalFilterFields] = useState<string[]>([
-        "role",
-        "firstName",
-        "isVerified",
-        "lastName",
-    ])
+    const [selectedRole, setSelectedRole] = useState<string>("")
+
+    const globalFilterFields = useMemo(() => ["searchText"], [])
+    const roleOptions = useMemo(() => Object.values(roles), [])
 
     const debouncedGlobalFilterValue = useDebounce(globalFilter, 500); // 500ms delay
 
-    // Prepare query params
-    const queryParams: ComplaintQueryParams = {
-        page_size: pagination.pageSize,
-        page_index: pagination.pageIndex,
-        global_value: debouncedGlobalFilterValue,
-        global_filter: globalFilterFields,
-        sort_by: sorting[0]?.id || "submission_date",
-        sort_order: sorting[0]?.desc ? -1 : 1,
-        filters: [], // Add any specific filters here
-    }
+    const filters = useMemo<Filter[]>(() => {
+        if (!selectedRole) return [];
+        return [
+            {
+                field: "role",
+                operator: "in",
+                value: selectedRole,
+                subType: "string",
+            },
+        ];
+    }, [selectedRole]);
 
-    const {data, isLoading,isError, error, refetch } = useGetUsers(queryParams);
+    // Prepare query params
+    const queryParams: ComplaintQueryParams = useMemo(() => {
+        const trimmedSearch = debouncedGlobalFilterValue.trim();
+        const sortDescriptor = sorting[0];
+        const sortBy = sortDescriptor?.id ?? "createdAt";
+        const sortOrder = sortDescriptor ? (sortDescriptor.desc ? -1 : 1) : -1;
+
+        return {
+            page_size: pagination.pageSize,
+            page_index: pagination.pageIndex + 1,
+            global_value: trimmedSearch,
+            global_filter: trimmedSearch ? globalFilterFields : [],
+            sort_by: sortBy,
+            sort_order: sortOrder,
+            filters,
+        };
+    }, [
+        debouncedGlobalFilterValue,
+        filters,
+        globalFilterFields,
+        pagination.pageIndex,
+        pagination.pageSize,
+        sorting,
+    ]);
+
+    const {data, isLoading,isError, error } = useGetUsers(queryParams);
     useEffect(() => {
         if (isError && error) {
             showApiErrorToast(error);
@@ -121,41 +141,51 @@ export function UserList() {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                {/*<Input*/}
-                {/*    placeholder="Search users..."*/}
-                {/*    value={(table.getColumn('emailId')?.getFilterValue() as string) ?? ''}*/}
-                {/*    onChange={(e) => table.getColumn('emailId')?.setFilterValue(e.target.value)}*/}
-                {/*    className="max-w-sm"*/}
-                {/*/>*/}
-
-                {/*<div className="flex gap-2">*/}
-                {/*    /!* Role filter buttons *!/*/}
-                {/*    {Object.values(roles).map((role) => (*/}
-                {/*        <Button*/}
-                {/*            key={role}*/}
-                {/*            variant={*/}
-                {/*                columnFilters.some(f => f.id === 'role' && f.value?.includes(role))*/}
-                {/*                    ? 'default'*/}
-                {/*                    : 'outline'*/}
-                {/*            }*/}
-                {/*            size="sm"*/}
-                {/*            onClick={() => {*/}
-                {/*                const roleFilter = columnFilters.find(f => f.id === 'role');*/}
-                {/*                if (roleFilter) {*/}
-                {/*                    const newValue = roleFilter.value?.includes(role)*/}
-                {/*                        ? roleFilter.value.filter((v: string) => v !== role)*/}
-                {/*                        : [...(roleFilter.value || []), role];*/}
-                {/*                    table.getColumn('role')?.setFilterValue(newValue.length ? newValue : undefined);*/}
-                {/*                } else {*/}
-                {/*                    table.getColumn('role')?.setFilterValue([role]);*/}
-                {/*                }*/}
-                {/*            }}*/}
-                {/*        >*/}
-                {/*            {role}*/}
-                {/*        </Button>*/}
-                {/*    ))}*/}
-                {/*</div>*/}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-2">
+                    <Input
+                        placeholder="Search by name, email, role or contact..."
+                        value={globalFilter}
+                        onChange={(event) => {
+                            setGlobalFilter(event.target.value);
+                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                        className="w-full max-w-xs md:max-w-sm"
+                    />
+                    <Select
+                        value={selectedRole || "all"}
+                        onValueChange={(value) => {
+                            const roleValue = value === "all" ? "" : value;
+                            setSelectedRole(roleValue);
+                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                    >
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All roles</SelectItem>
+                            {roleOptions.map((role) => (
+                                <SelectItem key={role} value={role}>
+                                    {formatRoleLabel(role)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                {(globalFilter.trim() || selectedRole) && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                            setGlobalFilter("");
+                            setSelectedRole("");
+                            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                        }}
+                    >
+                        Clear filters
+                    </Button>
+                )}
             </div>
 
             <CustomizableTable
@@ -173,6 +203,12 @@ export function UserList() {
                 pagination={pagination}
                 columnVisibility={columnVisibility}
                 rowSelection={rowSelection}
+                columnFilters={columnFilters}
+                onSortingChange={setSorting}
+                onPaginationChange={setPagination}
+                onColumnVisibilityChange={setColumnVisibility}
+                onRowSelectionChange={setRowSelection}
+                onColumnFiltersChange={setColumnFilters}
             />
 
         {/*    <div className="flex items-center justify-end space-x-2">*/}
