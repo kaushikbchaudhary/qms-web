@@ -55,7 +55,10 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
             '/dashboard/device-material-issues/[id]',
-            '/dashboard/device-material-issues/new'
+            '/dashboard/device-material-issues/new',
+            '/dashboard/capa',
+            '/dashboard/capa/[id]',
+            '/dashboard/capa/new',
         ],
         redirect: '/admin/dashboard'
     },
@@ -69,7 +72,10 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
             '/dashboard/device-material-issues/new',
-            '/dashboard/device-material-issues/[id]'
+            '/dashboard/device-material-issues/[id]',
+            '/dashboard/capa',
+            '/dashboard/capa/[id]',
+            '/dashboard/capa/new',
         ],
         redirect: '/dashboard/complaints'
     },
@@ -80,7 +86,10 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
-            '/dashboard/device-material-issues/[id]'
+            '/dashboard/device-material-issues/[id]',
+            '/dashboard/capa',
+            '/dashboard/capa/[id]',
+            '/dashboard/capa/new',
         ],
         redirect: '/dashboard/complaints'
     },
