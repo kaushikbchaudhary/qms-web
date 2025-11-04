@@ -101,7 +101,9 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
-            '/dashboard/device-material-issues/[id]'
+            '/dashboard/device-material-issues/[id]',
+            '/dashboard/capa',
+            '/dashboard/capa/new',
         ],
         redirect: '/'
     },
@@ -161,7 +163,9 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
-            '/dashboard/device-material-issues/[id]'
+            '/dashboard/device-material-issues/[id]',
+            '/dashboard/capa',
+            '/dashboard/capa/new',
         ],
         redirect: '/dashboard/complaints'
     },
@@ -173,7 +177,9 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
-            '/dashboard/device-material-issues/[id]'
+            '/dashboard/device-material-issues/[id]',
+            '/dashboard/capa',
+            '/dashboard/capa/new',
         ],
         redirect: '/dashboard/complaints'
     },
@@ -185,7 +191,9 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
-            '/dashboard/device-material-issues/[id]'
+            '/dashboard/device-material-issues/[id]',
+            '/dashboard/capa',
+            '/dashboard/capa/new',
         ],
         redirect: '/'
     },
@@ -209,7 +217,9 @@ export const ROLE_ACCESS = {
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
-            '/dashboard/device-material-issues/[id]'
+            '/dashboard/device-material-issues/[id]',
+            '/dashboard/capa',
+            '/dashboard/capa/new',
         ],
         redirect: '/dashboard/complaints'
     },

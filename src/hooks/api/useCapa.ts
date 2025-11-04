@@ -1,6 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { capaApi } from '@/lib/api/endpoints/capa';
-import { AvailableCapasResponse, CreateCapaPayload, CreateCapaResponse, ValidateCapaResponse } from '@/lib/api/types/capa';
+import {
+  AvailableCapasResponse,
+  CreateCapaPayload,
+  CreateCapaResponse,
+  ValidateCapaResponse,
+  CapaListResponse,
+} from '@/lib/api/types/capa';
 import { showApiErrorToast } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -39,3 +45,19 @@ export const useValidateCapa = () => {
   });
 };
 
+type UseCapaListParams = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
+export const useCapaList = (
+  params: UseCapaListParams,
+  options?: Omit<UseQueryOptions<CapaListResponse>, 'queryKey' | 'queryFn'>,
+) => {
+  return useQuery({
+    queryKey: ['capa', 'list', params],
+    queryFn: () => capaApi.list(params),
+    ...options,
+  });
+};

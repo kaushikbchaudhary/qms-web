@@ -70,6 +70,20 @@ export const mainNav: NavItem[] = [
     ],
   },
   {
+    title: "CAPA Records",
+    href: "/dashboard/capa",
+    roles: [
+      roles.SUPER_ADMIN,
+      roles.SUPPORT,
+      roles.QA,
+      roles.QUALITY_ANALYST_SOFTWARE,
+      roles.QA_HARDWARE,
+      roles.PRODUCTION,
+      roles.REGULATORY_AFFAIRS,
+      roles.ENGINEERING_MAINTENANCE,
+    ],
+  },
+  {
     title: "Create CAPA",
     href: "/dashboard/capa/new",
     roles: [

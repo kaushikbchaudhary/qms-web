@@ -10,6 +10,10 @@ export interface CapaSummary {
   fileUrl?: string | null;
   linkedComplaint?: string | null;
   linkedNc?: string | null;
+  preparedBy?: {
+    name?: string | null;
+    designation?: string | null;
+  } | null;
 }
 
 export interface CreateCapaPayload {
@@ -42,3 +46,9 @@ export interface ValidateCapaResponse {
   capa: CapaSummary;
 }
 
+export interface CapaListResponse {
+  list: CapaSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+}

@@ -4,6 +4,7 @@ import {
   CreateCapaPayload,
   CreateCapaResponse,
   ValidateCapaResponse,
+  CapaListResponse,
 } from '@/lib/api/types/capa';
 
 const extractData = <T>(response: any): T => {
@@ -16,6 +17,11 @@ const extractData = <T>(response: any): T => {
 export const capaApi = {
   create: (payload: CreateCapaPayload) =>
     apiClient.post('api/v1/capa', payload).then((response) => extractData<CreateCapaResponse>(response)),
+
+  list: (params: { page?: number; pageSize?: number; search?: string }) =>
+    apiClient
+      .get('api/v1/capa', { params })
+      .then((response) => extractData<CapaListResponse>(response)),
 
   listAvailable: () =>
     apiClient.get('api/v1/capa/available').then((response) => extractData<AvailableCapasResponse>(response)),
@@ -31,4 +37,3 @@ export const capaApi = {
     return apiClient.get(url).then((response) => extractData<ValidateCapaResponse>(response));
   },
 };
-
