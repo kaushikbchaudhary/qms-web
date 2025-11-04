@@ -75,16 +75,14 @@ export const ROLE_ACCESS = {
     },
     [roles.QA]: {
         routes: [
-            '/staff',
             '/profile',
-            '/staff/patients',
             '/dashboard/complaints',
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
             '/dashboard/device-material-issues/[id]'
         ],
-        redirect: '/staff/patients'
+        redirect: '/dashboard/complaints'
     },
     [roles.PRODUCTION]: {
         routes: [
@@ -150,27 +148,25 @@ export const ROLE_ACCESS = {
         routes: [
             '/staff',
             '/profile',
-            '/staff/patients',
             '/dashboard/complaints',
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
             '/dashboard/device-material-issues/[id]'
         ],
-        redirect: '/staff/patients'
+        redirect: '/dashboard/complaints'
     },
     [roles.QA_HARDWARE]: {
         routes: [
             '/staff',
             '/profile',
-            '/staff/patients',
             '/dashboard/complaints',
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
             '/dashboard/device-material-issues/[id]'
         ],
-        redirect: '/staff/patients'
+        redirect: '/dashboard/complaints'
     },
     [roles.ENGINEERING_MAINTENANCE]: {
         routes: [
@@ -200,14 +196,13 @@ export const ROLE_ACCESS = {
         routes: [
             '/staff',
             '/profile',
-            '/staff/patients',
             '/dashboard/complaints',
             '/dashboard/complaints/new',
             '/dashboard/complaints/[id]',
             '/dashboard/device-material-issues',
             '/dashboard/device-material-issues/[id]'
         ],
-        redirect: '/staff/patients'
+        redirect: '/dashboard/complaints'
     },
     [roles.STORE_INVENTORY]: {
         routes: [

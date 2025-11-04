@@ -32,7 +32,7 @@ export const mainNav: NavItem[] = [
   {
     title: "Submit Complaint",
     href: "/dashboard/complaints/new",
-    roles: [roles.SUPPORT, roles.SALES_MARKETING],
+    roles: [roles.SUPPORT, roles.QA, roles.QUALITY_ANALYST_SOFTWARE, roles.QA_HARDWARE, roles.PRODUCTION, roles.ENGINEERING_MAINTENANCE, roles.HARDWARE_FIRMWARE_ENGINEER, roles.REGULATORY_AFFAIRS, roles.SALES_MARKETING, roles.STORE_INVENTORY],
   },
   {
     title: "My Complaints",
@@ -47,6 +47,9 @@ export const mainNav: NavItem[] = [
       roles.ENGINEERING_MAINTENANCE,
       roles.HARDWARE_FIRMWARE_ENGINEER,
       roles.REGULATORY_AFFAIRS,
+      roles.SALES_MARKETING,
+      roles.STORE_INVENTORY,
+      roles.AI_ML_TEAM,
     ],
   },
   {
@@ -73,7 +76,7 @@ export const mainNav: NavItem[] = [
   },
   {
     title: "QA Dashboard",
-    href: "/staff/patients",
+    href: "/dashboard/complaints",
     roles: [roles.QA],
   },
   // {

@@ -227,7 +227,16 @@ export function ComplaintForm() {
                                 <FormItem>
                                     <FormLabel>Contact Number:</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Enter contact number" {...field} />
+                                        <Input
+                                            placeholder="Enter contact number"
+                                            {...field}
+                                            inputMode="numeric"
+                                            maxLength={10}
+                                            onChange={(event) => {
+                                                const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 10);
+                                                field.onChange(digitsOnly);
+                                            }}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

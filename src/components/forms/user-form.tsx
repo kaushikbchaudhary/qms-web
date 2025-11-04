@@ -195,6 +195,12 @@ export function UserForm({
                                     <Input
                                         placeholder="1234567890"
                                         {...field}
+                                        inputMode="numeric"
+                                        maxLength={10}
+                                        onChange={(event) => {
+                                            const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 10);
+                                            field.onChange(digitsOnly);
+                                        }}
                                         disabled={mode === "edit"}
                                     />
                                 </FormControl>

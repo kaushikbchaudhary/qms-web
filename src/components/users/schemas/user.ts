@@ -1,8 +1,13 @@
 // schemas/user.ts
 import { z } from "zod";
-import {roles as role} from "@/config/roles";
+import { roles as role } from "@/config/roles";
 
 const roleValues = Object.values(role) as [string, ...string[]];
+const contactNumberSchema = z
+    .string()
+    .regex(/^\d{10}$/, {
+        message: "Enter a 10-digit contact number without the country code or '+'.",
+    });
 
 export const userFormSchema = z.object({
     firstName: z.string().min(2, {
@@ -15,9 +20,7 @@ export const userFormSchema = z.object({
     emailId: z.string().email({
         message: "Please enter a valid email address.",
     }),
-    contact: z.string().min(6, {
-        message: "Contact number must be at least 6 characters.",
-    }),
+    contact: contactNumberSchema,
     countryCode: z.string().min(1, {
         message: "Country code is required.",
     }),

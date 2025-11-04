@@ -81,6 +81,27 @@ const arrayOfStringsField = (
     return base.optional();
 };
 
+const phoneNumberRegex = /^\d{10}$/;
+const phoneNumberMessage = 'Enter a 10-digit contact number without the country code or special characters.';
+const phoneField = (
+    requirements: Record<string, boolean>,
+    path: string,
+) => {
+    if (requirements[path]) {
+        return z
+            .string()
+            .trim()
+            .regex(phoneNumberRegex, phoneNumberMessage);
+    }
+
+    return preprocessOptionalString().refine(
+        (value) => value === undefined || phoneNumberRegex.test(value),
+        {
+            message: phoneNumberMessage,
+        }
+    );
+};
+
 export const buildComplaintSubmissionSchema = (requirements: ComplaintSubmissionRequirementMap) =>
     z.object({
         customer: z.object({
@@ -89,10 +110,7 @@ export const buildComplaintSubmissionSchema = (requirements: ComplaintSubmission
                 minLength: 2,
             }),
             company: preprocessOptionalString(),
-            contact_number: stringField(requirements, 'customer.contact_number', {
-                message: 'Invalid phone number',
-                minLength: 10,
-            }),
+            contact_number: phoneField(requirements, 'customer.contact_number'),
             email: stringField(requirements, 'customer.email', {
                 message: 'Email is required',
                 email: true,
