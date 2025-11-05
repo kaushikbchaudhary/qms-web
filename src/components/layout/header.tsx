@@ -92,7 +92,7 @@ export function Header() {
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">Q</span>
               </div>
-              <span>QMS System</span>
+              <span>QMS</span>
             </Link>
             <ModeToggle />
           </div>
@@ -114,7 +114,7 @@ export function Header() {
               {/*  <span className="text-primary-foreground font-bold text-sm">M</span>*/}
               {/*  <span className="text-primary-foreground font-bold text-sm">S</span>*/}
               {/*</div>*/}
-              <span>QMS System</span>
+              <span>QMS</span>
             </Link>
 
 

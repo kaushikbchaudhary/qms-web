@@ -4,7 +4,7 @@
 import {useEffect, useMemo, useRef, useState} from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { CalendarRange, RefreshCw, Search, X } from "lucide-react"
+import { CalendarRange, Search, X } from "lucide-react"
 import {ComplaintQueryParams, ComplaintStatus} from "@/lib/api/types/complaints";
 import CustomizableTable, {useTableState} from "@/components/shared/CustomizableTable";
 import {useGetComplaints} from "@/hooks/api/useComplaints";
@@ -180,7 +180,7 @@ export function ComplaintsTable() {
         combinedFilters
     ]);
 
-    const {data, isLoading,isError, error, refetch } = useGetComplaints(queryParams);
+    const {data, isLoading,isError, error } = useGetComplaints(queryParams);
     useEffect(() => {
         if (isError && error) {
             showApiErrorToast(error);
@@ -192,12 +192,6 @@ export function ComplaintsTable() {
             setPendingCustomRange(dateFilter.key === 'CUSTOM' ? dateFilter.range : undefined);
         }
     }, [isDateFilterOpen, dateFilter.key, dateFilter.range]);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-            setIsSearchOpen(true);
-        }
-    }, []);
 
     useEffect(() => {
         if (isSearchOpen) {
@@ -238,14 +232,15 @@ export function ComplaintsTable() {
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm">
+            <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm overflow-hidden">
                 <div className="relative grid gap-3 lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)] lg:items-center">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4 lg:flex-1 lg:min-w-0">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-center lg:gap-4 lg:flex-1 lg:min-w-0 min-w-0">
                         <div
                             className={cn(
-                                "flex items-center gap-2 overflow-hidden transition-all duration-300",
-                                "w-full lg:flex-none",
-                                isSearchOpen ? "lg:basis-80" : "lg:basis-14",
+                                "flex items-center overflow-hidden transition-all duration-300",
+                                isSearchOpen
+                                    ? "gap-1.5 rounded-md border border-input bg-background px-2 w-full lg:w-auto lg:min-w-[260px]"
+                                    : "gap-0 w-fit"
                             )}
                         >
                             <Button
@@ -271,51 +266,47 @@ export function ComplaintsTable() {
                                     placeholder="Search complaints..."
                                     value={globalFilter}
                                     onChange={(e) => setGlobalFilter(e.target.value)}
-                                    className="w-full"
+                                    className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:flex-1">
-                            <Tabs
-                                value={statusFilter}
-                                onValueChange={(value) => setStatusFilter(value as StatusFilterValue)}
-                                className="w-full"
-                            >
-                                <TabsList className="flex w-full gap-1 overflow-x-auto rounded-md bg-muted/40 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                                    {STATUS_FILTERS.map(({ value, label }) => (
-                                        <TabsTrigger
-                                            key={value}
-                                            value={value}
-                                            className="flex-1 min-w-[110px] whitespace-nowrap text-xs sm:text-sm"
-                                        >
-                                            {label}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-                            </Tabs>
-
-                            <div className="w-full sm:w-56">
-                                <Select
-                                    value={assignmentFilter}
-                                    onValueChange={(value) => setAssignmentFilter(value as typeof assignmentFilter)}
-                                >
-                                    <SelectTrigger className="w-full" disabled={!currentUser}>
-                                        <SelectValue placeholder="Assignment filter" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All complaints</SelectItem>
-                                        <SelectItem value="assigned_to_me">Assigned to me</SelectItem>
-                                        <SelectItem value="assigned_unread">My unread assignments</SelectItem>
-                                        <SelectItem value="investigator">My investigation tasks</SelectItem>
-                                        <SelectItem value="investigator_unread">My unread investigation tasks</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
+                        <Tabs
+                            value={statusFilter}
+                            onValueChange={(value) => setStatusFilter(value as StatusFilterValue)}
+                            className="w-full lg:flex-1 lg:min-w-0"
+                        >
+                            <TabsList className="flex w-full gap-1 overflow-x-auto rounded-md bg-muted/40 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                {STATUS_FILTERS.map(({ value, label }) => (
+                                    <TabsTrigger
+                                        key={value}
+                                        value={value}
+                                        className="flex-1 min-w-[110px] whitespace-nowrap text-xs sm:text-sm"
+                                    >
+                                        {label}
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
                     </div>
 
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end lg:gap-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 lg:flex-nowrap lg:justify-end">
+                        <div className="w-full sm:w-56 lg:w-56">
+                            <Select
+                                value={assignmentFilter}
+                                onValueChange={(value) => setAssignmentFilter(value as typeof assignmentFilter)}
+                            >
+                                <SelectTrigger className="w-full" disabled={!currentUser}>
+                                    <SelectValue placeholder="Assignment filter" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All complaints</SelectItem>
+                                    <SelectItem value="investigator">My investigation tasks</SelectItem>
+                                    <SelectItem value="investigator_unread">My unread investigation tasks</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
                             <PopoverTrigger asChild>
                                 <Button
@@ -396,16 +387,6 @@ export function ComplaintsTable() {
                                 </div>
                             </PopoverContent>
                         </Popover>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => refetch()}
-                            disabled={isLoading}
-                            className="w-full lg:w-auto"
-                        >
-                            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                            Refresh
-                        </Button>
                     </div>
                 </div>
             </div>
