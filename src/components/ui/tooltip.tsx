@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 type TooltipProviderProps = {
@@ -12,6 +13,8 @@ type TooltipContextValue = {
   open: boolean;
   setOpen: (next: boolean) => void;
   delayDuration: number;
+  anchor: HTMLElement | null;
+  setAnchor: (element: HTMLElement | null) => void;
 };
 
 const GlobalTooltipContext = React.createContext<{ delayDuration: number }>({
@@ -38,21 +41,20 @@ type TooltipProps = {
 export function Tooltip({ children }: TooltipProps) {
   const { delayDuration } = React.useContext(GlobalTooltipContext);
   const [open, setOpen] = React.useState(false);
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null);
 
   const value = React.useMemo(
     () => ({
       open,
       setOpen,
       delayDuration,
+      anchor,
+      setAnchor,
     }),
-    [open, delayDuration]
+    [open, delayDuration, anchor]
   );
 
-  return (
-    <TooltipContext.Provider value={value}>
-      <span className="relative inline-flex">{children}</span>
-    </TooltipContext.Provider>
-  );
+  return <TooltipContext.Provider value={value}>{children}</TooltipContext.Provider>;
 }
 
 function useTooltipContext(component: string) {
@@ -72,15 +74,19 @@ export function TooltipTrigger({
   children,
   asChild,
 }: TooltipTriggerProps): React.ReactElement {
-  const { setOpen, delayDuration } = useTooltipContext("TooltipTrigger");
+  const { setOpen, delayDuration, setAnchor } = useTooltipContext("TooltipTrigger");
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleOpen = React.useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => setOpen(true), delayDuration);
-  }, [delayDuration, setOpen]);
+  const handleOpen = React.useCallback(
+    (target: HTMLElement) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => setOpen(true), delayDuration);
+      setAnchor(target);
+    },
+    [delayDuration, setOpen, setAnchor]
+  );
 
   const handleClose = React.useCallback(() => {
     if (timeoutRef.current) {
@@ -88,7 +94,8 @@ export function TooltipTrigger({
       timeoutRef.current = null;
     }
     setOpen(false);
-  }, [setOpen]);
+    setAnchor(null);
+  }, [setOpen, setAnchor]);
 
   React.useEffect(() => {
     return () => {
@@ -102,31 +109,31 @@ export function TooltipTrigger({
   const childProps = children.props as Record<string, unknown>;
 
   const triggerProps = {
-    onMouseEnter: (event: React.MouseEvent) => {
+    onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
       if (typeof childProps.onMouseEnter === "function") {
         (childProps.onMouseEnter as (event: React.MouseEvent) => void)(event);
       }
-      handleOpen();
+      handleOpen(event.currentTarget);
     },
-    onMouseLeave: (event: React.MouseEvent) => {
+    onMouseLeave: (event: React.MouseEvent<HTMLElement>) => {
       if (typeof childProps.onMouseLeave === "function") {
         (childProps.onMouseLeave as (event: React.MouseEvent) => void)(event);
       }
       handleClose();
     },
-    onFocus: (event: React.FocusEvent) => {
+    onFocus: (event: React.FocusEvent<HTMLElement>) => {
       if (typeof childProps.onFocus === "function") {
         (childProps.onFocus as (event: React.FocusEvent) => void)(event);
       }
-      handleOpen();
+      handleOpen(event.currentTarget as HTMLElement);
     },
-    onBlur: (event: React.FocusEvent) => {
+    onBlur: (event: React.FocusEvent<HTMLElement>) => {
       if (typeof childProps.onBlur === "function") {
         (childProps.onBlur as (event: React.FocusEvent) => void)(event);
       }
       handleClose();
     },
-    onClick: (event: React.MouseEvent) => {
+    onClick: (event: React.MouseEvent<HTMLElement>) => {
       if (typeof childProps.onClick === "function") {
         (childProps.onClick as (event: React.MouseEvent) => void)(event);
       }
@@ -160,80 +167,127 @@ export const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentPro
     },
     ref
   ) => {
-    const { open } = useTooltipContext("TooltipContent");
+    const { open, anchor } = useTooltipContext("TooltipContent");
 
-    if (!open) return null;
+    const [mounted, setMounted] = React.useState(false);
+    const [position, setPosition] = React.useState<{
+      top: number;
+      left: number;
+      transform: string;
+    } | null>(null);
 
-    const positionClass = (() => {
-      switch (side) {
-        case "top":
-          return "bottom-full left-1/2 -translate-x-1/2";
-        case "bottom":
-          return "top-full left-1/2 -translate-x-1/2";
-        case "left":
-          return "right-full top-1/2 -translate-y-1/2";
-        case "right":
-          return "left-full top-1/2 -translate-y-1/2";
-        default:
-          return "";
+    React.useEffect(() => {
+      setMounted(true);
+      return () => setMounted(false);
+    }, []);
+
+    React.useLayoutEffect(() => {
+      if (!anchor || !open) {
+        setPosition(null);
+        return;
       }
-    })();
 
-    const offsetStyle: React.CSSProperties = (() => {
-      switch (side) {
-        case "top":
-          return { marginBottom: sideOffset };
-        case "bottom":
-          return { marginTop: sideOffset };
-        case "left":
-          return { marginRight: sideOffset };
-        case "right":
-          return { marginLeft: sideOffset };
-        default:
-          return {};
-      }
-    })();
+      const computePosition = () => {
+        const rect = anchor.getBoundingClientRect();
 
-    const alignmentClass = (() => {
-      if (side === "left" || side === "right") {
-        switch (align) {
-          case "start":
-            return "items-start";
-          case "end":
-            return "items-end";
+        let top = rect.top;
+        let left = rect.left;
+        let transform = "translate(-50%, -100%)";
+
+        switch (side) {
+          case "bottom":
+            top = rect.bottom + sideOffset;
+            left = rect.left + rect.width / 2;
+            transform = "translate(-50%, 0)";
+            break;
+          case "left":
+            top = rect.top + rect.height / 2;
+            left = rect.left - sideOffset;
+            transform = "translate(-100%, -50%)";
+            break;
+          case "right":
+            top = rect.top + rect.height / 2;
+            left = rect.right + sideOffset;
+            transform = "translate(0, -50%)";
+            break;
+          case "top":
           default:
-            return "items-center";
+            top = rect.top - sideOffset;
+            left = rect.left + rect.width / 2;
+            transform = "translate(-50%, -100%)";
+            break;
         }
+
+        if (side === "top" || side === "bottom") {
+          if (align === "start") {
+            left = rect.left;
+            transform = side === "top" ? "translate(0, -100%)" : "translate(0, 0)";
+          } else if (align === "end") {
+            left = rect.right;
+            transform = side === "top" ? "translate(-100%, -100%)" : "translate(-100%, 0)";
+          }
+        } else {
+          if (align === "start") {
+            top = rect.top;
+            transform = side === "left" ? "translate(-100%, 0)" : "translate(0, 0)";
+          } else if (align === "end") {
+            top = rect.bottom;
+            transform = side === "left" ? "translate(-100%, -100%)" : "translate(0, -100%)";
+          }
+        }
+
+        setPosition({ top, left, transform });
+      };
+
+      computePosition();
+
+      const handleUpdate = () => computePosition();
+
+      window.addEventListener("scroll", handleUpdate, true);
+      window.addEventListener("resize", handleUpdate);
+
+      const observer =
+        typeof ResizeObserver !== "undefined" ? new ResizeObserver(handleUpdate) : null;
+
+      if (observer) {
+        observer.observe(anchor);
       }
 
-      switch (align) {
-        case "start":
-          return "justify-start";
-        case "end":
-          return "justify-end";
-        default:
-          return "justify-center";
-      }
-    })();
+      return () => {
+        window.removeEventListener("scroll", handleUpdate, true);
+        window.removeEventListener("resize", handleUpdate);
+        if (observer) {
+          observer.disconnect();
+        }
+      };
+    }, [anchor, open, side, align, sideOffset]);
 
-    return (
+    if (!mounted || !open || !anchor || !position || typeof document === "undefined")
+      return null;
+
+    const tooltipNode = (
       <div
         ref={ref}
         role="tooltip"
         className={cn(
-          "pointer-events-none absolute z-50 flex min-w-max",
-          alignmentClass,
-          positionClass,
+          "pointer-events-none fixed z-[99999] flex min-w-max",
           className
         )}
-        style={{ ...offsetStyle, ...style }}
+        style={{
+          top: position.top,
+          left: position.left,
+          transform: position.transform,
+          ...style,
+        }}
         {...props}
       >
-        <div className="rounded-md border border-border/40 bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md">
+        <div className="rounded-md border border-border/40 bg-background/95 px-3 py-1.5 text-sm text-foreground shadow-lg">
           {props.children}
         </div>
       </div>
     );
+
+    return createPortal(tooltipNode, document.body);
   }
 );
 TooltipContent.displayName = "TooltipContent";

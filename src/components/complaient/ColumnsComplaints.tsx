@@ -253,7 +253,7 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
             </Link>
         ),
         meta: {
-            className: "sticky left-0 z-10 bg-background", // Tailwind sticky styling
+            className: "sticky left-0 z-[49] bg-background", // Tailwind sticky styling
         },
     },
     {
@@ -487,7 +487,7 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
             // )
         },
         meta: {
-            actionClassName: "sticky right-0 z-10 bg-background", // Tailwind sticky styling for actions
+            actionClassName: "sticky right-0 z-[49] bg-background", // Tailwind sticky styling for actions
         },
     },
 ]
