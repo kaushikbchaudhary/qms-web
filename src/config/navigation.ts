@@ -1,114 +1,196 @@
-// config/navigation.ts
+import { roles } from "@/config/roles";
+import type { LucideIcon } from "lucide-react";
+import {
+  ClipboardList,
+  ClipboardPlus,
+  LayoutDashboard,
+  LogIn,
+  LogOut as LogOutIcon,
+  PackagePlus,
+  PackageSearch,
+  Settings,
+  Users,
+} from "lucide-react";
 
-import {roles} from "@/config/roles";
-
-export type NavItem = {
+export type NavLink = {
   title: string;
   href: string;
-  roles?: string[]; // Optional - if not specified, item will be visible to all roles
+  icon?: LucideIcon;
+  roles?: string[];
+  hotkey?: string;
+  requiresAuth?: boolean;
+  hideWhenAuthenticated?: boolean;
+  action?: "logout";
 };
 
-export const mainNav: NavItem[] = [
+export type NavSection = {
+  title: string;
+  items: NavLink[];
+};
+
+export const navSections: NavSection[] = [
   {
-    title: "Home",
-    href: "/",
-    roles:[],
-  },
-  {
-    title: "Admin Dashboard",
-    href: "/admin/dashboard",
-    roles: [roles.SUPER_ADMIN],
-  },
-  {
-    title: "Site Settings",
-    href: "/admin/settings",
-    roles: [roles.SUPER_ADMIN],
-  },
-  {
-    title: "Manage Users",
-    href: "/admin/users",
-    roles: [roles.SUPER_ADMIN],
-  },
-  {
-    title: "Submit Complaint",
-    href: "/dashboard/complaints/new",
-    roles: [roles.SUPPORT, roles.QA, roles.QUALITY_ANALYST_SOFTWARE, roles.QA_HARDWARE, roles.PRODUCTION, roles.ENGINEERING_MAINTENANCE, roles.HARDWARE_FIRMWARE_ENGINEER, roles.REGULATORY_AFFAIRS, roles.SALES_MARKETING, roles.STORE_INVENTORY],
-  },
-  {
-    title: "My Complaints",
-    href: "/dashboard/complaints",
-    roles: [
-      roles.SUPPORT,
-      roles.SUPER_ADMIN,
-      roles.QA,
-      roles.QUALITY_ANALYST_SOFTWARE,
-      roles.QA_HARDWARE,
-      roles.PRODUCTION,
-      roles.ENGINEERING_MAINTENANCE,
-      roles.HARDWARE_FIRMWARE_ENGINEER,
-      roles.REGULATORY_AFFAIRS,
-      roles.SALES_MARKETING,
-      roles.STORE_INVENTORY,
-      roles.AI_ML_TEAM,
+    title: "Workspace",
+    items: [
+      {
+        title: "Home",
+        href: "/",
+        icon: LayoutDashboard,
+      },
+      {
+        title: "Complaints",
+        href: "/dashboard/complaints",
+        icon: ClipboardList,
+        roles: [
+          roles.SUPPORT,
+          roles.SUPER_ADMIN,
+          roles.QA,
+          roles.QUALITY_ANALYST_SOFTWARE,
+          roles.QA_HARDWARE,
+          roles.PRODUCTION,
+          roles.ENGINEERING_MAINTENANCE,
+          roles.HARDWARE_FIRMWARE_ENGINEER,
+          roles.REGULATORY_AFFAIRS,
+          roles.SALES_MARKETING,
+          roles.STORE_INVENTORY,
+          roles.AI_ML_TEAM,
+        ],
+      },
+      {
+        title: "Device Requests",
+        href: "/dashboard/device-material-issues",
+        icon: PackageSearch,
+        roles: [
+          roles.SUPPORT,
+          roles.SALES_MARKETING,
+          roles.SUPER_ADMIN,
+          roles.QA,
+          roles.QUALITY_ANALYST_SOFTWARE,
+          roles.QA_HARDWARE,
+          roles.PRODUCTION,
+          roles.ENGINEERING_MAINTENANCE,
+          roles.HARDWARE_FIRMWARE_ENGINEER,
+          roles.STORE_INVENTORY,
+          roles.REGULATORY_AFFAIRS,
+        ],
+      },
+      {
+        title: "CAPA Records",
+        href: "/dashboard/capa",
+        icon: ClipboardList,
+        roles: [
+          roles.SUPER_ADMIN,
+          roles.SUPPORT,
+          roles.QA,
+          roles.QUALITY_ANALYST_SOFTWARE,
+          roles.QA_HARDWARE,
+          roles.PRODUCTION,
+          roles.REGULATORY_AFFAIRS,
+          roles.ENGINEERING_MAINTENANCE,
+        ],
+      },
     ],
   },
   {
-    title: "Device Requests",
-    href: "/dashboard/device-material-issues",
-    roles: [
-      roles.SUPPORT,
-      roles.SALES_MARKETING,
-      roles.SUPER_ADMIN,
-      roles.QA,
-      roles.QUALITY_ANALYST_SOFTWARE,
-      roles.QA_HARDWARE,
-      roles.PRODUCTION,
-      roles.ENGINEERING_MAINTENANCE,
-      roles.HARDWARE_FIRMWARE_ENGINEER,
-      roles.STORE_INVENTORY,
-      roles.REGULATORY_AFFAIRS,
+    title: "Quick Actions",
+    items: [
+      {
+        title: "New Complaint",
+        href: "/dashboard/complaints/new",
+        icon: ClipboardPlus,
+        roles: [
+          roles.SUPPORT,
+          roles.QA,
+          roles.QUALITY_ANALYST_SOFTWARE,
+          roles.QA_HARDWARE,
+          roles.PRODUCTION,
+          roles.ENGINEERING_MAINTENANCE,
+          roles.HARDWARE_FIRMWARE_ENGINEER,
+          roles.REGULATORY_AFFAIRS,
+          roles.SALES_MARKETING,
+          roles.STORE_INVENTORY,
+        ],
+        hotkey: "N",
+      },
+      {
+        title: "New CAPA",
+        href: "/dashboard/capa/new",
+        icon: ClipboardPlus,
+        roles: [
+          roles.SUPER_ADMIN,
+          roles.SUPPORT,
+          roles.QA,
+          roles.QUALITY_ANALYST_SOFTWARE,
+          roles.QA_HARDWARE,
+          roles.PRODUCTION,
+          roles.REGULATORY_AFFAIRS,
+          roles.ENGINEERING_MAINTENANCE,
+        ],
+        hotkey: "C",
+      },
+      {
+        title: "New Device Request",
+        href: "/dashboard/device-material-issues/new",
+        icon: PackagePlus,
+        roles: [
+          roles.HARDWARE_FIRMWARE_ENGINEER,
+          roles.AI_ML_TEAM,
+          roles.ENGINEERING_MAINTENANCE,
+          roles.STORE_INVENTORY,
+          roles.REGULATORY_AFFAIRS,
+          roles.SUPPORT,
+          roles.SALES_MARKETING,
+          roles.SUPER_ADMIN,
+          roles.QA,
+          roles.QUALITY_ANALYST_SOFTWARE,
+          roles.QA_HARDWARE,
+          roles.PRODUCTION,
+        ],
+        hotkey: "D",
+      },
     ],
   },
   {
-    title: "CAPA Records",
-    href: "/dashboard/capa",
-    roles: [
-      roles.SUPER_ADMIN,
-      roles.SUPPORT,
-      roles.QA,
-      roles.QUALITY_ANALYST_SOFTWARE,
-      roles.QA_HARDWARE,
-      roles.PRODUCTION,
-      roles.REGULATORY_AFFAIRS,
-      roles.ENGINEERING_MAINTENANCE,
+    title: "Administration",
+    items: [
+      {
+        title: "Admin Dashboard",
+        href: "/admin/dashboard",
+        icon: LayoutDashboard,
+        roles: [roles.SUPER_ADMIN],
+      },
+      {
+        title: "Site Settings",
+        href: "/admin/settings",
+        icon: Settings,
+        roles: [roles.SUPER_ADMIN],
+      },
+      {
+        title: "Manage Users",
+        href: "/admin/users",
+        icon: Users,
+        roles: [roles.SUPER_ADMIN],
+      },
     ],
   },
   {
-    title: "Create CAPA",
-    href: "/dashboard/capa/new",
-    roles: [
-      roles.SUPER_ADMIN,
-      roles.SUPPORT,
-      roles.QA,
-      roles.QUALITY_ANALYST_SOFTWARE,
-      roles.QA_HARDWARE,
-      roles.PRODUCTION,
-      roles.REGULATORY_AFFAIRS,
-      roles.ENGINEERING_MAINTENANCE,
+    title: "Access",
+    items: [
+      {
+        title: "Login",
+        href: "/auth/login",
+        icon: LogIn,
+        hideWhenAuthenticated: true,
+      },
+      {
+        title: "Logout",
+        href: "#logout",
+        icon: LogOutIcon,
+        requiresAuth: true,
+        action: "logout",
+      },
     ],
-  },
-  {
-    title: "New Device Request",
-    href: "/dashboard/device-material-issues/new",
-    roles: [roles.HARDWARE_FIRMWARE_ENGINEER,roles.AI_ML_TEAM,roles.ENGINEERING_MAINTENANCE,roles.ENGINEERING_MAINTENANCE,roles.STORE_INVENTORY,roles.REGULATORY_AFFAIRS,roles.HARDWARE_FIRMWARE_ENGINEER,roles.HARDWARE,roles.SUPPORT, roles.SALES_MARKETING, roles.SUPER_ADMIN, roles.QA, roles.QUALITY_ANALYST_SOFTWARE, roles.QA_HARDWARE, roles.PRODUCTION,roles.ENGINEERING_MAINTENANCE],
-  },
-  // {
-  //   title: "Profile",
-  //   href: "/profile",
-  //   roles: [roles.SUPER_ADMIN, roles.SUPPORT, roles.QA, roles.PRODUCTION],
-  // },
-  {
-    title: "Login",
-    href: "/auth/login",
   },
 ];
+
+export const flatNavLinks: NavLink[] = navSections.flatMap((section) => section.items);

@@ -3,8 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import '../styles/file-upload.component.css'
 import { ThemeProvider } from '@/providers/theme-provider'
-import { Header } from '@/components/layout/header'
-import { Footer } from '@/components/layout/footer'
+import { AppShell } from '@/components/layout/app-shell'
 import {QueryProvider} from "@/providers/query-provider";
 import {Toaster} from "@/components/ui/sonner";
 import AuthInitializer from "@/providers/AuthInitializer";
@@ -33,14 +32,14 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div className="flex flex-col min-h-screen px-2 mx-auto">
-              <Header />
-              <main className="flex-1 container py-8 mx-auto">
-                <AuthInitializer />
-                {children}
-                <Toaster position={'top-right'} duration={3000} closeButton={true} theme={'system'}/>
-              </main>
-              <Footer />
+            <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col px-3 py-4">
+              <AppShell>
+                <>
+                  <AuthInitializer />
+                  {children}
+                </>
+              </AppShell>
+              <Toaster position={'top-right'} duration={3000} closeButton={true} theme={'system'}/>
             </div>
           </ThemeProvider>
         </SocketProvider>

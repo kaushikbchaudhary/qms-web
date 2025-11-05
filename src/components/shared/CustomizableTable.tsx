@@ -278,7 +278,7 @@ export default function CustomizableTable<TData, TValue>({
 
     // Default loading component
     const defaultLoadingComponent = (
-        <div className="space-y-2 w-screen container">
+        <div className="space-y-2 w-full">
             {Array.from({ length: actualPagination.pageSize }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
             ))}
@@ -304,7 +304,7 @@ export default function CustomizableTable<TData, TValue>({
     )
 
     return (
-        <div className="w-screen container space-y-4">
+        <div className="w-full space-y-4">
             {/* Filter and column visibility controls */}
             <div className="flex items-center justify-between gap-4">
                 {/*{filterComponent || (*/}
@@ -347,7 +347,7 @@ export default function CustomizableTable<TData, TValue>({
             </div>
 
             {/* Table */}
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
                 {isLoading ? (
                     loadingComponent || defaultLoadingComponent
                 ) : (

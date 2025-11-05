@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -14,12 +14,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ModeToggle from '@/components/ui/mode-toggle';
-import { mainNav, NavItem } from "@/config/navigation";
 import { useLogout } from "@/hooks/api/useAuth";
 import { useAuthStore } from "@/stores/authStore";
 import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead } from '@/hooks/api/useNotifications';
 import { formatRoleLabel } from '@/config/roles';
-import { User, LogOut, Settings, Shield, Bell } from 'lucide-react';
+import { User, LogOut, Bell } from 'lucide-react';
 import { cn, formatDateTime } from '@/lib/utils';
 
 export function Header() {
@@ -45,19 +44,7 @@ export function Header() {
     setIsReady(true);
   }, []);
 
-  const filteredNavItems = useMemo<NavItem[]>(() => {
-    return mainNav.filter((navItem) => {
-      if (currentPath === '/auth/login') return navItem.href === '/auth/login';
-      if (navItem.href === '/auth/login') return false;
-      if (!navItem.roles) return true;
-      if (!user?.role?.[0]) return false;
-      return navItem.roles.includes(user.role[0]);
-    });
-  }, [currentPath, user]);
-
   const showAuthSection = isReady && !!user && currentPath !== '/auth/login';
-
-  const isActive = (href: string) => currentPath === href;
 
   // Generate user initials for avatar
   const getUserInitials = (user: any) => {
@@ -96,11 +83,11 @@ export function Header() {
   if (!isReady) {
     // Render minimal static header during SSR and initial hydration
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/90 backdrop-blur">
+          <div className="flex h-16 items-center justify-between px-6 sm:px-8">
             <Link
                 href="/"
-                className="flex items-center space-x-2 font-bold text-lg hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-lg font-semibold transition-colors hover:text-primary"
             >
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">Q</span>
@@ -114,13 +101,13 @@ export function Header() {
   }
 
   return (
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/90 backdrop-blur">
+        <div className="flex h-16 items-center justify-between px-6 sm:px-8">
           {/* Logo Section */}
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center gap-4">
             <Link
                 href="/"
-                className="flex items-center space-x-2 font-bold text-lg hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-lg font-semibold transition-colors hover:text-primary"
             >
               {/*<div className="h-8 w-9 rounded-lg bg-primary flex items-center justify-center">*/}
               {/*  <span className="text-primary-foreground font-bold text-sm">Q</span>*/}
@@ -135,7 +122,7 @@ export function Header() {
 
 
           {/* Right Section */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
@@ -240,47 +227,7 @@ export function Header() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            {/* Navigation Links */}
-            <nav className="hidden md:flex items-center space-x-1">
-              {filteredNavItems.map((navItem) => (
-                  <Link
-                      key={navItem.href}
-                      href={navItem.href}
-                      className={cn(
-                          "px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 relative",
-                          isActive(navItem.href)
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              :
-                              "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      )}
-                  >
-                    {navItem.title}
-                    {/*{isActive(navItem.href) && (*/}
-                    {/*    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />*/}
-                    {/*)}*/}
-                  </Link>
-              ))}
-            </nav>
             <ModeToggle />
-            {/* Mobile Navigation */}
-            <div className="md:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    Menu
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {filteredNavItems.map((navItem) => (
-                      <DropdownMenuItem key={navItem.href} asChild>
-                        <Link href={navItem.href} className="w-full">
-                          {navItem.title}
-                        </Link>
-                      </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
 
             {/* Profile Section */}
             {showAuthSection && user && (
@@ -367,8 +314,7 @@ export function Header() {
                 </div>
             )}
 
-            {/* Mode Toggle */}
-            {/*<ModeToggle />*/}
+            {/* Mode Toggle already rendered */}
           </div>
         </div>
       </header>
