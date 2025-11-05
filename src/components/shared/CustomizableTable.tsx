@@ -347,8 +347,8 @@ export default function CustomizableTable<TData, TValue>({
             </div>
 
             {/* Table */}
-            <div className="overflow-hidden rounded-md border">
-                <div className="overflow-x-auto">
+            <div className="w-full overflow-hidden rounded-md border">
+                <div className="w-full overflow-x-auto">
                     {isLoading ? (
                         loadingComponent || defaultLoadingComponent
                     ) : (
