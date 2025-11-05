@@ -75,6 +75,12 @@ export function Header({
   }, []);
 
   const showAuthSection = isReady && !!user && currentPath !== '/auth/login';
+  const confirmAndLogout = () => {
+    if (logoutMutation.isPending) return;
+    if (window.confirm('Are you sure you want to log out?')) {
+      logoutMutation.mutate();
+    }
+  };
 
   // Generate user initials for avatar
   const getUserInitials = (user: any) => {
@@ -411,7 +417,7 @@ export function Header({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-red-600 focus:text-red-600"
-                    onClick={() => logoutMutation.mutate()}
+                    onClick={confirmAndLogout}
                     disabled={logoutMutation.isPending}
                   >
                     <LogOut className="mr-2 h-4 w-4" />

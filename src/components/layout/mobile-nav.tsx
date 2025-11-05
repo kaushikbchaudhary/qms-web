@@ -23,6 +23,13 @@ export function MobileNav() {
     setIsOpen(false);
   }, [pathname]);
 
+  const confirmAndLogout = () => {
+    if (logoutMutation.isPending) return;
+    if (window.confirm("Are you sure you want to log out?")) {
+      logoutMutation.mutate();
+    }
+  };
+
   const links = useMemo(
     () =>
       navSections
@@ -92,7 +99,7 @@ export function MobileNav() {
                   <button
                     key={link.title}
                     type="button"
-                    onClick={() => logoutMutation.mutate()}
+                    onClick={confirmAndLogout}
                     disabled={logoutMutation.isPending}
                     className={cn(
                       "flex flex-col items-center gap-1 text-xs",

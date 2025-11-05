@@ -36,6 +36,13 @@ export function AppShell({ children }: AppShellProps) {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const previousSidebarState = useRef(false);
 
+  const confirmAndLogout = () => {
+    if (logoutMutation.isPending) return;
+    if (window.confirm("Are you sure you want to log out?")) {
+      logoutMutation.mutate();
+    }
+  };
+
   const handleToggleSidebar = () => {
     setSidebarCollapsed((prev) => {
       if (isFocusMode && prev) {
@@ -129,7 +136,7 @@ export function AppShell({ children }: AppShellProps) {
                           <button
                             key={link.title}
                             type="button"
-                            onClick={() => logoutMutation.mutate()}
+                            onClick={confirmAndLogout}
                             disabled={logoutMutation.isPending}
                             className={cn(
                               "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
