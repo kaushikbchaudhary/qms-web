@@ -73,46 +73,66 @@ export function TooltipTrigger({
   asChild,
 }: TooltipTriggerProps): React.ReactElement {
   const { setOpen, delayDuration } = useTooltipContext("TooltipTrigger");
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleOpen = React.useCallback(() => {
-    clearTimeout(timeoutRef.current);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     timeoutRef.current = setTimeout(() => setOpen(true), delayDuration);
   }, [delayDuration, setOpen]);
 
   const handleClose = React.useCallback(() => {
-    clearTimeout(timeoutRef.current);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     setOpen(false);
   }, [setOpen]);
 
   React.useEffect(() => {
     return () => {
-      clearTimeout(timeoutRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, []);
 
+  const childProps = children.props as Record<string, unknown>;
+
   const triggerProps = {
     onMouseEnter: (event: React.MouseEvent) => {
-      children.props.onMouseEnter?.(event);
+      if (typeof childProps.onMouseEnter === "function") {
+        (childProps.onMouseEnter as (event: React.MouseEvent) => void)(event);
+      }
       handleOpen();
     },
     onMouseLeave: (event: React.MouseEvent) => {
-      children.props.onMouseLeave?.(event);
+      if (typeof childProps.onMouseLeave === "function") {
+        (childProps.onMouseLeave as (event: React.MouseEvent) => void)(event);
+      }
       handleClose();
     },
     onFocus: (event: React.FocusEvent) => {
-      children.props.onFocus?.(event);
+      if (typeof childProps.onFocus === "function") {
+        (childProps.onFocus as (event: React.FocusEvent) => void)(event);
+      }
       handleOpen();
     },
     onBlur: (event: React.FocusEvent) => {
-      children.props.onBlur?.(event);
+      if (typeof childProps.onBlur === "function") {
+        (childProps.onBlur as (event: React.FocusEvent) => void)(event);
+      }
       handleClose();
     },
     onClick: (event: React.MouseEvent) => {
-      children.props.onClick?.(event);
+      if (typeof childProps.onClick === "function") {
+        (childProps.onClick as (event: React.MouseEvent) => void)(event);
+      }
       handleClose();
     },
-    "aria-describedby": children.props["aria-describedby"],
+    "aria-describedby": childProps["aria-describedby"] as string | undefined,
   };
 
   if (asChild) {

@@ -140,7 +140,9 @@ const OTPVerification = ({
         {otp.map((digit, index) => (
           <Input
             key={index}
-            ref={(element) => (inputRefs.current[index] = element)}
+            ref={(element) => {
+              inputRefs.current[index] = element;
+            }}
             value={digit}
             maxLength={1}
             inputMode="numeric"
