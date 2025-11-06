@@ -3,6 +3,7 @@ export interface CapaSummary {
   initiationDate: string;
   sourceOfNonConformance?: string | null;
   description?: string | null;
+  capaActionCompletionDate?: string | null;
   remarks?: string | null;
   correction?: string | null;
   correctiveAction?: string | null;
@@ -18,6 +19,7 @@ export interface CapaSummary {
 
 export interface CreateCapaPayload {
   capaInitiationDate: string;
+  capaActionCompletionDate?: string;
   sourceOfNonConformance?: string;
   description?: string;
   isRepeated?: boolean;

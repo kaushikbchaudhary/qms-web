@@ -18,6 +18,7 @@ const requiredTrimmedString = (label: string) =>
 export const capaFormSchema = z
   .object({
     capaInitiationDate: z.date(),
+    capaActionCompletionDate: z.date().optional(),
     sourceOfNonConformance: optionalTrimmedString,
     description: optionalTrimmedString,
     isRepeated: z.boolean().default(false),

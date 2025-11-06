@@ -26,6 +26,7 @@ export function CapaForm() {
     resolver: zodResolver(capaFormSchema) as Resolver<CapaFormValues>,
     defaultValues: {
       capaInitiationDate: new Date(),
+      capaActionCompletionDate: undefined,
       isRepeated: false,
       proceedToCapa: true,
       createdBy: {
@@ -42,6 +43,7 @@ export function CapaForm() {
   const handleSubmit = async (values: CapaFormValues) => {
     const payload: CreateCapaPayload = {
       capaInitiationDate: values.capaInitiationDate.toISOString(),
+      capaActionCompletionDate: values.capaActionCompletionDate?.toISOString(),
       sourceOfNonConformance: values.sourceOfNonConformance,
       description: values.description,
       isRepeated: values.isRepeated,
@@ -62,6 +64,7 @@ export function CapaForm() {
       setResult(response);
       form.reset({
         capaInitiationDate: new Date(),
+        capaActionCompletionDate: undefined,
         sourceOfNonConformance: undefined,
         description: undefined,
         isRepeated: false,
@@ -109,38 +112,73 @@ export function CapaForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="capaInitiationDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>CAPA Initiation Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className="flex w-full justify-start gap-2 truncate"
-                      >
-                        {field.value ? format(field.value, "PPP") : "Select a date"}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                      disabled={(date) => date > new Date()}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid gap-6 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="capaInitiationDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>CAPA Initiation Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className="flex w-full justify-start gap-2 truncate"
+                        >
+                          {field.value ? format(field.value, "PPP") : "Select a date"}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                        disabled={(date) => date > new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="capaActionCompletionDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>CAPA Action Completion Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className="flex w-full justify-start gap-2 truncate"
+                        >
+                          {field.value ? format(field.value, "PPP") : "Select a date"}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => field.onChange(date ?? undefined)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">Track Page 2 completion once CAPA actions close.</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             <FormField
@@ -185,7 +223,7 @@ export function CapaForm() {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description</FormLabel>
+                <FormLabel>Description of Non-Conformity</FormLabel>
                 <FormControl>
                     <Textarea
                       {...field}
@@ -205,7 +243,7 @@ export function CapaForm() {
               name="remarks"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Remarks</FormLabel>
+                  <FormLabel>Remarks (if any)</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
