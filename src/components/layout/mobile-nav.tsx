@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navSections } from "@/config/navigation";
@@ -18,6 +18,7 @@ export function MobileNav() {
   const isAuthenticated = !!user;
   const logoutMutation = useLogout();
   const [isOpen, setIsOpen] = useState(false);
+  const navTrayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsOpen(false);
@@ -26,9 +27,27 @@ export function MobileNav() {
   const confirmAndLogout = () => {
     if (logoutMutation.isPending) return;
     if (window.confirm("Are you sure you want to log out?")) {
+      triggerHaptic();
       logoutMutation.mutate();
     }
   };
+
+  const triggerHaptic = () => {
+    if (typeof window === "undefined") return;
+    if (navigator?.vibrate) {
+      try {
+        navigator.vibrate(20);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || !navTrayRef.current) return;
+    const activeEl = navTrayRef.current.querySelector<HTMLElement>("[data-active='true']");
+    activeEl?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [isOpen, pathname]);
 
   const links = useMemo(
     () =>
@@ -69,7 +88,10 @@ export function MobileNav() {
             type="button"
             aria-expanded={isOpen}
             aria-controls="mobile-nav-tray"
-            onClick={() => setIsOpen((prev) => !prev)}
+            onClick={() => {
+              triggerHaptic();
+              setIsOpen((prev) => !prev);
+            }}
             className="pointer-events-auto flex items-center justify-center rounded-full border border-border/60 bg-background/95 p-3 shadow-lg backdrop-blur transition hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {isOpen ? (
@@ -81,6 +103,7 @@ export function MobileNav() {
 
           <div
             id="mobile-nav-tray"
+            ref={navTrayRef}
             className={cn(
               "pointer-events-auto w-full overflow-hidden rounded-3xl border border-border/40 bg-background/95 shadow-xl backdrop-blur transition-all duration-300",
               isOpen
@@ -88,11 +111,11 @@ export function MobileNav() {
                 : "pointer-events-none -translate-y-2 opacity-0"
             )}
           >
-            <nav className="flex items-end justify-center gap-4 px-4 py-3">
-            {visibleLinks.map((link) => {
-              const Icon = link.icon;
-              const active = pathname === link.href;
-              const isLogout = link.action === "logout";
+            <nav className="flex snap-x snap-mandatory items-end gap-4 overflow-x-auto px-4 py-3 scrollbar-hide">
+              {visibleLinks.map((link) => {
+                const Icon = link.icon;
+                const active = pathname === link.href;
+                const isLogout = link.action === "logout";
 
               if (isLogout) {
                 return (
@@ -102,7 +125,7 @@ export function MobileNav() {
                     onClick={confirmAndLogout}
                     disabled={logoutMutation.isPending}
                     className={cn(
-                      "flex flex-col items-center gap-1 text-xs",
+                      "flex flex-col items-center gap-1 text-xs snap-center",
                       logoutMutation.isPending
                         ? "text-muted-foreground opacity-50"
                         : "text-destructive"
@@ -127,8 +150,10 @@ export function MobileNav() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  data-active={active ? "true" : "false"}
+                  onClick={() => triggerHaptic()}
                   className={cn(
-                    "flex flex-col items-center gap-1 text-xs transition duration-300 ease-out",
+                    "flex snap-center flex-col items-center gap-1 text-xs transition duration-300 ease-out",
                     active
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
