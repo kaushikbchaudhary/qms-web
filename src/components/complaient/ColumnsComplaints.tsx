@@ -15,6 +15,8 @@ import {useState} from "react";
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
 import {ComplaintDetailsDialog} from "@/components/complaient/ComplaintDetailsDialog";
 import {useRouter} from "next/navigation";
+import { cn } from "@/lib/utils";
+import type { ComplaintDeadlines, DeadlineSummary } from "@/lib/api/types/complaints";
 //
 const TruncatedText = ({
                            text,
@@ -124,7 +126,81 @@ export type Complaint = {
         name: string
     }
     attachments: string[]
+    deadlines?: ComplaintDeadlines;
 }
+
+type DeadlineMeta = {
+    label: string;
+    badgeVariant: 'outline' | 'secondary' | 'destructive';
+    message: string;
+    textClass?: string;
+};
+
+const getDeadlineMeta = (deadline?: DeadlineSummary | null): DeadlineMeta => {
+    if (!deadline || !deadline.startDate) {
+        return {
+            label: 'Pending',
+            badgeVariant: 'outline',
+            message: 'Waiting for assignment',
+            textClass: 'text-muted-foreground',
+        };
+    }
+
+    if (deadline.status === 'overdue') {
+        const overdueBy = deadline.overdueBy ?? Math.abs(deadline.workingDaysRemaining ?? 0);
+        return {
+            label: 'Overdue',
+            badgeVariant: 'destructive',
+            message: `${overdueBy} working day(s) overdue`,
+            textClass: 'text-destructive font-semibold',
+        };
+    }
+
+    if (deadline.status === 'due_soon') {
+        const remaining = Math.max(deadline.workingDaysRemaining ?? 0, 0);
+        return {
+            label: 'Due Soon',
+            badgeVariant: 'secondary',
+            message: `${remaining} working day(s) remaining`,
+            textClass: 'text-amber-600 font-medium',
+        };
+    }
+
+    return {
+        label: 'On Track',
+        badgeVariant: 'secondary',
+        message: `${Math.max(deadline.workingDaysRemaining ?? deadline.workingDaysAllotted ?? 0, 0)} working day(s) remaining`,
+        textClass: 'text-muted-foreground',
+    };
+};
+
+const DeadlineRow = ({ label, deadline }: { label: string; deadline?: DeadlineSummary }) => {
+    const meta = getDeadlineMeta(deadline);
+    return (
+        <div className="space-y-0.5">
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <Badge variant={meta.badgeVariant} className="text-[10px] uppercase tracking-wide">
+                    {meta.label}
+                </Badge>
+            </div>
+            <span className={cn('text-[11px] leading-tight', meta.textClass)}>{meta.message}</span>
+        </div>
+    );
+};
+
+const TimelineStatus = ({ deadlines }: { deadlines?: ComplaintDeadlines }) => {
+    if (!deadlines) {
+        return <span className="text-xs text-muted-foreground">SLA data unavailable</span>;
+    }
+
+    return (
+        <div className="space-y-2">
+            <DeadlineRow label="Investigation" deadline={deadlines.investigation} />
+            <DeadlineRow label="Closure" deadline={deadlines.closure} />
+        </div>
+    );
+};
 
 // export const ColumnsComplaints: ColumnDef<Complaint>[] = [
 //     {
@@ -253,7 +329,7 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
             </Link>
         ),
         meta: {
-            className: "sticky left-0 z-[49] bg-background", // Tailwind sticky styling
+            className: "sticky left-0 z-[25] bg-background", // Tailwind sticky styling
         },
     },
     {
@@ -396,6 +472,14 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
         },
     },
     {
+        id: "timeline",
+        header: "Timeline",
+        cell: ({ row }) => (
+            <TimelineStatus deadlines={row.original.deadlines} />
+        ),
+        enableSorting: false,
+    },
+    {
         accessorKey: "customer_impact",
         header: "Customer Impact",
         cell: ({ row }) => {
@@ -487,7 +571,7 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
             // )
         },
         meta: {
-            actionClassName: "sticky right-0 z-[49] bg-background", // Tailwind sticky styling for actions
+            actionClassName: "sticky right-0 z-[25] bg-background", // Tailwind sticky styling for actions
         },
     },
 ]

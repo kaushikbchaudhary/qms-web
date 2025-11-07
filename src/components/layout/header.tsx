@@ -22,6 +22,7 @@ import {
   useMarkNotificationRead,
 } from '@/hooks/api/useNotifications';
 import { formatRoleLabel } from '@/config/roles';
+import type { NotificationItem } from '@/lib/api/endpoints/notifications';
 import {
   User,
   LogOut,
@@ -106,6 +107,42 @@ export function Header({
       manager: 'bg-purple-100 text-purple-800 hover:bg-purple-100',
     };
     return roleColors[role.toLowerCase()] || 'bg-gray-100 text-gray-800 hover:bg-gray-100';
+  };
+
+  const formatNotificationSummary = (notification: NotificationItem) => {
+    switch (notification.type) {
+      case 'COMPLAINT_ASSIGNED':
+        return 'Complaint assigned to you';
+      case 'INVESTIGATION_ASSIGNED':
+        return 'Investigation task assigned';
+      case 'INVESTIGATION_UPDATED':
+        return 'Investigation updated';
+      case 'COMPLAINT_OVERDUE': {
+        const stageLabel = notification.payload?.stage === 'closure' ? 'Closure' : 'Investigation';
+        const overdueBy = notification.payload?.overdueBy;
+        const suffix = overdueBy ? `by ${overdueBy} working day(s).` : 'and needs attention.';
+        return `${stageLabel} timeline overdue ${suffix}`;
+      }
+      case 'INVESTIGATION_OVERDUE': {
+        const overdueBy = notification.payload?.overdueBy;
+        const suffix = overdueBy ? `by ${overdueBy} working day(s).` : 'and needs attention.';
+        return `Investigation timeline overdue ${suffix}`;
+      }
+      default:
+        return 'Complaint update';
+    }
+  };
+
+  const getOverdueBadgeLabel = (notification: NotificationItem) => {
+    if (notification.type === 'INVESTIGATION_OVERDUE') {
+      return 'Investigation Overdue';
+    }
+    if (notification.type === 'COMPLAINT_OVERDUE') {
+      return notification.payload?.stage === 'closure'
+        ? 'Closure Overdue'
+        : 'Investigation Overdue';
+    }
+    return null;
   };
 
   const formatComplaintStatus = (status?: string | null) => {
@@ -307,47 +344,51 @@ export function Header({
               {notificationsLoading ? (
                 <DropdownMenuItem disabled>Loading notifications…</DropdownMenuItem>
               ) : notifications.length ? (
-                notifications.slice(0, 10).map((notification) => (
-                  <DropdownMenuItem
-                    key={notification._id}
-                    onSelect={async (event) => {
-                      event.preventDefault();
-                      await markNotificationRead(notification._id);
-                      if (notification.complaint) {
-                        router.push(`/dashboard/complaints/${notification.complaint}`);
-                      }
-                    }}
-                    className="flex items-start gap-3"
-                  >
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">
-                        {notification.complaintNumber ||
-                          notification.payload?.complaint_number ||
-                          'Complaint update'}
+                notifications.slice(0, 10).map((notification) => {
+                  const summaryText = formatNotificationSummary(notification);
+                  const overdueBadge = getOverdueBadgeLabel(notification);
+
+                  return (
+                    <DropdownMenuItem
+                      key={notification._id}
+                      onSelect={async (event) => {
+                        event.preventDefault();
+                        await markNotificationRead(notification._id);
+                        if (notification.complaint) {
+                          router.push(`/dashboard/complaints/${notification.complaint}`);
+                        }
+                      }}
+                      className="flex items-start gap-3"
+                    >
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">
+                          {notification.complaintNumber ||
+                            notification.payload?.complaint_number ||
+                            'Complaint update'}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>{summaryText}</span>
+                          {overdueBadge && (
+                            <Badge variant="destructive" className="capitalize tracking-tight">
+                              {overdueBadge}
+                            </Badge>
+                          )}
+                          {notification.complaintStatus && (
+                            <Badge variant="outline" className="capitalize tracking-tight">
+                              {formatComplaintStatus(notification.complaintStatus)}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {formatDateTime(notification.created_at)}
+                        </div>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span>
-                          {notification.type === 'COMPLAINT_ASSIGNED'
-                            ? 'Complaint assigned to you'
-                            : notification.type === 'INVESTIGATION_ASSIGNED'
-                              ? 'Investigation task assigned'
-                              : 'Investigation updated'}
-                        </span>
-                        {notification.complaintStatus && (
-                          <Badge variant="outline" className="capitalize tracking-tight">
-                            {formatComplaintStatus(notification.complaintStatus)}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {formatDateTime(notification.created_at)}
-                      </div>
-                    </div>
-                    {!notification.read_at && (
-                      <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
-                    )}
-                  </DropdownMenuItem>
-                ))
+                      {!notification.read_at && (
+                        <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })
               ) : (
                 <DropdownMenuItem disabled>
                   {notificationView === 'pending'

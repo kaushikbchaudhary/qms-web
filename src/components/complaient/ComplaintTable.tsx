@@ -168,6 +168,7 @@ export function ComplaintsTable() {
         assignee_read: assignmentFilter === 'assigned_unread' ? 'unread' : undefined,
         investigator_user: !currentUser ? undefined : (assignmentFilter === 'investigator' || assignmentFilter === 'investigator_unread') ? currentUser._id : undefined,
         investigator_read: assignmentFilter === 'investigator_unread' ? 'unread' : undefined,
+        include_deadlines: true,
     }), [
         pagination.pageSize,
         pagination.pageIndex,

@@ -1,11 +1,27 @@
 import { apiClient } from '../client';
 import { ComplaintStatus } from '@/lib/api/types/complaints';
 
+export type NotificationType =
+  | 'COMPLAINT_ASSIGNED'
+  | 'INVESTIGATION_ASSIGNED'
+  | 'INVESTIGATION_UPDATED'
+  | 'COMPLAINT_OVERDUE'
+  | 'INVESTIGATION_OVERDUE';
+
+export interface NotificationPayload {
+  complaint_number?: string;
+  stage?: 'investigation' | 'closure';
+  overdueBy?: number;
+  dueDate?: string | null;
+  note?: string;
+  [key: string]: any;
+}
+
 export interface NotificationItem {
   _id: string;
-  type: 'COMPLAINT_ASSIGNED' | 'INVESTIGATION_ASSIGNED' | 'INVESTIGATION_UPDATED';
+  type: NotificationType;
   complaint?: string;
-  payload?: Record<string, any>;
+  payload?: NotificationPayload;
   read_at?: string;
   created_at: string;
   updated_at: string;

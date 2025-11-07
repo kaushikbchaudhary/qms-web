@@ -326,6 +326,7 @@ export interface ComplaintQueryParams {
     investigator_user?: string;
     investigator_read?: 'all' | 'unread';
     status?: ComplaintStatus;
+    include_deadlines?: boolean;
 }
 
 export interface ComplaintStats {
