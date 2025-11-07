@@ -112,6 +112,7 @@ export function ComplaintsTable() {
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
     const [pendingCustomRange, setPendingCustomRange] = useState<DateRange | undefined>();
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [timelineFilter, setTimelineFilter] = useState<'all' | 'investigation_overdue' | 'closure_overdue'>('all');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [globalFilterFields] = useState<string[]>([
         "customer.name",
@@ -123,6 +124,7 @@ export function ComplaintsTable() {
     const currentUser = useAuthStore((state) => state.user);
 
     const debouncedGlobalFilterValue = useDebounce(globalFilter, 500); // 500ms delay
+
     const statusFilters = useMemo(() => (
         statusFilter === 'ALL'
             ? []
@@ -155,6 +157,17 @@ export function ComplaintsTable() {
     ), [statusFilters, dateRangeFilters]);
 
     // Prepare query params
+    const timelineParams = useMemo(() => {
+        switch (timelineFilter) {
+            case 'investigation_overdue':
+                return { deadline_stage: 'investigation' as const, deadline_status: 'overdue' as const };
+            case 'closure_overdue':
+                return { deadline_stage: 'closure' as const, deadline_status: 'overdue' as const };
+            default:
+                return {};
+        }
+    }, [timelineFilter]);
+
     const queryParams: ComplaintQueryParams = useMemo(() => ({
         page_size: pagination.pageSize,
         page_index: pagination.pageIndex,
@@ -169,6 +182,7 @@ export function ComplaintsTable() {
         investigator_user: !currentUser ? undefined : (assignmentFilter === 'investigator' || assignmentFilter === 'investigator_unread') ? currentUser._id : undefined,
         investigator_read: assignmentFilter === 'investigator_unread' ? 'unread' : undefined,
         include_deadlines: true,
+        ...timelineParams,
     }), [
         pagination.pageSize,
         pagination.pageIndex,
@@ -178,7 +192,8 @@ export function ComplaintsTable() {
         statusFilter,
         assignmentFilter,
         currentUser,
-        combinedFilters
+        combinedFilters,
+        timelineParams
     ]);
 
     const {data, isLoading,isError, error } = useGetComplaints(queryParams);
@@ -292,16 +307,34 @@ export function ComplaintsTable() {
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3 lg:flex-nowrap lg:justify-end">
-                        <div className="w-full sm:w-56 lg:w-56">
+                        <div className="w-full sm:w-64 lg:w-64">
                             <Select
-                                value={assignmentFilter}
-                                onValueChange={(value) => setAssignmentFilter(value as typeof assignmentFilter)}
+                                value={(() => {
+                                    if (timelineFilter === 'investigation_overdue') return 'timeline_investigation_overdue';
+                                    if (timelineFilter === 'closure_overdue') return 'timeline_closure_overdue';
+                                    return assignmentFilter;
+                                })()}
+                                onValueChange={(value) => {
+                                    if (value === 'timeline_investigation_overdue') {
+                                        setTimelineFilter('investigation_overdue');
+                                        setAssignmentFilter('all');
+                                    } else if (value === 'timeline_closure_overdue') {
+                                        setTimelineFilter('closure_overdue');
+                                        setAssignmentFilter('all');
+                                    } else {
+                                        setTimelineFilter('all');
+                                        setAssignmentFilter(value as typeof assignmentFilter);
+                                    }
+                                    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                                }}
                             >
                                 <SelectTrigger className="w-full" disabled={!currentUser}>
-                                    <SelectValue placeholder="Assignment filter" />
+                                    <SelectValue placeholder="All complaints" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All complaints</SelectItem>
+                                    <SelectItem value="timeline_investigation_overdue">Investigation overdue</SelectItem>
+                                    <SelectItem value="timeline_closure_overdue">Closure overdue</SelectItem>
                                     <SelectItem value="investigator">My investigation tasks</SelectItem>
                                     <SelectItem value="investigator_unread">My unread investigation tasks</SelectItem>
                                 </SelectContent>

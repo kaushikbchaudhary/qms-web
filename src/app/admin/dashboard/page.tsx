@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useComplaintStats } from '@/hooks/api/useComplaints'
 import {
   Card,
@@ -18,8 +19,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, AlertTriangle, Users, ClipboardList, Target, Rocket } from 'lucide-react'
-import { formatDateTime } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Loader2, AlertTriangle, Users, ClipboardList, Target, Rocket, CalendarClock, AlertOctagon } from 'lucide-react'
+import { formatDate, formatDateTime } from '@/lib/utils'
 import { formatRoleLabel } from '@/config/roles'
 
 const formatRoleList = (roleValue: any): string => {
@@ -35,6 +37,7 @@ const valueOrZero = (value?: number) => (typeof value === 'number' ? value : 0)
 
 export default function AdminDashboardPage() {
   const { data, isLoading, isError } = useComplaintStats()
+  const router = useRouter()
 
   const statusCounts = data?.statusCounts ?? {}
   const investigatorAssignmentSummary = data?.assignmentSummary ?? { assigned: 0, unassigned: 0 }
@@ -51,6 +54,29 @@ export default function AdminDashboardPage() {
       percentage: Math.round((valueOrZero(count) / totalComplaints) * 100),
     }))
   }, [statusCounts, totalComplaints])
+
+  const timelineSummary = data?.timelineSummary ?? {
+    investigation: { overdue: 0, dueSoon: 0, onTrack: 0 },
+    closure: { overdue: 0, dueSoon: 0, onTrack: 0 },
+  }
+
+  const overdueAlerts = data?.timelineAlerts?.overdue ?? []
+  const dueSoonAlerts = data?.timelineAlerts?.dueSoon ?? []
+
+  const handleNavigate = (complaintId?: string) => {
+    if (!complaintId) return
+    router.push(`/dashboard/complaints/${complaintId}`)
+  }
+
+  const formatTimelineStatus = (alert: any) => {
+    if (alert.overdueBy && alert.overdueBy > 0) {
+      return `${alert.overdueBy} day(s) overdue`
+    }
+    if (typeof alert.remainingDays === 'number') {
+      return `${alert.remainingDays} day(s) remaining`
+    }
+    return 'No SLA data'
+  }
 
   if (isLoading) {
     return (
@@ -166,6 +192,146 @@ export default function AdminDashboardPage() {
               <span>No investigator assigned</span>
               <Badge variant="destructive">{investigatorAssignmentSummary.unassigned}</Badge>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>Investigation timeline health</CardTitle>
+            <CardDescription>Overdue vs upcoming SLAs</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span>Overdue</span>
+              <Badge variant="destructive">{timelineSummary.investigation.overdue}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Due soon</span>
+              <Badge variant="secondary">{timelineSummary.investigation.dueSoon}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>On track</span>
+              <Badge variant="outline">{timelineSummary.investigation.onTrack}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>Closure timeline health</CardTitle>
+            <CardDescription>Upcoming closure risks</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span>Overdue</span>
+              <Badge variant="destructive">{timelineSummary.closure.overdue}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Due soon</span>
+              <Badge variant="secondary">{timelineSummary.closure.dueSoon}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>On track</span>
+              <Badge variant="outline">{timelineSummary.closure.onTrack}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertOctagon className="h-4 w-4 text-destructive" />
+              Overdue timelines
+            </CardTitle>
+            <CardDescription>Complaints already past their SLA</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {overdueAlerts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No overdue complaints right now.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Complaint</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead>Due date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overdueAlerts.map((alert) => (
+                    <TableRow key={`${alert._id}-${alert.stage}`}>
+                      <TableCell>
+                        <div className="font-medium">{alert.complaint_number || alert._id}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {alert.status.replace(/_/g, ' ').toLowerCase()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">{alert.stage}</Badge>
+                      </TableCell>
+                      <TableCell>{alert.dueDate ? formatDate(alert.dueDate) : '—'}</TableCell>
+                      <TableCell className="text-destructive text-sm">{formatTimelineStatus(alert)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => handleNavigate(alert._id)}>View</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-primary" />
+              Upcoming deadlines
+            </CardTitle>
+            <CardDescription>Complaints approaching their SLA</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {dueSoonAlerts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No complaints nearing deadlines.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Complaint</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead>Due date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dueSoonAlerts.map((alert) => (
+                    <TableRow key={`${alert._id}-${alert.stage}`}> 
+                      <TableCell>
+                        <div className="font-medium">{alert.complaint_number || alert._id}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {alert.status.replace(/_/g, ' ').toLowerCase()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">{alert.stage}</Badge>
+                      </TableCell>
+                      <TableCell>{alert.dueDate ? formatDate(alert.dueDate) : '—'}</TableCell>
+                      <TableCell className="text-sm">{formatTimelineStatus(alert)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => handleNavigate(alert._id)}>View</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

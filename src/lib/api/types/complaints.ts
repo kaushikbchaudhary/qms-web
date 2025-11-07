@@ -327,6 +327,8 @@ export interface ComplaintQueryParams {
     investigator_read?: 'all' | 'unread';
     status?: ComplaintStatus;
     include_deadlines?: boolean;
+    deadline_stage?: 'investigation' | 'closure';
+    deadline_status?: 'overdue' | 'due_soon' | 'on_track' | 'not_started';
 }
 
 export interface ComplaintStats {
@@ -358,6 +360,30 @@ export interface ComplaintStats {
             company?: string;
         };
     }>;
+    timelineSummary?: {
+        investigation: TimelineStageSummary;
+        closure: TimelineStageSummary;
+    };
+    timelineAlerts?: {
+        overdue: TimelineAlert[];
+        dueSoon: TimelineAlert[];
+    };
+}
+
+export interface TimelineStageSummary {
+    overdue: number;
+    dueSoon: number;
+    onTrack: number;
+}
+
+export interface TimelineAlert {
+    _id: string;
+    complaint_number?: string;
+    status: ComplaintStatus;
+    stage: 'investigation' | 'closure';
+    dueDate: string | null;
+    overdueBy?: number | null;
+    remainingDays?: number | null;
 }
 // types/upload.ts
 export interface FileUploadResponse {
