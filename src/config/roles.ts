@@ -18,6 +18,8 @@ export enum roles {
     SALES_MARKETING = 'sales-marketing',
 }
 
+export type UserRole = roles;
+
 export const ROLE_LABELS: Record<roles, string> = {
     [roles.SUPER_ADMIN]: 'Super Admin',
     [roles.SUPPORT]: 'Support',

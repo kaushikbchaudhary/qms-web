@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
 // import { useToast } from "@/components/ui/use-toast";
-import {roles as role} from "@/config/roles";
+import {ROLE_LABELS, roles as role} from "@/config/roles";
 // import {toast} from "sonner";
 import {userFormSchema, UserFormValues} from "@/components/users/schemas/user";
 import {Loader2, Upload, Eraser} from "lucide-react";
@@ -244,7 +244,7 @@ export function UserForm({
                                     selected={field.value}
                                     options={Object.values(role).map((r) => ({
                                         value: r,
-                                        label: r.replace("-", " "),
+                                        label: ROLE_LABELS[r as role] ?? r.replace(/[-_]/g, " "),
                                     }))}
                                     {...field}
                                     className="w-full"
