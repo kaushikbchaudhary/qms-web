@@ -6,14 +6,14 @@ import { useAuthStore } from '@/stores/authStore';
 // Your existing client (unchanged)
 const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    timeout: 10000,
+    timeout: 1000000,
     withCredentials: true,
 });
 
 // New client specifically for file downloads
 const apiFileClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    timeout: 10000,
+    timeout: 100000,
     responseType: 'blob',
     withCredentials: true,
 });

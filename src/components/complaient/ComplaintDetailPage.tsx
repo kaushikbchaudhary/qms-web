@@ -206,7 +206,7 @@ const ComplaintDetailPage = (params:Props) => {
             canEdit: ['investigation', 'customer_communication'],
             label: 'Software Team'
         },
-        [roles.HARDWARE]: {
+        [roles.DESIGN_DEVELOPMENT]: {
             canTransitionTo: {
                 [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
                 [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
@@ -215,7 +215,40 @@ const ComplaintDetailPage = (params:Props) => {
                 [COMPLAINT_STATUS.CLOSED]: []
             },
             canEdit: ['investigation', 'customer_communication'],
-            label: 'Hardware Team'
+            label: 'Design & Development Team'
+        },
+        [roles.DEVOPS]: {
+            canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
+            },
+            canEdit: ['investigation', 'customer_communication'],
+            label: 'DevOps Team'
+        },
+        [roles.CLINICAL_RESEARCH]: {
+            canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
+            },
+            canEdit: ['investigation', 'customer_communication'],
+            label: 'Clinical Research Team'
+        },
+        [roles.EMBEDDED_HARDWARE_FIRMWARE]: {
+            canTransitionTo: {
+                [COMPLAINT_STATUS.SUBMITTED]: [COMPLAINT_STATUS.UNDER_INVESTIGATION],
+                [COMPLAINT_STATUS.UNDER_INVESTIGATION]: [COMPLAINT_STATUS.RESOLVED],
+                [COMPLAINT_STATUS.RESOLVED]: [],
+                [COMPLAINT_STATUS.REJECTED]: [],
+                [COMPLAINT_STATUS.CLOSED]: []
+            },
+            canEdit: ['investigation', 'customer_communication'],
+            label: 'Embedded Hardware & Firmware Team'
         },
         [roles.AI_ML_TEAM]: {
             canTransitionTo: {

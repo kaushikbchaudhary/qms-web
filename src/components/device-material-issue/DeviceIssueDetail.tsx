@@ -102,7 +102,7 @@ const STATUS_MANAGER_ROLES = [
   // roles.QA_HARDWARE,
   // roles.PRODUCTION,
   // roles.ENGINEERING_MAINTENANCE,
-  // roles.HARDWARE_FIRMWARE_ENGINEER,
+  // roles.EMBEDDED_HARDWARE_FIRMWARE,
 ];
 
 export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
