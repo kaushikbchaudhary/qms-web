@@ -18,6 +18,14 @@ export enum roles {
     SALES_MARKETING = 'sales-marketing',
 }
 
+export const allRoles = Object.values(roles);
+
+
+
+export const isValidRole = (value: string): value is roles => {
+    return allRoles.includes(value as roles);
+};
+
 export type UserRole = roles;
 
 export const ROLE_LABELS: Record<roles, string> = {
@@ -139,5 +147,3 @@ export const formatRoleLabel = (value?: string | null): string => {
             .replace(/\b\w/g, (char) => char.toUpperCase())
     );
 };
-
-export const allRoles: roles[] = Object.values(roles) as roles[];

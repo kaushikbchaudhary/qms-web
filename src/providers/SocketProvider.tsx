@@ -20,8 +20,9 @@ export function SocketProvider({ children }: SocketProviderProps) {
             return;
         }
 
-        const handleNotification = () => {
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        const handleNotification = async () => {
+            await queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false });
+            await queryClient.refetchQueries({ queryKey: ['notifications'], exact: false, type: 'active' });
         };
 
         const handleComplaintChange = (payload?: { complaintId?: string }) => {
