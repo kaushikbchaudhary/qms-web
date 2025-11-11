@@ -25,7 +25,6 @@ export const useNotifications = (
   return useQuery<NotificationItem[]>({
     queryKey: ['notifications', queryFilters.status, queryFilters.scope, queryFilters.limit ?? null],
     queryFn: () => notificationsApi.getNotifications(queryFilters),
-    refetchInterval: 60_000,
     enabled: options?.enabled ?? true
   });
 };
