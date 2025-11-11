@@ -37,6 +37,14 @@ export function SocketProvider({ children }: SocketProviderProps) {
             console.error('Socket connection error:', error.message);
         };
 
+        const handleDeviceIssueChange = (payload?: { requestId?: string }) => {
+            queryClient.invalidateQueries({ queryKey: ['device-material-issues'] });
+            queryClient.invalidateQueries({ queryKey: ['device-material-issues', 'queue', 'next'] });
+            if (payload?.requestId) {
+                queryClient.invalidateQueries({ queryKey: ['device-material-issue', payload.requestId] });
+            }
+        };
+
         let activeSocket = getSocket();
 
         const detachListeners = (socket: ReturnType<typeof initializeSocket>) => {
@@ -44,6 +52,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.off('notification:new', handleNotification);
             socket.off('complaint:created', handleComplaintChange);
             socket.off('complaint:updated', handleComplaintChange);
+            socket.off('device-issue:updated', handleDeviceIssueChange);
+            socket.off('device-issue:status-changed', handleDeviceIssueChange);
             socket.off('socket:disabled', handleSocketDisabled);
             socket.off('connect_error', handleConnectError);
         };
@@ -53,6 +63,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.on('notification:new', handleNotification);
             socket.on('complaint:created', handleComplaintChange);
             socket.on('complaint:updated', handleComplaintChange);
+            socket.on('device-issue:updated', handleDeviceIssueChange);
+            socket.on('device-issue:status-changed', handleDeviceIssueChange);
             socket.on('socket:disabled', handleSocketDisabled);
             socket.on('connect_error', handleConnectError);
         };
