@@ -117,6 +117,36 @@ export function Header({
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
+  const getDeviceRequestIdentifier = (notification: NotificationItem) => {
+    const requestNumber = notification.payload?.request_number;
+    if (typeof requestNumber === 'string' && requestNumber.trim().length > 0) {
+      return requestNumber.trim();
+    }
+    return 'Device request';
+  };
+
+  const resolveNotificationTitle = (notification: NotificationItem) => {
+    if (notification.type?.startsWith('DEVICE_REQUEST')) {
+      return getDeviceRequestIdentifier(notification);
+    }
+    return (
+      notification.complaintNumber ||
+      notification.payload?.complaint_number ||
+      'Complaint update'
+    );
+  };
+
+  const getNotificationDestination = (notification: NotificationItem) => {
+    if (notification.complaint) {
+      return `/dashboard/complaints/${notification.complaint}`;
+    }
+    const requestId = notification.payload?.requestId;
+    if (typeof requestId === 'string' && requestId.trim()) {
+      return `/dashboard/device-material-issues/${requestId}`;
+    }
+    return null;
+  };
+
   const formatNotificationSummary = (notification: NotificationItem) => {
     switch (notification.type) {
       case 'COMPLAINT_ASSIGNED':
@@ -137,19 +167,19 @@ export function Header({
         return `Investigation timeline overdue ${suffix}`;
       }
       case 'DEVICE_REQUEST_SUBMITTED': {
-        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        const identifier = getDeviceRequestIdentifier(notification);
         return `${identifier} was submitted`;
       }
       case 'DEVICE_REQUEST_READY_FOR_PICKUP': {
-        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        const identifier = getDeviceRequestIdentifier(notification);
         return `${identifier} is ready for pickup`;
       }
       case 'DEVICE_REQUEST_ISSUED': {
-        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        const identifier = getDeviceRequestIdentifier(notification);
         return `${identifier} has been issued`;
       }
       case 'DEVICE_REQUEST_STATUS_CHANGED': {
-        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        const identifier = getDeviceRequestIdentifier(notification);
         const statusLabel = formatDeviceStatus(notification.payload?.status);
         return `${identifier} status updated to ${statusLabel}`;
       }
@@ -372,6 +402,8 @@ export function Header({
                 notifications.slice(0, 10).map((notification) => {
                   const summaryText = formatNotificationSummary(notification);
                   const overdueBadge = getOverdueBadgeLabel(notification);
+                  const title = resolveNotificationTitle(notification);
+                  const destination = getNotificationDestination(notification);
 
                   return (
                     <DropdownMenuItem
@@ -379,18 +411,14 @@ export function Header({
                       onSelect={async (event) => {
                         event.preventDefault();
                         await markNotificationRead(notification._id);
-                        if (notification.complaint) {
-                          router.push(`/dashboard/complaints/${notification.complaint}`);
+                        if (destination) {
+                          router.push(destination);
                         }
                       }}
                       className="flex items-start gap-3"
                     >
                       <div className="flex-1">
-                        <div className="text-sm font-medium">
-                          {notification.complaintNumber ||
-                            notification.payload?.complaint_number ||
-                            'Complaint update'}
-                        </div>
+                        <div className="text-sm font-medium">{title}</div>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           <span>{summaryText}</span>
                           {overdueBadge && (
