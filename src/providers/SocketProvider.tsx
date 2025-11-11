@@ -24,9 +24,12 @@ export function SocketProvider({ children }: SocketProviderProps) {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         };
 
-        const handleComplaintChange = () => {
+        const handleComplaintChange = (payload?: { complaintId?: string }) => {
             queryClient.invalidateQueries({ queryKey: ['complaints'] });
             queryClient.invalidateQueries({ queryKey: ['complaint-stats'] });
+            if (payload?.complaintId) {
+                queryClient.invalidateQueries({ queryKey: ['complaint', payload.complaintId] });
+            }
         };
 
         const handleSocketDisabled = () => {
@@ -52,8 +55,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.off('notification:new', handleNotification);
             socket.off('complaint:created', handleComplaintChange);
             socket.off('complaint:updated', handleComplaintChange);
+            socket.off('device-issue:created', handleDeviceIssueChange);
             socket.off('device-issue:updated', handleDeviceIssueChange);
             socket.off('device-issue:status-changed', handleDeviceIssueChange);
+            socket.off('device-issue:issued', handleDeviceIssueChange);
             socket.off('socket:disabled', handleSocketDisabled);
             socket.off('connect_error', handleConnectError);
         };
@@ -63,8 +68,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.on('notification:new', handleNotification);
             socket.on('complaint:created', handleComplaintChange);
             socket.on('complaint:updated', handleComplaintChange);
+            socket.on('device-issue:created', handleDeviceIssueChange);
             socket.on('device-issue:updated', handleDeviceIssueChange);
             socket.on('device-issue:status-changed', handleDeviceIssueChange);
+            socket.on('device-issue:issued', handleDeviceIssueChange);
             socket.on('socket:disabled', handleSocketDisabled);
             socket.on('connect_error', handleConnectError);
         };

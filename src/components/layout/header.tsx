@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -68,12 +68,24 @@ export function Header({
     enabled: !!user
   });
   const unreadCount = notifications?.filter((notification) => !notification.read_at).length ?? 0;
+  const previousUnreadRef = useRef(unreadCount);
+  const [isBadgeAnimating, setIsBadgeAnimating] = useState(false);
   const { mutateAsync: markNotificationRead } = useMarkNotificationRead();
   const { mutateAsync: markAllNotificationsRead } = useMarkAllNotificationsRead();
 
   useEffect(() => {
     setIsReady(true);
   }, []);
+
+  useEffect(() => {
+    if (unreadCount > previousUnreadRef.current) {
+      setIsBadgeAnimating(true);
+      const timeout = setTimeout(() => setIsBadgeAnimating(false), 650);
+      previousUnreadRef.current = unreadCount;
+      return () => clearTimeout(timeout);
+    }
+    previousUnreadRef.current = unreadCount;
+  }, [unreadCount]);
 
   const showAuthSection = isReady && !!user && currentPath !== '/auth/login';
   const confirmAndLogout = () => {
@@ -346,7 +358,13 @@ export function Header({
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <Badge variant="destructive" className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center px-1">
+                  <Badge
+                    variant="destructive"
+                    className={cn(
+                      'absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center px-1 transition-transform',
+                      isBadgeAnimating && 'notification-badge-pop'
+                    )}
+                  >
                     {unreadCount}
                   </Badge>
                 )}

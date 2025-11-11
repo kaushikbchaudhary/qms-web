@@ -120,3 +120,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes notification-badge-pulse {
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.25);
+  }
+  40% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  80% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.notification-badge-pop {
+  animation: notification-badge-pulse 0.65s ease;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-badge-pop {
+    animation: none;
+  }
+}
