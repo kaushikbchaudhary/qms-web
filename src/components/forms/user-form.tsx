@@ -177,7 +177,7 @@ export function UserForm({
                                         placeholder="john.doe@example.com"
                                         type="email"
                                         {...field}
-                                        disabled={mode === "edit"}
+                                        // disabled={mode === "edit"}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -201,7 +201,7 @@ export function UserForm({
                                             const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 10);
                                             field.onChange(digitsOnly);
                                         }}
-                                        disabled={mode === "edit"}
+                                        // disabled={mode === "edit"}
                                     />
                                 </FormControl>
                                 <FormMessage />

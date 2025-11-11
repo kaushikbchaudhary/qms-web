@@ -139,3 +139,5 @@ export const formatRoleLabel = (value?: string | null): string => {
             .replace(/\b\w/g, (char) => char.toUpperCase())
     );
 };
+
+export const allRoles: roles[] = Object.values(roles) as roles[];
