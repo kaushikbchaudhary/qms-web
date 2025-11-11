@@ -6,7 +6,11 @@ export type NotificationType =
   | 'INVESTIGATION_ASSIGNED'
   | 'INVESTIGATION_UPDATED'
   | 'COMPLAINT_OVERDUE'
-  | 'INVESTIGATION_OVERDUE';
+  | 'INVESTIGATION_OVERDUE'
+  | 'DEVICE_REQUEST_SUBMITTED'
+  | 'DEVICE_REQUEST_READY_FOR_PICKUP'
+  | 'DEVICE_REQUEST_ISSUED'
+  | 'DEVICE_REQUEST_STATUS_CHANGED';
 
 export interface NotificationPayload {
   complaint_number?: string;
@@ -14,6 +18,10 @@ export interface NotificationPayload {
   overdueBy?: number;
   dueDate?: string | null;
   note?: string;
+  request_number?: string;
+  requestId?: string;
+  status?: string;
+  batch_number?: string;
   [key: string]: any;
 }
 

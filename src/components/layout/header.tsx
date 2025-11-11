@@ -109,6 +109,14 @@ export function Header({
     return roleColors[role.toLowerCase()] || 'bg-gray-100 text-gray-800 hover:bg-gray-100';
   };
 
+  const formatDeviceStatus = (status?: string | null) => {
+    if (!status) return 'Status unknown';
+    return status
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   const formatNotificationSummary = (notification: NotificationItem) => {
     switch (notification.type) {
       case 'COMPLAINT_ASSIGNED':
@@ -127,6 +135,23 @@ export function Header({
         const overdueBy = notification.payload?.overdueBy;
         const suffix = overdueBy ? `by ${overdueBy} working day(s).` : 'and needs attention.';
         return `Investigation timeline overdue ${suffix}`;
+      }
+      case 'DEVICE_REQUEST_SUBMITTED': {
+        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        return `${identifier} was submitted`;
+      }
+      case 'DEVICE_REQUEST_READY_FOR_PICKUP': {
+        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        return `${identifier} is ready for pickup`;
+      }
+      case 'DEVICE_REQUEST_ISSUED': {
+        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        return `${identifier} has been issued`;
+      }
+      case 'DEVICE_REQUEST_STATUS_CHANGED': {
+        const identifier = notification.payload?.request_number ?? notification.payload?.requestId ?? 'Device request';
+        const statusLabel = formatDeviceStatus(notification.payload?.status);
+        return `${identifier} status updated to ${statusLabel}`;
       }
       default:
         return 'Complaint update';
