@@ -17,7 +17,6 @@ export function usePublicSiteConfig() {
             const response = await siteConfigApi.getPublicConfig();
             return {
                 ...response.data,
-                socketServiceEnabled: Boolean(response.data.socketServiceEnabled),
                 complaintSubmissionRequirements:
                     response.data.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
                 investigationRequirements:
@@ -40,7 +39,6 @@ export function useSiteConfig() {
             const data = response.data as SiteConfig;
             return {
                 ...data,
-                socketServiceEnabled: Boolean(data.socketServiceEnabled),
                 complaintSubmissionRequirements:
                     data.complaintSubmissionRequirements ?? DEFAULT_COMPLAINT_SUBMISSION_REQUIREMENTS,
                 investigationRequirements:

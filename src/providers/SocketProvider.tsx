@@ -3,7 +3,6 @@
 import { ReactNode, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { usePublicSiteConfig } from '@/hooks/api/useSiteConfig';
 import { initializeSocket, disconnectSocket, getSocket } from '@/lib/socket/client';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -13,7 +12,6 @@ interface SocketProviderProps {
 
 export function SocketProvider({ children }: SocketProviderProps) {
     const queryClient = useQueryClient();
-    const { data: siteConfig } = usePublicSiteConfig();
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -31,10 +29,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
             if (payload?.complaintId) {
                 queryClient.invalidateQueries({ queryKey: ['complaint', payload.complaintId] });
             }
-        };
-
-        const handleSocketDisabled = () => {
-            disconnectSocket();
         };
 
         const handleConnectError = (error: Error) => {
@@ -60,7 +54,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.off('device-issue:updated', handleDeviceIssueChange);
             socket.off('device-issue:status-changed', handleDeviceIssueChange);
             socket.off('device-issue:issued', handleDeviceIssueChange);
-            socket.off('socket:disabled', handleSocketDisabled);
             socket.off('connect_error', handleConnectError);
         };
 
@@ -73,7 +66,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.on('device-issue:updated', handleDeviceIssueChange);
             socket.on('device-issue:status-changed', handleDeviceIssueChange);
             socket.on('device-issue:issued', handleDeviceIssueChange);
-            socket.on('socket:disabled', handleSocketDisabled);
             socket.on('connect_error', handleConnectError);
         };
 
@@ -87,7 +79,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
         const ensureSocket = () => {
             const authState = useAuthStore.getState();
-            const isReady = Boolean(siteConfig?.socketServiceEnabled && authState.isAuthenticated && authState.user);
+            const isReady = Boolean(authState.isAuthenticated && authState.user);
 
             if (!isReady) {
                 cleanup();
@@ -122,7 +114,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
             unsubscribe();
             cleanup();
         };
-    }, [siteConfig?.socketServiceEnabled, queryClient]);
+    }, [queryClient]);
 
     return <>{children}</>;
 }
