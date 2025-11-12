@@ -7,13 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCreateDeviceMaterialIssue } from '@/hooks/api/useDeviceMaterialIssues';
 import { CreateDeviceMaterialIssuePayload, DeviceMaterialIssuePriority } from '@/lib/api/types/deviceMaterialIssue';
 import { toast } from 'sonner';
 
+const MODEL_NUMBER_OPTIONS = ['OOM 100', 'OOM 7C', 'OOM 12C', 'OOM 12CR'] as const;
+
 const schema = z.object({
   deviceName: z.string().trim().min(1, 'Device or material name is required.'),
-  modelNumber: z.string().trim().optional(),
+  modelNumber: z.enum(MODEL_NUMBER_OPTIONS).optional(),
   purpose: z.string().trim().min(1, 'Purpose is required.'),
   quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1.'),
 });
@@ -28,7 +31,7 @@ export function DeviceMaterialIssueForm() {
     resolver: zodResolver(schema),
     defaultValues: {
       deviceName: '',
-      modelNumber: '',
+      modelNumber: undefined,
       purpose: '',
       quantity: 1,
     },
@@ -80,9 +83,20 @@ export function DeviceMaterialIssueForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Model no. (if applicable)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter model number" {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select model number" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {MODEL_NUMBER_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
