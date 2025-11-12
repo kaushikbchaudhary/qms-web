@@ -38,6 +38,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
         };
 
         const handleComplaintChange = (payload?: { complaintId?: string }) => {
+            console.log('Complaint change received via socket:', payload);
             queryClient.invalidateQueries({ queryKey: ['complaints'] });
             queryClient.invalidateQueries({ queryKey: ['complaint-stats'] });
             if (payload?.complaintId) {
