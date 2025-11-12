@@ -638,13 +638,18 @@ export default function LoginPage() {
     verifyOtp(
       { email: contact, otp: otpCode },
       {
-        onSuccess: (user) => {
-          useAuthStore.getState().login(user.data);
-          const role = user.data.role?.[0];
-          const redirectPath = roleRedirects[role] || "/";
-          setTimeout(() => {
-            window.location.href = redirectPath;
-          }, 100);
+        onSuccess: (response) => {
+          const authData = response?.data ?? {};
+          const resolvedUser = authData.user ?? authData;
+          const token = authData.token;
+          if (resolvedUser) {
+            useAuthStore.getState().login(resolvedUser, token);
+            const role = resolvedUser.role?.[0];
+            const redirectPath = roleRedirects[role] || "/";
+            setTimeout(() => {
+              window.location.href = redirectPath;
+            }, 100);
+          }
         },
       },
     );
@@ -665,11 +670,13 @@ export default function LoginPage() {
         password,
       });
 
-      const userData = response?.data;
+      const authData = response?.data ?? {};
+      const userData = authData.user ?? authData;
+      const token = authData.token;
       if (userData) {
         form.resetField("password");
         setShowPassword(false);
-        useAuthStore.getState().login(userData);
+        useAuthStore.getState().login(userData, token);
         const role = userData.role?.[0];
         const redirectPath = roleRedirects[role] || "/";
         setTimeout(() => {

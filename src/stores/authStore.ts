@@ -1,4 +1,6 @@
 // stores/authStore.ts
+'use client';
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
@@ -16,7 +18,7 @@ export type UserData = {
 type AuthState = {
     user: UserData | null;
     isAuthenticated: boolean;
-    login: (userData: UserData) => void;
+    login: (userData: UserData, token?: string) => void;
     logout: () => void;
 };
 
@@ -25,14 +27,24 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             user: null,
             isAuthenticated: false,
-            login: (userData) => set({
-                user: userData,
-                isAuthenticated: true
-            }),
-            logout: () => set({
-                user: null,
-                isAuthenticated: false
-            }),
+            login: (userData, token) => {
+                if (typeof window !== 'undefined' && token) {
+                    localStorage.setItem('token', token);
+                }
+                set({
+                    user: userData,
+                    isAuthenticated: true
+                });
+            },
+            logout: () => {
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('token');
+                }
+                set({
+                    user: null,
+                    isAuthenticated: false
+                });
+            },
         }),
         {
             name: 'auth-storage', // LocalStorage key

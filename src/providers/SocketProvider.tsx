@@ -13,6 +13,20 @@ interface SocketProviderProps {
 export function SocketProvider({ children }: SocketProviderProps) {
     const queryClient = useQueryClient();
 
+    const resolveAuthToken = () => {
+        if (typeof window === 'undefined') return undefined;
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+            return storedToken;
+        }
+        const cookieMatch = document.cookie.match(/jwt_qms=([^;]+)/);
+        const cookieToken = cookieMatch?.[1];
+        if (cookieToken) {
+            localStorage.setItem('token', cookieToken);
+        }
+        return cookieToken ?? undefined;
+    };
+
     useEffect(() => {
         if (typeof window === 'undefined') {
             return;
@@ -45,6 +59,18 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
         let activeSocket = getSocket();
 
+        const handleConnect = () => {
+            if (process.env.NODE_ENV !== 'production') {
+                console.info('[socket] connected');
+            }
+        };
+
+        const handleDisconnect = (reason: string) => {
+            if (process.env.NODE_ENV !== 'production') {
+                console.info('[socket] disconnected:', reason);
+            }
+        };
+
         const detachListeners = (socket: ReturnType<typeof initializeSocket>) => {
             if (!socket) return;
             socket.off('notification:new', handleNotification);
@@ -55,6 +81,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.off('device-issue:status-changed', handleDeviceIssueChange);
             socket.off('device-issue:issued', handleDeviceIssueChange);
             socket.off('connect_error', handleConnectError);
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
         };
 
         const attachListeners = (socket: ReturnType<typeof initializeSocket>) => {
@@ -67,6 +95,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
             socket.on('device-issue:status-changed', handleDeviceIssueChange);
             socket.on('device-issue:issued', handleDeviceIssueChange);
             socket.on('connect_error', handleConnectError);
+            socket.on('connect', handleConnect);
+            socket.on('disconnect', handleDisconnect);
         };
 
         const cleanup = () => {
@@ -86,7 +116,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
                 return;
             }
 
-            const token = localStorage.getItem('token') ?? undefined;
+            const token = resolveAuthToken();
             const socket = initializeSocket({ token });
             if (!socket) {
                 return;

@@ -19,11 +19,25 @@ const apiFileClient = axios.create({
 });
 
 // Shared request interceptor
+const getAuthToken = () => {
+    if (typeof window === 'undefined') return undefined;
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+        return storedToken;
+    }
+    const cookieMatch = document.cookie.match(/jwt_qms=([^;]+)/);
+    const cookieToken = cookieMatch?.[1];
+    if (cookieToken) {
+        localStorage.setItem('token', cookieToken);
+    }
+    return cookieToken ?? undefined;
+};
+
 const setupInterceptors = ({client, directResponse = false
 }:{client:  AxiosInstance,directResponse?:boolean}) => {
     client.interceptors.request.use(
         (config: any) => {
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
