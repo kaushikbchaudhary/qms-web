@@ -2,7 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query'
 import {toast} from "sonner";
 import {showApiErrorToast} from "@/lib/utils";
 import {authApi} from "@/lib/api/endpoints/auth";
-import {AuthPayload, AuthResponse, PasswordLoginPayload} from "@/lib/api/types/authTypes";
+import {AuthPayload, AuthResponse, PasswordLoginPayload, ForgotPasswordPayload, ResetPasswordPayload} from "@/lib/api/types/authTypes";
 import { useAuthStore } from "@/stores/authStore";
 
 export function useRequestOtp() {
@@ -62,5 +62,27 @@ export function useLogout() {
             }
             return response.data;
         },
+    });
+}
+
+export function useForgotPassword() {
+    return useMutation({
+        mutationFn: (payload: ForgotPasswordPayload) => authApi.forgotPassword(payload),
+        onSuccess: (response) => {
+            toast.success(response.message || 'Password reset email sent');
+        },
+        onError: showApiErrorToast,
+    });
+}
+
+export function useResetPassword() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (payload: ResetPasswordPayload) => authApi.resetPassword(payload),
+        onSuccess: (response) => {
+            toast.success(response.message || 'Password updated');
+            queryClient.invalidateQueries({ queryKey: ['me'] });
+        },
+        onError: showApiErrorToast,
     });
 }

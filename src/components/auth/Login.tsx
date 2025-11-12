@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Controller, UseFormReturn, useForm, useWatch } from "react-hook-form";
 import {
   ArrowLeft,
@@ -422,6 +423,11 @@ const LoginCard = ({
                     Default credentials for new accounts use{" "}
                     <span className="font-semibold tracking-widest">000000</span>.
                   </p>
+                  <div className="text-right text-xs">
+                    <Link href="/auth/forgot-password" className="text-primary hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
                 <Button
                   type="submit"

@@ -1,5 +1,5 @@
 import {apiClient} from '../client';
-import {AuthPayload, AuthResponse, PasswordLoginPayload} from "@/lib/api/types/authTypes";
+import {AuthPayload, AuthResponse, PasswordLoginPayload, ForgotPasswordPayload, ResetPasswordPayload} from "@/lib/api/types/authTypes";
 
 export const authApi = {
     otpRequest: (data: AuthPayload):Promise<AuthResponse> =>
@@ -8,6 +8,10 @@ export const authApi = {
         apiClient.post('api/v1/auth/otp/verify', data),
     loginWithPassword: (data: PasswordLoginPayload):Promise<AuthResponse> =>
         apiClient.post('api/v1/auth/login', data),
+    forgotPassword: (data: ForgotPasswordPayload):Promise<AuthResponse> =>
+        apiClient.post('api/v1/auth/password/forgot', data),
+    resetPassword: (data: ResetPasswordPayload):Promise<AuthResponse> =>
+        apiClient.post('api/v1/auth/password/reset', data),
     logout: ():Promise<AuthResponse> =>
         apiClient.get('/api/v1/auth/logout'),
 };

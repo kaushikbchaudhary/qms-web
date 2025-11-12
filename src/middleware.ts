@@ -5,7 +5,7 @@ import { verifyJwt } from '@/lib/auth/auth';
 import { getRedirectPath, hasAccess, resolveRoleKey } from '@/lib/auth/access';
 import { UserRole } from '@/config/roles';
 
-const PUBLIC_ROUTES = ['/auth/login', '/register', '/about'];
+const PUBLIC_ROUTES = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/register', '/about'];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
