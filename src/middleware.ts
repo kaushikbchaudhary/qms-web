@@ -6,13 +6,16 @@ import { getRedirectPath, hasAccess, resolveRoleKey } from '@/lib/auth/access';
 import { UserRole } from '@/config/roles';
 
 const PUBLIC_ROUTES = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/register', '/about'];
+const PUBLIC_ROUTE_PREFIXES = ['/uploads'];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Allow public routes
-    if (PUBLIC_ROUTES.includes(pathname)) {
-        // return NextResponse.next();
+    if (
+        PUBLIC_ROUTES.includes(pathname) ||
+        PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    ) {
         const response = NextResponse.next();
         response.headers.set('x-middleware-cache', 'no-store');
         return response;
