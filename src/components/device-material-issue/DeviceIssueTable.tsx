@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { endOfMonth, endOfWeek, format, startOfMonth, startOfWeek, subDays } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import { ColumnDef } from '@tanstack/react-table';
 import CustomizableTable, { useTableState } from '@/components/shared/CustomizableTable';
-import { DeviceMaterialIssue, DeviceMaterialIssueQueryParams } from '@/lib/api/types/deviceMaterialIssue';
+import {
+  DeviceMaterialIssue,
+  DeviceMaterialIssueQueryParams,
+} from '@/lib/api/types/deviceMaterialIssue';
 import { useDeviceMaterialIssueList } from '@/hooks/api/useDeviceMaterialIssues';
-import { showApiErrorToast } from '@/lib/utils';
+import { cn, showApiErrorToast } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { CalendarRange, Download } from 'lucide-react';
 import { deviceMaterialIssuesApi } from '@/lib/api/endpoints/deviceMaterialIssues';
 import { useAuthStore } from '@/stores/authStore';
 import { roles } from '@/config/roles';
@@ -24,6 +28,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 const getCustomFieldString = (issue: DeviceMaterialIssue, key: string): string | undefined => {
   const raw = issue.custom_fields?.[key];
@@ -133,6 +139,65 @@ const STATUS_FILTER_CONFIG: Record<
 
 const STORE_ROLE_ALIASES = [roles.STORE_INVENTORY, 'store & inventory'];
 
+type DateFilterKey = 'ALL' | 'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'CUSTOM';
+
+interface DateFilterState {
+  key: DateFilterKey;
+  range?: DateRange;
+}
+
+type DeviceIssueFilter = NonNullable<DeviceMaterialIssueQueryParams['filters']>[number];
+
+const QUICK_DATE_FILTERS: DateFilterKey[] = ['ALL', 'TODAY', 'YESTERDAY', 'THIS_WEEK', 'THIS_MONTH'];
+
+const DATE_FILTER_LABELS: Record<Exclude<DateFilterKey, 'CUSTOM'>, string> = {
+  ALL: 'All requests',
+  TODAY: 'Today',
+  YESTERDAY: 'Yesterday',
+  THIS_WEEK: 'This week',
+  THIS_MONTH: 'This month',
+};
+
+const atStartOfDay = (date: Date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+const getPresetRange = (key: DateFilterKey): DateRange | undefined => {
+  const today = atStartOfDay(new Date());
+
+  switch (key) {
+    case 'TODAY':
+      return { from: today, to: today };
+    case 'YESTERDAY': {
+      const yesterday = atStartOfDay(subDays(today, 1));
+      return { from: yesterday, to: yesterday };
+    }
+    case 'THIS_WEEK': {
+      const from = atStartOfDay(startOfWeek(today, { weekStartsOn: 1 }));
+      const to = atStartOfDay(endOfWeek(today, { weekStartsOn: 1 }));
+      return { from, to };
+    }
+    case 'THIS_MONTH': {
+      const from = atStartOfDay(startOfMonth(today));
+      const to = atStartOfDay(endOfMonth(today));
+      return { from, to };
+    }
+    default:
+      return undefined;
+  }
+};
+
+const formatDateRangeLabel = (range?: DateRange) => {
+  if (!range?.from) {
+    return 'Custom';
+  }
+  const fromLabel = format(range.from, 'MMM d, yyyy');
+  const toLabel = range.to ? format(range.to, 'MMM d, yyyy') : fromLabel;
+  return fromLabel === toLabel ? fromLabel : `${fromLabel} – ${toLabel}`;
+};
+
 export function DeviceIssueTable() {
   const { user } = useAuthStore();
   const userRoles = user?.role ?? [];
@@ -142,10 +207,46 @@ export function DeviceIssueTable() {
 
   const { pagination, setPagination } = useTableState(20);
   const [statusFilter, setStatusFilter] = useState<'SUBMITTED' | 'READY_FOR_PICKUP' | 'ISSUED'>('SUBMITTED');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({ key: 'ALL' });
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
+  const [pendingCustomRange, setPendingCustomRange] = useState<DateRange | undefined>();
   const [isBatchDialogOpen, setBatchDialogOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<DeviceMaterialIssue | null>(null);
   const [batchInput, setBatchInput] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+
+  const dateRangeFilter = useMemo<DeviceIssueFilter | undefined>(() => {
+    if (dateFilter.key === 'ALL' || !dateFilter.range?.from) {
+      return undefined;
+    }
+    const from = atStartOfDay(dateFilter.range.from);
+    const to = atStartOfDay(dateFilter.range.to ?? dateFilter.range.from);
+    return {
+      field: 'progress_metadata.requested_on',
+      operator: 'ltegte',
+      subType: 'date',
+      value: {
+        min: format(from, 'yyyy-MM-dd'),
+        max: format(to, 'yyyy-MM-dd'),
+      },
+    };
+  }, [dateFilter]);
+
+  const combinedFilters = useMemo<DeviceMaterialIssueQueryParams['filters']>(() => {
+    const statusFilters = (STATUS_FILTER_CONFIG[statusFilter].filters ??
+      []) as DeviceIssueFilter[];
+    const filters: DeviceIssueFilter[] = [...statusFilters];
+    if (dateRangeFilter) {
+      filters.push(dateRangeFilter);
+    }
+    return filters.length ? filters : undefined;
+  }, [statusFilter, dateRangeFilter]);
+
+  const dateFilterSignature = useMemo(
+    () =>
+      `${dateFilter.key}-${dateFilter.range?.from?.toISOString() ?? ''}-${dateFilter.range?.to?.toISOString() ?? ''}`,
+    [dateFilter],
+  );
 
   const queryParams: DeviceMaterialIssueQueryParams = useMemo(
     () => ({
@@ -157,11 +258,9 @@ export function DeviceIssueTable() {
         ? { status: STATUS_FILTER_CONFIG[statusFilter].status }
         : {}),
       ...(restrictToSelf ? { requested_by: restrictToSelf } : {}),
-      ...(STATUS_FILTER_CONFIG[statusFilter].filters
-        ? { filters: STATUS_FILTER_CONFIG[statusFilter].filters }
-        : {}),
+      ...(combinedFilters ? { filters: combinedFilters } : {}),
     }),
-    [pagination.pageIndex, pagination.pageSize, statusFilter, isStoreUser, restrictToSelf],
+    [pagination.pageIndex, pagination.pageSize, statusFilter, isStoreUser, restrictToSelf, combinedFilters],
   );
 
   const { data, isLoading, isError, error } = useDeviceMaterialIssueList(queryParams);
@@ -177,7 +276,13 @@ export function DeviceIssueTable() {
       ...prev,
       pageIndex: 0,
     }));
-  }, [setPagination, statusFilter]);
+  }, [setPagination, statusFilter, dateFilterSignature]);
+
+  useEffect(() => {
+    if (isDateFilterOpen) {
+      setPendingCustomRange(dateFilter.key === 'CUSTOM' ? dateFilter.range : undefined);
+    }
+  }, [isDateFilterOpen, dateFilter]);
 
   const queryClient = useQueryClient();
   const storeSignoffMutation = useMutation({
@@ -194,6 +299,41 @@ export function DeviceIssueTable() {
       showApiErrorToast(error);
     },
   });
+
+  const handlePresetSelect = useCallback(
+    (key: DateFilterKey) => {
+      if (key === 'CUSTOM') {
+        setPendingCustomRange(dateFilter.key === 'CUSTOM' ? dateFilter.range : undefined);
+        setDateFilter((prev) => ({
+          key: 'CUSTOM',
+          range: prev.key === 'CUSTOM' ? prev.range : undefined,
+        }));
+        return;
+      }
+      const presetRange = getPresetRange(key);
+      setDateFilter({ key, range: presetRange });
+      setIsDateFilterOpen(false);
+    },
+    [dateFilter.key, dateFilter.range],
+  );
+
+  const handleApplyCustomRange = useCallback(() => {
+    if (!pendingCustomRange?.from) {
+      return;
+    }
+    const from = atStartOfDay(pendingCustomRange.from);
+    const to = pendingCustomRange.to ? atStartOfDay(pendingCustomRange.to) : from;
+    const normalizedRange: DateRange = { from, to };
+    setDateFilter({ key: 'CUSTOM', range: normalizedRange });
+    setPendingCustomRange(normalizedRange);
+    setIsDateFilterOpen(false);
+  }, [pendingCustomRange]);
+
+  const handleClearDateFilter = useCallback(() => {
+    setDateFilter({ key: 'ALL' });
+    setPendingCustomRange(undefined);
+    setIsDateFilterOpen(false);
+  }, []);
 
   const handleExport = useCallback(async () => {
     if (!isSuperAdmin || statusFilter !== 'ISSUED') {
@@ -447,6 +587,12 @@ export function DeviceIssueTable() {
   );
 
   const issues = data?.list ?? [];
+  const dateFilterLabel = useMemo(() => {
+    if (dateFilter.key === 'CUSTOM') {
+      return formatDateRangeLabel(dateFilter.range);
+    }
+    return DATE_FILTER_LABELS[dateFilter.key] ?? 'Custom';
+  }, [dateFilter]);
 
   return (
     <div className="w-full space-y-4">
@@ -463,17 +609,80 @@ export function DeviceIssueTable() {
             </Button>
           ))}
         </div>
-        {isSuperAdmin && statusFilter === 'ISSUED' ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            {isExporting ? 'Preparing…' : 'Download PDF'}
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <CalendarRange className="h-4 w-4" />
+                <span className="text-sm font-medium">{dateFilterLabel}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[420px] p-0">
+              <div className="flex">
+                <div className="flex w-40 flex-col gap-1 border-r p-3">
+                  {QUICK_DATE_FILTERS.map((key) => (
+                    <Button
+                      key={key}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        'justify-start text-sm',
+                        dateFilter.key === key &&
+                          dateFilter.key !== 'CUSTOM' &&
+                          'bg-accent text-accent-foreground',
+                      )}
+                      onClick={() => handlePresetSelect(key)}
+                    >
+                      {DATE_FILTER_LABELS[key]}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      'justify-start text-sm',
+                      dateFilter.key === 'CUSTOM' && 'bg-accent text-accent-foreground',
+                    )}
+                    onClick={() => handlePresetSelect('CUSTOM')}
+                  >
+                    Custom range
+                  </Button>
+                </div>
+                <div className="flex-1 p-3">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    numberOfMonths={2}
+                    selected={pendingCustomRange}
+                    onSelect={setPendingCustomRange}
+                    defaultMonth={pendingCustomRange?.from ?? dateFilter.range?.from ?? new Date()}
+                  />
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={handleClearDateFilter}>
+                      Clear
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleApplyCustomRange}
+                      disabled={!pendingCustomRange?.from}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          {isSuperAdmin && statusFilter === 'ISSUED' ? (
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+              <Download className="mr-2 h-4 w-4" />
+              {isExporting ? 'Preparing…' : 'Download PDF'}
+            </Button>
+          ) : null}
+        </div>
       </div>
       {isStoreUser && statusFilter === 'SUBMITTED' ? (
         <p className="text-xs text-muted-foreground">
