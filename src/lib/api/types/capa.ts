@@ -7,7 +7,8 @@ export interface CapaSummary {
   complaintReference?: string | null;
   description?: string | null;
   capaCategory?: CapaCategory | null;
-  impactsSafetyOrCompliance?: boolean | null;
+  impactsSafetyOrCompliance?: string | null;
+  isRepeated?: string | null;
   capaActionCompletionDate?: string | null;
   effectivenessReviewDueDate?: string | null;
   isCapaClosed?: boolean | null;
@@ -33,8 +34,8 @@ export interface CreateCapaPayload {
   complaintReference?: string;
   description?: string;
   capaCategory?: CapaCategory;
-  impactsSafetyOrCompliance?: boolean;
-  isRepeated?: boolean;
+  impactsSafetyOrCompliance?: string;
+  isRepeated?: string;
   proceedToCapa?: boolean;
   rootCauseAnalysis?: string;
   correction?: string;
@@ -45,10 +46,6 @@ export interface CreateCapaPayload {
   effectivenessReviewDueDate?: string;
   isCapaClosed?: boolean;
   capaClosureDate?: string;
-  createdBy: {
-    name: string;
-    designation: string;
-  };
 }
 
 export interface CreateCapaResponse {

@@ -8,13 +8,6 @@ const optionalTrimmedString = z.preprocess((value) => {
   return trimmed.length > 0 ? trimmed : undefined;
 }, z.string().optional());
 
-const requiredTrimmedString = (label: string) =>
-  z
-    .string()
-    .min(1, { message: `${label} is required.` })
-    .transform((value) => value.trim())
-    .refine((value) => value.length > 0, { message: `${label} is required.` });
-
 export const capaCategoryValues = ['systemic', 'process', 'design', 'supplier', 'training'] as const;
 
 export const capaFormSchema = z
@@ -25,8 +18,8 @@ export const capaFormSchema = z
     complaintReference: optionalTrimmedString,
     description: optionalTrimmedString,
     capaCategory: z.enum(capaCategoryValues).optional(),
-    impactsSafetyOrCompliance: z.boolean().default(false),
-    isRepeated: z.boolean().default(false),
+    impactsSafetyOrCompliance: optionalTrimmedString,
+    isRepeated: optionalTrimmedString,
     proceedToCapa: z.boolean().default(false),
     rootCauseAnalysis: optionalTrimmedString,
     correction: optionalTrimmedString,
@@ -37,10 +30,6 @@ export const capaFormSchema = z
     effectivenessReviewDueDate: z.date().optional(),
     isCapaClosed: z.boolean().default(false),
     capaClosureDate: z.date().optional(),
-    createdBy: z.object({
-      name: requiredTrimmedString('Prepared by name'),
-      designation: requiredTrimmedString('Prepared by designation'),
-    }),
   })
   .strict();
 

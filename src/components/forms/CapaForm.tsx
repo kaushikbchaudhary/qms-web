@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -38,8 +37,8 @@ export function CapaForm() {
       complaintReference: undefined,
       description: undefined,
       capaCategory: undefined,
-      impactsSafetyOrCompliance: false,
-      isRepeated: false,
+      impactsSafetyOrCompliance: undefined,
+      isRepeated: undefined,
       proceedToCapa: true,
       rootCauseAnalysis: undefined,
       correction: undefined,
@@ -50,10 +49,6 @@ export function CapaForm() {
       effectivenessReviewDueDate: undefined,
       isCapaClosed: false,
       capaClosureDate: undefined,
-      createdBy: {
-        name: "",
-        designation: "",
-      },
     },
   });
 
@@ -81,10 +76,6 @@ export function CapaForm() {
       effectivenessReviewDueDate: values.effectivenessReviewDueDate?.toISOString(),
       isCapaClosed: values.isCapaClosed,
       capaClosureDate: values.capaClosureDate?.toISOString(),
-      createdBy: {
-        name: values.createdBy.name,
-        designation: values.createdBy.designation,
-      },
     };
 
     try {
@@ -97,8 +88,8 @@ export function CapaForm() {
         complaintReference: undefined,
         description: undefined,
         capaCategory: undefined,
-        impactsSafetyOrCompliance: false,
-        isRepeated: false,
+        impactsSafetyOrCompliance: undefined,
+        isRepeated: undefined,
         proceedToCapa: true,
         rootCauseAnalysis: undefined,
         correction: undefined,
@@ -109,10 +100,6 @@ export function CapaForm() {
         effectivenessReviewDueDate: undefined,
         isCapaClosed: false,
         capaClosureDate: undefined,
-        createdBy: {
-          name: values.createdBy.name,
-          designation: values.createdBy.designation,
-        },
       });
     } catch (error) {
       // errors handled via toast
@@ -487,19 +474,16 @@ export function CapaForm() {
               control={form.control}
               name="impactsSafetyOrCompliance"
               render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-md border p-4">
-                  <div>
-                    <FormLabel>Does this issue impact product safety or regulatory compliance?</FormLabel>
-                    <p className="text-xs text-muted-foreground">
-                      Toggle on if safety or compliance could be affected.
-                    </p>
-                  </div>
+                <FormItem>
+                  <FormLabel>Does this issue impact product safety or regulatory compliance?</FormLabel>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      placeholder="Indicate impact (e.g., “Yes – potential labeling risk”)"
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -508,19 +492,16 @@ export function CapaForm() {
               control={form.control}
               name="isRepeated"
               render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-md border p-4">
-                  <div>
-                    <FormLabel>Is this issue repeated?</FormLabel>
-                    <p className="text-xs text-muted-foreground">
-                      Toggle on if the same issue has been observed previously.
-                    </p>
-                  </div>
+                <FormItem>
+                  <FormLabel>Is this issue repeated?</FormLabel>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      placeholder="Describe recurrence history"
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -531,19 +512,34 @@ export function CapaForm() {
               control={form.control}
               name="proceedToCapa"
               render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-md border p-4">
+                <FormItem className="space-y-4 rounded-md border p-4">
                   <div>
                     <FormLabel>Proceed to CAPA?</FormLabel>
                     <p className="text-xs text-muted-foreground">
-                      Keep enabled when CAPA escalation is required.
+                      Select Yes when CAPA escalation is required.
                     </p>
                   </div>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <RadioGroup
+                      className="grid grid-cols-2 gap-4"
+                      value={field.value ? "yes" : "no"}
+                      onValueChange={(value) => field.onChange(value === "yes")}
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="yes" />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">Yes</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="no" />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">No</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -578,44 +574,6 @@ export function CapaForm() {
                         <FormLabel className="text-sm font-normal">No</FormLabel>
                       </FormItem>
                     </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="createdBy.name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prepared By (Name)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={field.value ?? ""}
-                      placeholder="Full name of preparer"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="createdBy.designation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prepared By (Designation)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={field.value ?? ""}
-                      placeholder="Designation or role"
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
