@@ -1,21 +1,35 @@
 // lib/api/client.ts
-import axios, {AxiosInstance} from 'axios';
-import { toast } from "sonner";
+import axios, { AxiosInstance } from 'axios';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 
-// Your existing client (unchanged)
+const trimTrailingSlashes = (value?: string | null) => value?.replace(/\/+$/, '') ?? '';
+
+const resolveBaseUrl = () => {
+  const browserBaseUrl = trimTrailingSlashes(process.env.NEXT_PUBLIC_API_BASE_URL);
+  if (typeof window === 'undefined') {
+    const serverBaseUrl = trimTrailingSlashes(process.env.SERVER_API_BASE_URL);
+    const fallback = trimTrailingSlashes(process.env.NEXT_PUBLIC_API_BASE_URL) || 'http://localhost:8001';
+    return serverBaseUrl || fallback;
+  }
+  return browserBaseUrl || '/api';
+};
+
+const baseURL = resolveBaseUrl();
+
+// Shared HTTP client
 const apiClient = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    timeout: 1000000,
-    withCredentials: true,
+  baseURL,
+  timeout: 1000000,
+  withCredentials: true,
 });
 
-// New client specifically for file downloads
+// Dedicated client for file/binary downloads
 const apiFileClient = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    timeout: 100000,
-    responseType: 'blob',
-    withCredentials: true,
+  baseURL,
+  timeout: 100000,
+  responseType: 'blob',
+  withCredentials: true,
 });
 
 // Shared request interceptor

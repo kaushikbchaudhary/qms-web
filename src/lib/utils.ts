@@ -22,7 +22,7 @@ export const showApiErrorToast = (error: unknown) => {
       toast.error(defaultMessage);
     }
   } else {
-    // toast.error('Unexpected error occurred.');
+    toast.error('Something went wrong. Please try again.');
   }
 };
 

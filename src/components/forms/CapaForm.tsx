@@ -13,10 +13,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { capaFormSchema, CapaFormValues } from "@/lib/validations/capa";
+import { capaCategoryValues, capaFormSchema, CapaFormValues } from "@/lib/validations/capa";
 import { useCreateCapa } from "@/hooks/api/useCapa";
 import { CreateCapaPayload, CreateCapaResponse } from "@/lib/api/types/capa";
+
+const CAPA_CATEGORY_OPTIONS = capaCategoryValues.map((value) => ({
+  value,
+  label: value.charAt(0).toUpperCase() + value.slice(1),
+}));
 
 export function CapaForm() {
   const [result, setResult] = useState<CreateCapaResponse | null>(null);
@@ -27,8 +34,22 @@ export function CapaForm() {
     defaultValues: {
       capaInitiationDate: new Date(),
       capaActionCompletionDate: undefined,
+      sourceOfCapa: undefined,
+      complaintReference: undefined,
+      description: undefined,
+      capaCategory: undefined,
+      impactsSafetyOrCompliance: false,
       isRepeated: false,
       proceedToCapa: true,
+      rootCauseAnalysis: undefined,
+      correction: undefined,
+      correctiveAction: undefined,
+      preventiveAction: undefined,
+      extensionJustification: undefined,
+      effectivenessPlan: undefined,
+      effectivenessReviewDueDate: undefined,
+      isCapaClosed: false,
+      capaClosureDate: undefined,
       createdBy: {
         name: "",
         designation: "",
@@ -44,15 +65,22 @@ export function CapaForm() {
     const payload: CreateCapaPayload = {
       capaInitiationDate: values.capaInitiationDate.toISOString(),
       capaActionCompletionDate: values.capaActionCompletionDate?.toISOString(),
-      sourceOfNonConformance: values.sourceOfNonConformance,
+      sourceOfCapa: values.sourceOfCapa,
+      complaintReference: values.complaintReference,
       description: values.description,
+      capaCategory: values.capaCategory,
+      impactsSafetyOrCompliance: values.impactsSafetyOrCompliance,
       isRepeated: values.isRepeated,
       proceedToCapa: values.proceedToCapa,
       rootCauseAnalysis: values.rootCauseAnalysis,
-      remarks: values.remarks,
       correction: values.correction,
       correctiveAction: values.correctiveAction,
       preventiveAction: values.preventiveAction,
+      extensionJustification: values.extensionJustification,
+      effectivenessPlan: values.effectivenessPlan,
+      effectivenessReviewDueDate: values.effectivenessReviewDueDate?.toISOString(),
+      isCapaClosed: values.isCapaClosed,
+      capaClosureDate: values.capaClosureDate?.toISOString(),
       createdBy: {
         name: values.createdBy.name,
         designation: values.createdBy.designation,
@@ -65,15 +93,22 @@ export function CapaForm() {
       form.reset({
         capaInitiationDate: new Date(),
         capaActionCompletionDate: undefined,
-        sourceOfNonConformance: undefined,
+        sourceOfCapa: undefined,
+        complaintReference: undefined,
         description: undefined,
+        capaCategory: undefined,
+        impactsSafetyOrCompliance: false,
         isRepeated: false,
         proceedToCapa: true,
         rootCauseAnalysis: undefined,
-        remarks: undefined,
         correction: undefined,
         correctiveAction: undefined,
         preventiveAction: undefined,
+        extensionJustification: undefined,
+        effectivenessPlan: undefined,
+        effectivenessReviewDueDate: undefined,
+        isCapaClosed: false,
+        capaClosureDate: undefined,
         createdBy: {
           name: values.createdBy.name,
           designation: values.createdBy.designation,
@@ -183,10 +218,10 @@ export function CapaForm() {
           <div className="grid gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
-              name="sourceOfNonConformance"
+              name="sourceOfCapa"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Source of Non-Conformance</FormLabel>
+                  <FormLabel>Source of CAPA</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -194,6 +229,51 @@ export function CapaForm() {
                       placeholder="Enter the triggering source or reference"
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="complaintReference"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Complaint No. / NC No. / Audit Finding No. (If Applicable)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      placeholder="Provide the related reference, if available"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="capaCategory"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CAPA Category (Systemic / Process / Design / Supplier / Training)</FormLabel>
+                  <Select value={field.value ?? undefined} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select CAPA category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CAPA_CATEGORY_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -222,13 +302,13 @@ export function CapaForm() {
             control={form.control}
             name="description"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description of Non-Conformity</FormLabel>
+                <FormItem>
+                <FormLabel>Description of the Issue / Finding</FormLabel>
                 <FormControl>
                     <Textarea
                       {...field}
                       value={field.value ?? ""}
-                      placeholder="Provide a concise description of the non-conformance or event."
+                      placeholder="Provide a concise description of the issue or finding."
                       className="min-h-[120px]"
                     />
                 </FormControl>
@@ -237,45 +317,24 @@ export function CapaForm() {
             )}
           />
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="remarks"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Remarks (if any)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      value={field.value ?? ""}
-                      placeholder="Optional remarks or follow-ups"
-                      className="min-h-[80px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="correction"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Correction</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      value={field.value ?? ""}
-                      placeholder="Immediate containment or correction actions"
-                      className="min-h-[80px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="correction"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Correction</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    value={field.value ?? ""}
+                    placeholder="Immediate containment or correction actions"
+                    className="min-h-[80px]"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <div className="grid gap-6 md:grid-cols-2">
             <FormField
@@ -320,13 +379,119 @@ export function CapaForm() {
           <div className="grid gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
-              name="isRepeated"
+              name="extensionJustification"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Justification (if extension is required) and proposed extension time</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      value={field.value ?? ""}
+                      placeholder="Document the rationale for any requested extension and proposed timeline"
+                      className="min-h-[80px]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="effectivenessPlan"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plan for CAPA Effectiveness Verification</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      value={field.value ?? ""}
+                      placeholder="Outline how effectiveness of the CAPA will be verified"
+                      className="min-h-[80px]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="effectivenessReviewDueDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Effectiveness Review Due Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className="flex w-full justify-start gap-2 truncate"
+                        >
+                          {field.value ? format(field.value, "PPP") : "Select a date"}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => field.onChange(date ?? undefined)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="capaClosureDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>CAPA Closure Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className="flex w-full justify-start gap-2 truncate"
+                        >
+                          {field.value ? format(field.value, "PPP") : "Select a date"}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => field.onChange(date ?? undefined)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="impactsSafetyOrCompliance"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-md border p-4">
                   <div>
-                    <FormLabel>Is Non-Conformity Repeated?</FormLabel>
+                    <FormLabel>Does this issue impact product safety or regulatory compliance?</FormLabel>
                     <p className="text-xs text-muted-foreground">
-                      Toggle on if the issue has been observed previously.
+                      Toggle on if safety or compliance could be affected.
                     </p>
                   </div>
                   <FormControl>
@@ -339,6 +504,29 @@ export function CapaForm() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="isRepeated"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-md border p-4">
+                  <div>
+                    <FormLabel>Is this issue repeated?</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Toggle on if the same issue has been observed previously.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
               name="proceedToCapa"
@@ -356,6 +544,42 @@ export function CapaForm() {
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isCapaClosed"
+              render={({ field }) => (
+                <FormItem className="space-y-4 rounded-md border p-4">
+                  <div>
+                    <FormLabel>CAPA Close</FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Select Yes if the CAPA can be closed; otherwise choose No.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <RadioGroup
+                      className="grid grid-cols-2 gap-4"
+                      value={field.value ? "yes" : "no"}
+                      onValueChange={(value) => field.onChange(value === "yes")}
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="yes" />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">Yes</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="no" />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">No</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

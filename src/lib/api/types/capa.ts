@@ -1,13 +1,22 @@
+export type CapaCategory = 'systemic' | 'process' | 'design' | 'supplier' | 'training';
+
 export interface CapaSummary {
   capaId: string;
   initiationDate: string;
-  sourceOfNonConformance?: string | null;
+  sourceOfCapa?: string | null;
+  complaintReference?: string | null;
   description?: string | null;
+  capaCategory?: CapaCategory | null;
+  impactsSafetyOrCompliance?: boolean | null;
   capaActionCompletionDate?: string | null;
-  remarks?: string | null;
+  effectivenessReviewDueDate?: string | null;
+  isCapaClosed?: boolean | null;
+  capaClosureDate?: string | null;
   correction?: string | null;
   correctiveAction?: string | null;
   preventiveAction?: string | null;
+  extensionJustification?: string | null;
+  effectivenessPlan?: string | null;
   fileUrl?: string | null;
   linkedComplaint?: string | null;
   linkedNc?: string | null;
@@ -20,15 +29,22 @@ export interface CapaSummary {
 export interface CreateCapaPayload {
   capaInitiationDate: string;
   capaActionCompletionDate?: string;
-  sourceOfNonConformance?: string;
+  sourceOfCapa?: string;
+  complaintReference?: string;
   description?: string;
+  capaCategory?: CapaCategory;
+  impactsSafetyOrCompliance?: boolean;
   isRepeated?: boolean;
   proceedToCapa?: boolean;
   rootCauseAnalysis?: string;
-  remarks?: string;
   correction?: string;
   correctiveAction?: string;
   preventiveAction?: string;
+  extensionJustification?: string;
+  effectivenessPlan?: string;
+  effectivenessReviewDueDate?: string;
+  isCapaClosed?: boolean;
+  capaClosureDate?: string;
   createdBy: {
     name: string;
     designation: string;

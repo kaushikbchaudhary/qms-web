@@ -140,7 +140,7 @@ export default function CapaListPage() {
                   <TableRow key={capa.capaId}>
                     <TableCell className="font-mono text-sm">{capa.capaId}</TableCell>
                     <TableCell>{formatDate(capa.initiationDate)}</TableCell>
-                    <TableCell className="max-w-sm truncate">{capa.sourceOfNonConformance ?? "—"}</TableCell>
+                    <TableCell className="max-w-sm truncate">{capa.sourceOfCapa ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span>{preparedName}</span>
