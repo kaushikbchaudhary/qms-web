@@ -140,6 +140,7 @@ const STATUS_FILTER_CONFIG: Record<
 const STORE_ROLE_ALIASES = [roles.STORE_INVENTORY, 'store & inventory'];
 
 type DateFilterKey = 'ALL' | 'TODAY' | 'YESTERDAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'CUSTOM';
+type QuickDateFilterKey = Exclude<DateFilterKey, 'CUSTOM'>;
 
 interface DateFilterState {
   key: DateFilterKey;
@@ -148,9 +149,9 @@ interface DateFilterState {
 
 type DeviceIssueFilter = NonNullable<DeviceMaterialIssueQueryParams['filters']>[number];
 
-const QUICK_DATE_FILTERS: DateFilterKey[] = ['ALL', 'TODAY', 'YESTERDAY', 'THIS_WEEK', 'THIS_MONTH'];
+const QUICK_DATE_FILTERS: QuickDateFilterKey[] = ['ALL', 'TODAY', 'YESTERDAY', 'THIS_WEEK', 'THIS_MONTH'];
 
-const DATE_FILTER_LABELS: Record<Exclude<DateFilterKey, 'CUSTOM'>, string> = {
+const DATE_FILTER_LABELS: Record<QuickDateFilterKey, string> = {
   ALL: 'All requests',
   TODAY: 'Today',
   YESTERDAY: 'Yesterday',
@@ -628,9 +629,7 @@ export function DeviceIssueTable() {
                       size="sm"
                       className={cn(
                         'justify-start text-sm',
-                        dateFilter.key === key &&
-                          dateFilter.key !== 'CUSTOM' &&
-                          'bg-accent text-accent-foreground',
+                        dateFilter.key === key && 'bg-accent text-accent-foreground',
                       )}
                       onClick={() => handlePresetSelect(key)}
                     >
