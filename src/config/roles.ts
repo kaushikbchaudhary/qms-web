@@ -65,6 +65,8 @@ const UNIVERSAL_ROUTES = [
     '/dashboard/capa',
     '/dashboard/capa/[id]',
     '/dashboard/capa/new',
+    '/dashboard/nc',
+    '/dashboard/nc/new',
 ];
 
 export const ROLE_ACCESS = {

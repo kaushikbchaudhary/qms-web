@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ClipboardList,
   ClipboardPlus,
+  FileWarning,
   LayoutDashboard,
   LogIn,
   LogOut as LogOutIcon,
@@ -55,6 +56,12 @@ export const navSections: NavSection[] = [
         icon: ClipboardList,
         roles: allRoles,
       },
+      {
+        title: "NC Reports",
+        href: "/dashboard/nc",
+        icon: FileWarning,
+        roles: allRoles,
+      },
     ],
   },
   {
@@ -73,6 +80,13 @@ export const navSections: NavSection[] = [
         icon: ClipboardPlus,
         roles: allRoles,
         hotkey: "C",
+      },
+      {
+        title: "New NC Report",
+        href: "/dashboard/nc/new",
+        icon: ClipboardPlus,
+        roles: allRoles,
+        hotkey: "R",
       },
       {
         title: "New Device Request",

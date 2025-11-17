@@ -1,0 +1,155 @@
+
+> qms-web@1.0.1 build
+> next build
+
+ ⚠ Warning: Found multiple lockfiles. Selecting /Users/apple/Desktop/kmt-projects/package-lock.json.
+   Consider removing the lockfiles at:
+   * /Users/apple/Desktop/kmt-projects/qms/qms-web/package-lock.json
+
+   ▲ Next.js 15.4.2
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 4.0s
+   Linting and checking validity of types ...
+
+./src/app/admin/dashboard/page.tsx
+42:9  Warning: The 'statusCounts' logical expression could make the dependencies of useMemo Hook (at line 56) change on every render. To fix this, wrap the initialization of 'statusCounts' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./src/app/dashboard/complaints/[id]/page.tsx
+3:9  Warning: 'RoleBasedFormSection' is defined but never used.  @typescript-eslint/no-unused-vars
+4:9  Warning: 'InvestigationForm' is defined but never used.  @typescript-eslint/no-unused-vars
+5:9  Warning: 'roles' is defined but never used.  @typescript-eslint/no-unused-vars
+6:8  Warning: 'ComplaintWorkflowSystem' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/auth/Login.tsx
+332:9  Warning: 'countryCode' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+338:9  Warning: 'phoneDigits' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/auth/delete-confirm-dialog.tsx
+44:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/complaient/AttachmentViewer.tsx
+10:42  Warning: 'Cross2Icon' is defined but never used.  @typescript-eslint/no-unused-vars
+158:33  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/complaient/ColumnsComplaints.tsx
+3:10  Warning: 'Button' is defined but never used.  @typescript-eslint/no-unused-vars
+4:9  Warning: 'ArrowUpDown' is defined but never used.  @typescript-eslint/no-unused-vars
+4:27  Warning: 'MoreHorizontal' is defined but never used.  @typescript-eslint/no-unused-vars
+6:5  Warning: 'DropdownMenu' is defined but never used.  @typescript-eslint/no-unused-vars
+7:5  Warning: 'DropdownMenuContent' is defined but never used.  @typescript-eslint/no-unused-vars
+8:5  Warning: 'DropdownMenuItem' is defined but never used.  @typescript-eslint/no-unused-vars
+9:5  Warning: 'DropdownMenuLabel' is defined but never used.  @typescript-eslint/no-unused-vars
+10:5  Warning: 'DropdownMenuTrigger' is defined but never used.  @typescript-eslint/no-unused-vars
+16:9  Warning: 'ComplaintDetailsDialog' is defined but never used.  @typescript-eslint/no-unused-vars
+521:20  Warning: 'dialogOpen' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+521:32  Warning: 'setDialogOpen' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+523:20  Warning: 'isLoading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+527:19  Warning: 'handleViewDetails' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/complaient/ComplaintDetail.tsx
+13:30  Warning: 'isLoading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/complaient/ComplaintDetailPage.tsx
+10:5  Warning: 'Phone' is defined but never used.  @typescript-eslint/no-unused-vars
+11:5  Warning: 'Mail' is defined but never used.  @typescript-eslint/no-unused-vars
+15:5  Warning: 'Building' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/complaient/ComplaintDetailsDialog.tsx
+3:10  Warning: 'Button' is defined but never used.  @typescript-eslint/no-unused-vars
+4:10  Warning: 'X' is defined but never used.  @typescript-eslint/no-unused-vars
+5:10  Warning: 'Complaint' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/complaient/ComplaintManagement.tsx
+1:27  Warning: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+2:30  Warning: 'AlertCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+237:11  Warning: 'canTransitionToStatus' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+285:31  Warning: 'complaint' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/complaient/StatusTransitionDropdown.tsx
+4:10  Warning: 'useState' is defined but never used.  @typescript-eslint/no-unused-vars
+20:46  Warning: 'userRole' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/device-material-issue/DeviceIssueDetail.tsx
+97:7  Warning: 'STATUS_MANAGER_ROLES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+223:9  Warning: 'awaitingRecipient' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+514:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+569:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/forms/AttachmentManager.tsx
+110:8  Warning: React Hook useCallback has a missing dependency: 'deleteAttachment'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+129:12  Warning: React Hook useCallback has a missing dependency: 'attachments'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/forms/ComplaintClosureForm.tsx
+64:68  Warning: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/forms/FileUploadComponent.tsx
+25:7  Warning: React Hook useEffect has a missing dependency: 'addAttachmentPath'. Either include it or remove the dependency array. If 'addAttachmentPath' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+84:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/forms/InvestigationForm.tsx
+113:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/forms/device-material-issue-form.tsx
+24:6  Warning: 'FormValues' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/forms/user-form.tsx
+4:13  Warning: 'z' is defined but never used.  @typescript-eslint/no-unused-vars
+52:33  Warning: 'isPending' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+112:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/shared/CustomizableTable.tsx
+168:46  Warning: 'showColumnVisibilityToggle' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+171:46  Warning: 'filterComponent' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/shared/FileUploadComponent.tsx
+46:16  Warning: 'isDragging' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+93:31  Warning: 'getInputProps' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+175:45  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/users/create-user.tsx
+18:27  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/18) ...
+(node:6397) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (4/18) 
+   Generating static pages (8/18) 
+   Generating static pages (13/18) 
+ ✓ Generating static pages (18/18)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                    Size  First Load JS
+┌ ○ /                                         710 B         101 kB
+├ ○ /_not-found                                1 kB         101 kB
+├ ○ /admin/dashboard                         8.6 kB         157 kB
+├ ○ /admin/settings                         7.17 kB         184 kB
+├ ○ /admin/users                            2.02 kB         245 kB
+├ ƒ /admin/users/edit-user/[id]               640 B         227 kB
+├ ○ /auth/forgot-password                   4.01 kB         161 kB
+├ ○ /auth/login                             11.7 kB         201 kB
+├ ○ /auth/reset-password                    4.34 kB         161 kB
+├ ○ /dashboard/capa                         5.31 kB         164 kB
+├ ○ /dashboard/capa/new                     9.86 kB         230 kB
+├ ○ /dashboard/complaints                   12.6 kB         239 kB
+├ ƒ /dashboard/complaints/[id]              32.8 kB         285 kB
+├ ○ /dashboard/complaints/new               27.7 kB         256 kB
+├ ○ /dashboard/device-material-issues       5.58 kB         214 kB
+├ ƒ /dashboard/device-material-issues/[id]  9.52 kB         164 kB
+├ ○ /dashboard/device-material-issues/new   5.39 kB         210 kB
+└ ○ /profile                                4.41 kB         153 kB
++ First Load JS shared by all                100 kB
+  ├ chunks/4bd1b696-cc729d47eba2cee4.js     54.1 kB
+  ├ chunks/5964-67e3ecdee45ba4a9.js         43.9 kB
+  └ other shared chunks (total)             1.94 kB
+
+
+ƒ Middleware                                51.2 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
