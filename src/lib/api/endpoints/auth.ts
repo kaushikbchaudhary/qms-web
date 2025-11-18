@@ -7,7 +7,7 @@ export const authApi = {
     otpVerify: (data: AuthPayload):Promise<AuthResponse> =>
         apiClient.post('api/v1/auth/otp/verify', data),
     loginWithPassword: (data: PasswordLoginPayload):Promise<AuthResponse> =>
-        apiClient.post('api/v1/auth/login', data),
+        apiClient.post('api/v1/auth/login', data, { skipAuthErrorHandling: true }),
     forgotPassword: (data: ForgotPasswordPayload):Promise<AuthResponse> =>
         apiClient.post('api/v1/auth/password/forgot', data),
     resetPassword: (data: ResetPasswordPayload):Promise<AuthResponse> =>

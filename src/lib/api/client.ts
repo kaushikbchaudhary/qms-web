@@ -47,10 +47,14 @@ const getAuthToken = () => {
     return cookieToken ?? undefined;
 };
 
+const shouldSkipUnauthorizedHandling = (error: any) => {
+  return Boolean(error?.config?.skipAuthErrorHandling);
+};
+
 const setupInterceptors = ({client, directResponse = false
 }:{client:  AxiosInstance,directResponse?:boolean}) => {
     client.interceptors.request.use(
-        (config: any) => {
+        (config) => {
             const token = getAuthToken();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
@@ -70,7 +74,7 @@ const setupInterceptors = ({client, directResponse = false
                 toast.error('No Internet Connection!');
                 return Promise.reject(new Error('No Internet Connection!'));
             }
-            if (error?.response?.status === 401) {
+            if (error?.response?.status === 401 && !shouldSkipUnauthorizedHandling(error)) {
                 toast.error('Unauthorized access. Please log in again.');
                 useAuthStore.getState().logout();
                 if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
