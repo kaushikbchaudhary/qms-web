@@ -15,7 +15,7 @@ import {useState} from "react";
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
 import {ComplaintDetailsDialog} from "@/components/complaient/ComplaintDetailsDialog";
 import {useRouter} from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, formatWorkingDuration } from "@/lib/utils";
 import type { ComplaintDeadlines, DeadlineSummary } from "@/lib/api/types/complaints";
 //
 const TruncatedText = ({
@@ -148,28 +148,32 @@ const getDeadlineMeta = (deadline?: DeadlineSummary | null): DeadlineMeta => {
 
     if (deadline.status === 'overdue') {
         const overdueBy = deadline.overdueBy ?? Math.abs(deadline.workingDaysRemaining ?? 0);
+        const overdueText = formatWorkingDuration(overdueBy);
         return {
             label: 'Overdue',
             badgeVariant: 'destructive',
-            message: `${overdueBy} working day(s) overdue`,
+            message: `${overdueText} overdue`,
             textClass: 'text-destructive font-semibold',
         };
     }
 
     if (deadline.status === 'due_soon') {
         const remaining = Math.max(deadline.workingDaysRemaining ?? 0, 0);
+        const remainingText = formatWorkingDuration(remaining);
         return {
             label: 'Due Soon',
             badgeVariant: 'secondary',
-            message: `${remaining} working day(s) remaining`,
+            message: `${remainingText} left`,
             textClass: 'text-amber-600 font-medium',
         };
     }
 
+    const remainingValue = Math.max(deadline.workingDaysRemaining ?? deadline.workingDaysAllotted ?? 0, 0);
+    const remainingLabel = formatWorkingDuration(remainingValue);
     return {
         label: 'On Track',
         badgeVariant: 'secondary',
-        message: `${Math.max(deadline.workingDaysRemaining ?? deadline.workingDaysAllotted ?? 0, 0)} working day(s) remaining`,
+        message: `${remainingLabel} left`,
         textClass: 'text-muted-foreground',
     };
 };

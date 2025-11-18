@@ -46,7 +46,7 @@ import {Complaint, DeadlineSummary} from "@/lib/api/types/complaints";
 import type { InvestigationFormData, ComplaintClosureFormData, CustomerCommunicationFormData } from '@/lib/validations/complaint';
 import {Drawer, DrawerContent, DrawerHeader, DrawerTitle} from "@/components/ui/drawer";
 import {InvestigationForm} from "@/components/forms/InvestigationForm";
-import {formatDate, formatDateTime, showApiErrorToast} from "@/lib/utils";
+import {formatDate, formatDateTime, formatWorkingDuration, showApiErrorToast} from "@/lib/utils";
 import {CustomerCommunicationForm} from "@/components/forms/CustomerCommunicationForm";
 import {ComplaintClosureForm} from "@/components/forms/ComplaintClosureForm";
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
@@ -904,26 +904,28 @@ const ComplaintDetailPage = (params:Props) => {
         }
 
         const remaining = deadline.workingDaysRemaining ?? 0;
+        const remainingLabel = formatWorkingDuration(Math.max(remaining, 0));
+        const overdueLabel = formatWorkingDuration(deadline.overdueBy ?? Math.abs(remaining));
         switch (deadline.status) {
             case 'overdue':
                 return {
                     label: 'Overdue',
                     variant: 'destructive' as const,
-                    message: `${deadline.overdueBy ?? Math.abs(remaining)} working day(s) past the limit.`,
+                    message: `${overdueLabel} overdue.`,
                     highlightClass: 'text-destructive font-semibold',
                 };
             case 'due_soon':
                 return {
                     label: 'Due Soon',
                     variant: 'secondary' as const,
-                    message: `${remaining} working day(s) remaining.`,
+                    message: `${remainingLabel} left.`,
                     highlightClass: 'text-amber-600 font-medium',
                 };
             case 'on_track':
                 return {
                     label: 'On Track',
                     variant: 'secondary' as const,
-                    message: `${remaining} working day(s) remaining.`,
+                    message: `${remainingLabel} left.`,
                     highlightClass: '',
                 };
             default:
@@ -962,8 +964,8 @@ const ComplaintDetailPage = (params:Props) => {
                             <span className="text-muted-foreground">Remaining</span>
                             <span className={meta.highlightClass}>
                                 {remaining < 0
-                                    ? `${Math.abs(remaining)} day(s) overdue`
-                                    : `${remaining} day(s)`}
+                                    ? `${formatWorkingDuration(Math.abs(remaining))} overdue`
+                                    : `${formatWorkingDuration(remaining)} left`}
                             </span>
                         </div>
                     )}

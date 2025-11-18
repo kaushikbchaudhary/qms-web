@@ -96,3 +96,29 @@ export const formatDateTime = (dateString:any) => {
   const date = new Date(dateString);
   return `${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
 };
+
+export const formatWorkingDuration = (workingDays?: number | null) => {
+  if (workingDays === null || workingDays === undefined || Number.isNaN(workingDays)) {
+    return '0 min';
+  }
+
+  const totalMinutes = Math.round(Math.abs(workingDays) * 24 * 60);
+  const minutesInDay = 24 * 60;
+
+  const days = Math.floor(totalMinutes / minutesInDay);
+  const hours = Math.floor((totalMinutes % minutesInDay) / 60);
+  const minutes = totalMinutes % 60;
+
+  const parts: string[] = [];
+  if (days > 0) {
+    parts.push(`${days} day${days === 1 ? '' : 's'}`);
+  }
+  if (hours > 0) {
+    parts.push(`${hours} hr${hours === 1 ? '' : 's'}`);
+  }
+  if (minutes > 0 || parts.length === 0) {
+    parts.push(`${minutes} min${minutes === 1 ? '' : 's'}`);
+  }
+
+  return parts.join(' ');
+};
