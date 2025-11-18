@@ -171,16 +171,7 @@ export function AppShell({ children }: AppShellProps) {
                                 <Icon className="h-4 w-4" />
                               </span>
                             )}
-                            {!sidebarCollapsed && (
-                              <div className="flex flex-col">
-                                <span>{link.title}</span>
-                                {link.hotkey && (
-                                  <span className="text-xs text-muted-foreground/70">
-                                    Shortcut: {link.hotkey}
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                            {!sidebarCollapsed && <span>{link.title}</span>}
                           </Link>
                         );
 
