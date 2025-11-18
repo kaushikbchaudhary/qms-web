@@ -29,10 +29,13 @@ export function useCreateComplaint() {
         {
             return complaintsApi.createComplaint(complaintData);
         },
-        onSuccess: () => {
+        onSuccess: (response) => {
             // Invalidate queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['complaints'] })
-            toast.success('Complaint created successfully!');
+            const backendMessage = typeof response?.message === 'string' && response.message.trim().length
+                ? response.message
+                : null;
+            toast.success(backendMessage ?? 'Complaint created successfully!');
         },
         onError: showApiErrorToast
     })
