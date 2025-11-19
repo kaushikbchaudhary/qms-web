@@ -522,9 +522,9 @@ const LoginCard = ({
               Need access? Contact{" "}
               <a
                 className="font-medium text-primary hover:underline"
-                href="mailto:support@projectkmt.com"
+                href="mailto:kmtqms@gmail.com"
               >
-                support@projectkmt.com
+                kmtqms@gmail.com
               </a>
             </p>
           </CardFooter>
