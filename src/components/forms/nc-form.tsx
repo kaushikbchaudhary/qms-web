@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -113,6 +113,7 @@ export function NcForm() {
   const { mutateAsync, isPending } = useCreateNc();
   const [result, setResult] = useState<CreateNcResponse | null>(null);
   const apiBaseUrl = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') ?? '', []);
+  const hasInlinePdf = Boolean(result?.fileBase64);
 
   const form = useForm<FormInputs>({
     resolver: zodResolver(schema),
@@ -147,6 +148,31 @@ export function NcForm() {
   const downloadUrl = result?.fileUrl
     ? `${apiBaseUrl ? `${apiBaseUrl}/` : ''}${result.fileUrl.replace(/^\/+/, '')}`
     : null;
+
+  const handleDownloadPdf = useCallback(() => {
+    if (typeof window === 'undefined' || !result?.fileBase64) {
+      return;
+    }
+    try {
+      const byteCharacters = atob(result.fileBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = result.filename ?? 'nc-report.pdf';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download NC PDF', error);
+    }
+  }, [result]);
 
   useEffect(() => {
     if (!includesOther) {
@@ -233,15 +259,21 @@ export function NcForm() {
             <p>
               NCR Number: <span className="font-mono">{result.ncNumber}</span>
             </p>
-            {downloadUrl ? (
-              <Button asChild size="sm" variant="secondary">
-                <Link href={downloadUrl} target="_blank" rel="noopener noreferrer">
+            <div className="flex flex-wrap gap-2">
+              {hasInlinePdf ? (
+                <Button type="button" size="sm" variant="secondary" onClick={handleDownloadPdf}>
                   Download PDF
-                </Link>
-              </Button>
-            ) : (
-              <p className="text-sm text-muted-foreground">Download URL unavailable.</p>
-            )}
+                </Button>
+              ) : downloadUrl ? (
+                <Button asChild size="sm" variant="secondary">
+                  <Link href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                    Download PDF
+                  </Link>
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Download URL unavailable.</p>
+              )}
+            </div>
           </AlertDescription>
         </Alert>
       ) : null}

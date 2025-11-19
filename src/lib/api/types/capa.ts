@@ -51,6 +51,8 @@ export interface CreateCapaPayload {
 export interface CreateCapaResponse {
   capaId: string;
   fileUrl: string;
+  fileBase64?: string;
+  filename?: string;
 }
 
 export interface AvailableCapasResponse {

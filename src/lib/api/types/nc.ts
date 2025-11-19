@@ -64,6 +64,8 @@ export interface NcRecord {
 export interface CreateNcResponse {
   ncNumber: string;
   fileUrl: string;
+  fileBase64?: string;
+  filename?: string;
 }
 
 export interface NcListResponse {

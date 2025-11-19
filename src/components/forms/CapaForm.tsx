@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Resolver, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -55,6 +55,32 @@ export function CapaForm() {
   const submissionInFlight = createCapaMutation.isPending || form.formState.isSubmitting;
 
   const apiBaseUrl = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '') ?? '', []);
+  const hasInlinePdf = Boolean(result?.fileBase64);
+
+  const handleDownloadPdf = useCallback(() => {
+    if (typeof window === 'undefined' || !result?.fileBase64) {
+      return;
+    }
+    try {
+      const byteCharacters = atob(result.fileBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = result.filename ?? 'capa.pdf';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download CAPA PDF', error);
+    }
+  }, [result]);
 
   const handleSubmit = async (values: CapaFormValues) => {
     const payload: CreateCapaPayload = {
@@ -604,16 +630,20 @@ export function CapaForm() {
               <Button type="button" variant="outline" size="sm" onClick={handleCopyCapaId}>
                 Copy CAPA ID
               </Button>
-              {resolvedDownloadUrl && (
+              {hasInlinePdf ? (
+                <Button type="button" variant="secondary" size="sm" onClick={handleDownloadPdf}>
+                  Download PDF
+                </Button>
+              ) : resolvedDownloadUrl ? (
                 <Button asChild variant="secondary" size="sm">
                   <Link href={resolvedDownloadUrl} target="_blank" rel="noopener noreferrer">
                     View PDF
                   </Link>
                 </Button>
-              )}
+              ) : null}
             </div>
             <p className="text-xs text-muted-foreground">
-              Store the CAPA ID in the associated complaint or NC record. The PDF is saved under <code className="font-mono">/uploads/capa</code>.
+              Store the CAPA ID in the associated complaint or NC record. Use the download button above to save the generated PDF immediately.
             </p>
           </AlertDescription>
         </Alert>
