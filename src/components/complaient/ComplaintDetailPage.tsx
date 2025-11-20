@@ -660,6 +660,40 @@ const ComplaintDetailPage = (params:Props) => {
         return defaults
     }, [complaint])
 
+    const preferredResolutionName = (
+        complaint?.preferred_resolution_method?.config?.name || complaint?.preferred_resolution_method?.name || ''
+    ).toLowerCase();
+    const resolutionMatches = {
+        replacement: preferredResolutionName.includes('replacement'),
+        refund: preferredResolutionName.includes('refund'),
+        technical: preferredResolutionName.includes('technical'),
+        furtherInvestigation: preferredResolutionName.includes('further') || preferredResolutionName.includes('investigation'),
+    };
+    const resolutionOtherSelected =
+        preferredResolutionName.includes('other') || (!Object.values(resolutionMatches).includes(true) && !!preferredResolutionName);
+    const resolutionOtherDescription = complaint?.preferred_resolution_method?.description ?? '';
+    const selectedResolutionOptions = useMemo(() => {
+        const labels: string[] = [];
+        if (resolutionMatches.replacement) labels.push('Replacement');
+        if (resolutionMatches.refund) labels.push('Refund');
+        if (resolutionMatches.technical) labels.push('Technical assistance');
+        if (resolutionMatches.furtherInvestigation) labels.push('Further investigation');
+        if (resolutionOtherSelected) labels.push(resolutionOtherDescription || 'Other');
+        if (!labels.length && preferredResolutionName) {
+            labels.push(complaint?.preferred_resolution_method?.name ?? preferredResolutionName);
+        }
+        return labels;
+    }, [
+        resolutionMatches.replacement,
+        resolutionMatches.refund,
+        resolutionMatches.technical,
+        resolutionMatches.furtherInvestigation,
+        resolutionOtherSelected,
+        resolutionOtherDescription,
+        preferredResolutionName,
+        complaint?.preferred_resolution_method?.name,
+    ]);
+
     const customerCommunicationFormProps = complaint
         ? {
             complaintId: complaint._id,
@@ -917,18 +951,6 @@ const ComplaintDetailPage = (params:Props) => {
     };
     const natureOtherSelected = complaintTypeConfigName === 'other' || (!Object.values(natureMatches).includes(true) && !!complaintTypeName);
     const natureOtherDescription = safeText(complaint?.complaint_type?.description);
-
-    const preferredResolutionName = (
-        complaint?.preferred_resolution_method?.config?.name || complaint?.preferred_resolution_method?.name || ''
-    ).toLowerCase();
-    const resolutionMatches = {
-        replacement: preferredResolutionName.includes('replacement'),
-        refund: preferredResolutionName.includes('refund'),
-        technical: preferredResolutionName.includes('technical'),
-        furtherInvestigation: preferredResolutionName.includes('further') || preferredResolutionName.includes('investigation'),
-    };
-    const resolutionOtherSelected = preferredResolutionName.includes('other') || (!Object.values(resolutionMatches).includes(true) && !!preferredResolutionName);
-    const resolutionOtherDescription = safeText(complaint?.preferred_resolution_method?.description);
 
     const issueOccurred = normalizeYesNo(complaint?.issue_details?.occurred_before);
     const reportedBefore = normalizeYesNo(complaint?.previous_contact?.reported_before);
@@ -1587,20 +1609,23 @@ const ComplaintDetailPage = (params:Props) => {
                             <CardTitle>Previous Contact Regarding Issue</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
-                            <div>
-                                <span className="font-medium">Have you reported this issue before?</span>
-                                <div className="mt-1 flex gap-4">
-                                    {renderCheckboxLine('Yes', reportedBefore === 'yes')}
-                                    {renderCheckboxLine('No', reportedBefore === 'no')}
-                                </div>
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium">Reported previously</span>
+                                <Badge variant="outline" className="uppercase">
+                                    {reportedBefore === 'yes' ? 'Yes' : 'No'}
+                                </Badge>
                             </div>
-                            <div>
-                                <span className="font-medium">If yes, provide the reference number and date of contact:</span>
-                                <div className="mt-1 text-muted-foreground">
-                                    <div>Reference number: {safeText(complaint.previous_contact?.reference_number)}</div>
-                                    <div>Date of contact: {formatDateSafe(complaint.previous_contact?.contact_date)}</div>
+                            {(reportedBefore === 'yes' ||
+                                complaint.previous_contact?.reference_number ||
+                                complaint.previous_contact?.contact_date) && (
+                                <div>
+                                    <span className="font-medium">Reference details</span>
+                                    <div className="mt-1 text-muted-foreground">
+                                        <div>Reference number: {safeText(complaint.previous_contact?.reference_number)}</div>
+                                        <div>Date of contact: {formatDateSafe(complaint.previous_contact?.contact_date)}</div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             <div>
                                 <span className="font-medium">Person contacted (if applicable):</span>
                                 <p className="mt-1 text-muted-foreground">{safeText(complaint.previous_contact?.person_contacted)}</p>
@@ -1613,19 +1638,18 @@ const ComplaintDetailPage = (params:Props) => {
                             <CardTitle>Action Taken by Customer (if any)</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
-                            <div>
-                                <span className="font-medium">Have you attempted any troubleshooting steps?</span>
-                                <div className="mt-1 flex gap-4">
-                                    {renderCheckboxLine('Yes', troubleshootingAttempted === 'yes')}
-                                    {renderCheckboxLine('No', troubleshootingAttempted === 'no')}
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium">Troubleshooting attempted</span>
+                                <Badge variant="outline" className="uppercase">{troubleshootingAttempted === 'yes' ? 'Yes' : 'No'}</Badge>
+                            </div>
+                            {troubleshootingAttempted === 'yes' && (
+                                <div>
+                                    <span className="font-medium">Actions taken:</span>
+                                    <pre className="mt-1 text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded-md">
+                                        {safeText(complaint.customer_actions?.troubleshooting_description)}
+                                    </pre>
                                 </div>
-                            </div>
-                            <div>
-                                <span className="font-medium">If yes, please describe the actions taken:</span>
-                                <pre className="mt-1 text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded-md">
-                                    {safeText(complaint.customer_actions?.troubleshooting_description)}
-                                </pre>
-                            </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -1634,28 +1658,34 @@ const ComplaintDetailPage = (params:Props) => {
                             <CardTitle>Preferred Method of Resolution</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
-                            <span className="font-medium">How would you like us to resolve this issue?</span>
-                            <div className="grid md:grid-cols-2 gap-2">
-                                {renderCheckboxLine('Replacement', resolutionMatches.replacement)}
-                                {renderCheckboxLine('Refund', resolutionMatches.refund)}
-                                {renderCheckboxLine('Technical assistance', resolutionMatches.technical)}
-                                {renderCheckboxLine('Further investigation', resolutionMatches.furtherInvestigation)}
-                                {renderCheckboxLine(
-                                    'Other (please specify):',
-                                    resolutionOtherSelected,
-                                    <span className="ml-1 text-muted-foreground">
-                                        {resolutionOtherSelected ? resolutionOtherDescription : '[Enter description]'}
-                                    </span>
+                            <span className="font-medium">Requested resolution</span>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedResolutionOptions.length ? (
+                                    selectedResolutionOptions.map((opt, idx) => (
+                                        <Badge key={`${opt}-${idx}`} variant="secondary" className="text-sm">
+                                            {opt}
+                                        </Badge>
+                                    ))
+                                ) : (
+                                    <span className="text-muted-foreground">No preference specified.</span>
                                 )}
                             </div>
-                            <div>
-                                <span className="font-medium">If Replacement done Provide Replacement details (Batch no., Serial Number, Mfg. Date etc.):</span>
-                                <div className="mt-1 text-muted-foreground">
-                                    <div>Batch no.: {safeText(complaint.replacement_details?.batch_number)}</div>
-                                    <div>Serial Number: {safeText(complaint.replacement_details?.serial_number)}</div>
-                                    <div>Mfg. Date: {formatDateSafe(complaint.replacement_details?.mfg_date)}</div>
+                            {resolutionOtherSelected && resolutionOtherDescription && (
+                                <div>
+                                    <span className="font-medium">Additional details:</span>
+                                    <p className="mt-1 text-muted-foreground">{safeText(resolutionOtherDescription)}</p>
                                 </div>
-                            </div>
+                            )}
+                            {resolutionMatches.replacement && (
+                                <div>
+                                    <span className="font-medium">Replacement details</span>
+                                    <div className="mt-1 text-muted-foreground">
+                                        <div>Batch no.: {safeText(complaint.replacement_details?.batch_number)}</div>
+                                        <div>Serial Number: {safeText(complaint.replacement_details?.serial_number)}</div>
+                                        <div>Mfg. Date: {formatDateSafe(complaint.replacement_details?.mfg_date)}</div>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
