@@ -56,6 +56,8 @@ import { Label } from '@/components/ui/label';
 import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { useGetUsers } from '@/hooks/api/useUser';
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
+import { ComplaintForm } from "@/components/forms/complaint-form";
+import { useRouter } from 'next/navigation';
 
 const ROLE_VALUE_SET = new Set<string>(Object.values(roles));
 
@@ -71,6 +73,7 @@ interface Props {
     complaintId:any
 }
 const ComplaintDetailPage = (params:Props) => {
+    const router = useRouter();
     // Complaint statuses from your schema
     const COMPLAINT_STATUS = {
         SUBMITTED: 'SUBMITTED',
@@ -529,14 +532,96 @@ const ComplaintDetailPage = (params:Props) => {
         return assignmentUser?._id ?? assignmentUser?.id ?? null;
     };
 
+    const extractId = (value: any): string | null => {
+        if (!value) return null;
+        if (typeof value === 'string') return value;
+        const candidate = value?._id ?? value?.id ?? null;
+        return typeof candidate === 'string' ? candidate : candidate?.toString?.() ?? null;
+    };
+
+    const normalizeId = (value: any): string | null => {
+        if (!value) return null;
+        if (typeof value === 'string') return value;
+        return value?.toString?.() ?? null;
+    };
+
+    const isComplaintEditable = useMemo(() => {
+        const currentUserId = normalizeId(currentUser?._id);
+        if (!complaint || !currentUserId) return false;
+        const createdById = extractId((complaint as any).created_by ?? (complaint as any).createdBy);
+        if (!createdById) return false;
+        return complaint.status === COMPLAINT_STATUS.SUBMITTED && normalizeId(createdById) === currentUserId;
+    }, [complaint, currentUser?._id]);
+
+    const complaintFormDefaults = useMemo(() => {
+        if (!complaint) return undefined;
+        const issueDetails = complaint.issue_details ?? {};
+        const normalizedIssueDetails = {
+            description: issueDetails.description ?? '',
+            problem_start_date: issueDetails.problem_start_date ?? '',
+            occurred_before: (issueDetails.occurred_before as 'Yes' | 'No' | undefined) ?? 'No',
+            replication_steps:
+                issueDetails.replication_steps === null || issueDetails.replication_steps === undefined
+                    ? ''
+                    : issueDetails.replication_steps,
+        };
+        const prevContact = complaint.previous_contact ?? {};
+        const customerActions = complaint.customer_actions ?? {};
+        return {
+            customer: complaint.customer ?? {},
+            product_details: {
+                ...(complaint.product_details ?? {}),
+                purchase_date: complaint.product_details?.purchase_date || ''
+            },
+            complaint_type: complaint.complaint_type ?? {
+                name: '',
+                description: '',
+                config: {
+                    _id: '',
+                    name: '',
+                    type: 'COMPLAINT_TYPE',
+                },
+            },
+            issue_details: normalizedIssueDetails,
+            customer_impact: complaint.customer_impact ?? '',
+            previous_contact: {
+                reported_before: (prevContact.reported_before as 'Yes' | 'No' | undefined) ?? 'No',
+                reference_number: prevContact.reference_number ?? '',
+                contact_date: prevContact.contact_date ?? '',
+                person_contacted: prevContact.person_contacted ?? '',
+            },
+            customer_actions: {
+                troubleshooting_done: (customerActions.troubleshooting_done as 'Yes' | 'No' | undefined) ?? 'No',
+                troubleshooting_description: customerActions.troubleshooting_description ?? '',
+            },
+            preferred_resolution_method: complaint.preferred_resolution_method ?? {
+                name: '',
+                description: '',
+                config: {
+                    _id: '',
+                    name: '',
+                    type: 'RESOLUTION_METHOD',
+                },
+            },
+            replacement_details: complaint.replacement_details ?? {},
+            attachments: (complaint.attachments ?? []) as string[],
+        };
+    }, [complaint]);
+
+    const initialAttachmentPaths = useMemo(() => (complaint?.attachments ?? []) as string[], [complaint?.attachments]);
+
     const isAssignedInvestigator = complaint?.investigation?.assignments?.some((assignment: any) => {
         const assignmentUserId = resolveAssignmentUserId(assignment?.user);
         const currentUserId = currentUser?._id;
         return assignmentUserId && currentUserId && assignmentUserId.toString() === currentUserId;
     }) ?? false;
 
+    const [isUpdatingComplaint, setIsUpdatingComplaint] = useState(false);
+    const [isDeletingComplaint, setIsDeletingComplaint] = useState(false);
+
     const canEditSection = (section:string) => {
         console.log('Checking edit permission for section:', section);
+
         const userRole = getUserRole(currentUser);
         const roleConfig = getRoleConfig(userRole);
 
@@ -686,6 +771,43 @@ const ComplaintDetailPage = (params:Props) => {
         }
     };
 
+    const handleComplaintUpdate = async (payload: any) => {
+        if (!complaint?._id) return;
+        setIsUpdatingComplaint(true);
+        try {
+            await complaintsApi.updateComplaint(complaint._id, payload);
+            toast.success('Complaint updated successfully.');
+            setDrawerOpen(false);
+            setActiveEditSection(null);
+            await refetch();
+        } catch (error) {
+            console.error('Failed to update complaint', error);
+            showApiErrorToast(error);
+        } finally {
+            setIsUpdatingComplaint(false);
+        }
+    };
+
+    const handleComplaintDelete = async () => {
+        if (!complaint?._id || currentUserRole !== roles.SUPER_ADMIN) return;
+        const confirmed = typeof window !== 'undefined'
+            ? window.confirm('Are you sure you want to delete this complaint? This action cannot be undone.')
+            : false;
+        if (!confirmed) return;
+
+        setIsDeletingComplaint(true);
+        try {
+            await complaintsApi.deleteComplaint(complaint._id);
+            toast.success('Complaint deleted successfully.');
+            router.push('/dashboard/complaints');
+        } catch (error) {
+            console.error('Failed to delete complaint', error);
+            showApiErrorToast(error);
+        } finally {
+            setIsDeletingComplaint(false);
+        }
+    };
+
     // Status update modal
     const StatusUpdateModal = () => {
         if (!statusUpdateModal.show || !statusUpdateModal.targetStatus || !complaint) return null;
@@ -825,7 +947,18 @@ const ComplaintDetailPage = (params:Props) => {
         if (!complaint) return null;
         switch (activeEditSection) {
             case "details":
-                return <div className="p-4">Complaint Details Form</div>;
+                return (
+                    <div className="container mx-auto flex-1 overflow-y-auto mb-2">
+                        <ComplaintForm
+                            mode="edit"
+                            defaultValues={complaintFormDefaults}
+                            initialAttachments={initialAttachmentPaths}
+                            onSubmitOverride={handleComplaintUpdate}
+                            submitLabel={isUpdatingComplaint ? 'Updating...' : 'Update Complaint'}
+                            loading={isUpdatingComplaint}
+                        />
+                    </div>
+                );
             case "investigation":
                 return (
                     <div className="container mx-auto flex-1 overflow-y-auto mb-2">
@@ -997,6 +1130,27 @@ const ComplaintDetailPage = (params:Props) => {
                         <span>{currentUserDisplayName}</span>
                         <Badge variant="outline">{currentUserRoleLabel}</Badge>
                     </div>
+                    {currentUserRole === roles.SUPER_ADMIN && (
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleComplaintDelete}
+                            disabled={isDeletingComplaint}
+                        >
+                            {isDeletingComplaint ? 'Deleting...' : 'Delete Complaint'}
+                        </Button>
+                    )}
+                    {isComplaintEditable && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center"
+                            onClick={() => handleEditClick("details")}
+                        >
+                            <Edit3 className="h-4 w-4 mr-2" />
+                            Edit Complaint
+                        </Button>
+                    )}
                     {isReportDownloadAvailable && (
                         <Button
                             variant="outline"

@@ -71,6 +71,10 @@ export const complaintsApi = {
     // Closure
     updateClosure: (complaintId: string, data: any) =>
         apiClient.put(`/api/v1/complaint/${complaintId}/closure`, data),
+    updateComplaint: (complaintId: string, data: any) =>
+        apiClient.put(`/api/v1/complaint/${complaintId}`, data),
+    deleteComplaint: (complaintId: string) =>
+        apiClient.delete(`/api/v1/complaint/${complaintId}`),
 
     // Get full complaint details with workflow data
     getComplaintWithWorkflow: (complaintId: any) =>

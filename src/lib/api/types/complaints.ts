@@ -183,6 +183,8 @@ export interface Complaint {
     complaint_number: number;
     submission_date: string;
     created_on: string;
+    created_by?: string | UserSummary | null;
+    createdBy?: string | UserSummary | null;
     updated_on: string;
     __v: number;
     customer: Customer;

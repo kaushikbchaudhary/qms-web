@@ -15,7 +15,7 @@ export default function CreateUserPage() {
                 onSuccess: () => {
                     // Clear paths after successful submission
                 },
-                onError: (error) => {
+                onError: () => {
                     // error handling here
                 }
             });

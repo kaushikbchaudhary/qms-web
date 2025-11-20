@@ -24,77 +24,129 @@ import { buildComplaintSubmissionSchema } from '@/lib/validations/complaintSubmi
 type ComplaintFormSchema = ReturnType<typeof buildComplaintSubmissionSchema>
 type ComplaintFormValues = z.infer<ComplaintFormSchema>
 
-export function ComplaintForm() {
+type ComplaintFormProps = {
+    mode?: 'create' | 'edit'
+    defaultValues?: Partial<ComplaintFormValues>
+    initialAttachments?: string[]
+    onSubmitOverride?: (payload: CreateComplaintPayload) => Promise<void>
+    onSuccess?: () => void
+    submitLabel?: string
+    loading?: boolean
+}
+
+const mergeDeep = <T extends Record<string, any>>(base: T, overrides?: Partial<T>): T => {
+    if (!overrides) return base
+    const output: Record<string, any> = { ...base }
+    Object.entries(overrides).forEach(([key, value]) => {
+        if (value === undefined) return
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            output[key] = mergeDeep(output[key] ?? {}, value as any)
+        } else {
+            output[key] = value
+        }
+    })
+    return output as T
+}
+
+export function ComplaintForm({
+    mode = 'create',
+    defaultValues,
+    initialAttachments,
+    onSubmitOverride,
+    onSuccess,
+    submitLabel,
+    loading,
+}: ComplaintFormProps) {
     const { requirements } = useComplaintFormRequirements()
     const schema = useMemo(() => buildComplaintSubmissionSchema(requirements), [requirements])
     const resolver = useMemo(() => zodResolver(schema) as Resolver<ComplaintFormValues>, [schema])
 
+    const baseDefaults: ComplaintFormValues = {
+        customer: {
+            name: '',
+            company: '',
+            contact_number: '',
+            email: '',
+        },
+        product_details: {
+            model: '',
+            batch_number: '',
+            serial_number: '',
+            purchase_date: new Date().toISOString(),
+        },
+        complaint_type: {
+            name: 'Performance issue',
+            description: 'Issues related to product performance',
+            config: {
+                _id: '687dc9f1b0e9176a170ac0bc',
+                name: 'Performance issue',
+                type: 'COMPLAINT_TYPE',
+            },
+        },
+        issue_details: {
+            description: '',
+            problem_start_date: new Date().toISOString(),
+            occurred_before: 'No',
+            replication_steps: '',
+        },
+        customer_impact: '',
+        previous_contact: {
+            reported_before: 'No',
+            reference_number: '',
+            contact_date: '',
+            person_contacted: '',
+        },
+        customer_actions: {
+            troubleshooting_done: 'No',
+            troubleshooting_description: '',
+        },
+        preferred_resolution_method: {
+            name: 'Replacement',
+            description: 'Replacement of the faulty product',
+            config: {
+                _id: '687dc9f1b0e9176a170ac0c2',
+                name: 'Replacement',
+                type: 'RESOLUTION_METHOD',
+            },
+        },
+        replacement_details: {
+            batch_number: '',
+            serial_number: '',
+            mfg_date: '',
+        },
+        attachments: [],
+    }
+
+    const mergedDefaults = useMemo(
+        () => mergeDeep(baseDefaults, defaultValues),
+        [defaultValues]
+    )
+
     const form = useForm<ComplaintFormValues>({
         resolver,
-        defaultValues: {
-            customer: {
-                name: '',
-                company: '',
-                contact_number: '',
-                email: '',
-            },
-            product_details: {
-                model: '',
-                batch_number: '',
-                serial_number: '',
-                purchase_date: new Date().toISOString(),
-            },
-            complaint_type: {
-                name: 'Performance issue',
-                description: 'Issues related to product performance',
-                config: {
-                    _id: '687dc9f1b0e9176a170ac0bc',
-                    name: 'Performance issue',
-                    type: 'COMPLAINT_TYPE',
-                },
-            },
-            issue_details: {
-                description: '',
-                problem_start_date: new Date().toISOString(),
-                occurred_before: 'No',
-                replication_steps: '',
-            },
-            customer_impact: '',
-            previous_contact: {
-                reported_before: 'No',
-                reference_number: '',
-                contact_date: '',
-                person_contacted: '',
-            },
-            customer_actions: {
-                troubleshooting_done: 'No',
-                troubleshooting_description: '',
-            },
-            preferred_resolution_method: {
-                name: 'Replacement',
-                description: 'Replacement of the faulty product',
-                config: {
-                    _id: '687dc9f1b0e9176a170ac0c2',
-                    name: 'Replacement',
-                    type: 'RESOLUTION_METHOD',
-                },
-            },
-            replacement_details: {
-                batch_number: '',
-                serial_number: '',
-                mfg_date: '',
-            },
-            attachments: [],
-        },
+        defaultValues: mergedDefaults,
     })
 
     useEffect(() => {
-        form.reset(form.getValues())
-    }, [schema, form])
+        form.reset(mergedDefaults)
+    }, [schema, mergedDefaults])
 
     const [submissionDate] = useState(() => new Date())
-    const [pathsAttachments, setPathsAttachments] = useState<string[]>([])
+    const [pathsAttachments, setPathsAttachments] = useState<string[]>(initialAttachments ?? [])
     const { attachments, addFiles, removeFile, setAttachments } = useAttachmentManager()
+
+    useEffect(() => {
+        if (initialAttachments && initialAttachments.length) {
+            setPathsAttachments(initialAttachments)
+            setAttachments(
+                initialAttachments.map((path) => ({
+                    id: path,
+                    path,
+                    status: 'success',
+                }))
+            )
+        }
+    }, [initialAttachments, setAttachments])
 
     const [complaintType, preferredResolution] = useWatch({
         control: form.control,
@@ -102,6 +154,7 @@ export function ComplaintForm() {
     })
 
     const { mutate: createComplaint, isPending } = useCreateComplaint()
+    const isSubmitting = loading ?? isPending;
 
     const normalizeOptional = (value?: string | null) =>
         value === undefined || value === null ? undefined : value;
@@ -140,16 +193,22 @@ export function ComplaintForm() {
                     : ({} as ReplacementDetails),
                 attachments: pathsAttachments,
             }
-            createComplaint(payload, {
-                onSuccess: () => {
-                    form.reset()
-                    setAttachments([])
-                    setPathsAttachments([])
-                },
-                onError: () => {
-                    // error handling placeholder
-                },
-            })
+            if (onSubmitOverride) {
+                await onSubmitOverride(payload)
+                onSuccess?.()
+            } else {
+                createComplaint(payload, {
+                    onSuccess: () => {
+                        form.reset()
+                        setAttachments([])
+                        setPathsAttachments([])
+                        onSuccess?.()
+                    },
+                    onError: () => {
+                        // error handling placeholder
+                    },
+                })
+            }
         } catch (error) {
             console.error('Error uploading attachments:', error)
         }
@@ -174,7 +233,7 @@ export function ComplaintForm() {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="space-y-4">
-                    <h2 className="text-2xl font-semibold">Complaint Form</h2>
+                    <h2 className="text-2xl font-semibold">{mode === 'edit' ? 'Edit Complaint' : 'Complaint Form'}</h2>
                     <div className="grid grid-cols-1 gap-4 p-6 border rounded-lg md:grid-cols-3">
                         <div className="space-y-1">
                             <p className="font-medium">Date of Complaint Submission:</p>
@@ -940,8 +999,8 @@ export function ComplaintForm() {
                     </div>
                 </section>
 
-                <Button type="submit" disabled={isPending} className="align-right">
-                    {isPending ? 'Submitting...' : 'Submit Complaint'}
+                <Button type="submit" disabled={isSubmitting} className="align-right">
+                    {isSubmitting ? 'Submitting...' : (submitLabel || (mode === 'edit' ? 'Update Complaint' : 'Submit Complaint'))}
                 </Button>
             </form>
         </Form>
