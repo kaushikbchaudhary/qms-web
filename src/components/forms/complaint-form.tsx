@@ -60,6 +60,12 @@ export function ComplaintForm({
     const { requirements } = useComplaintFormRequirements()
     const schema = useMemo(() => buildComplaintSubmissionSchema(requirements), [requirements])
     const resolver = useMemo(() => zodResolver(schema) as Resolver<ComplaintFormValues>, [schema])
+    const renderLabel = (label: string, path: string) => (
+        <FormLabel className="flex items-center gap-1">
+            <span>{label}</span>
+            {requirements?.[path] && <span className="text-red-500">*</span>}
+        </FormLabel>
+    )
 
     const baseDefaults: ComplaintFormValues = {
         customer: {
@@ -258,7 +264,7 @@ export function ComplaintForm({
                             name="customer.name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Customer Name:</FormLabel>
+                                    {renderLabel('Customer Name:', 'customer.name')}
                                     <FormControl>
                                         <Input placeholder="Enter customer name" {...field} />
                                     </FormControl>
@@ -271,7 +277,7 @@ export function ComplaintForm({
                             name="customer.company"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Company (if applicable):</FormLabel>
+                                    {renderLabel('Company (if applicable):', 'customer.company')}
                                     <FormControl>
                                         <Input placeholder="Enter company name" {...field} />
                                     </FormControl>
@@ -284,7 +290,7 @@ export function ComplaintForm({
                             name="customer.contact_number"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Contact Number:</FormLabel>
+                                    {renderLabel('Contact Number:', 'customer.contact_number')}
                                     <FormControl>
                                         <Input
                                             placeholder="Enter contact number"
@@ -306,7 +312,7 @@ export function ComplaintForm({
                             name="customer.email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email Address:</FormLabel>
+                                    {renderLabel('Email Address:', 'customer.email')}
                                     <FormControl>
                                         <Input placeholder="Enter email address" {...field} />
                                     </FormControl>
@@ -325,7 +331,7 @@ export function ComplaintForm({
                             name="product_details.model"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Product Name/Model:</FormLabel>
+                                    {renderLabel('Product Name/Model:', 'product_details.model')}
                                     <FormControl>
                                         <Input placeholder="Enter product name or model" {...field} />
                                     </FormControl>
@@ -338,7 +344,7 @@ export function ComplaintForm({
                             name="product_details.batch_number"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Product Unique identifier/Batch no.:</FormLabel>
+                                    {renderLabel('Product Unique identifier/Batch no.:', 'product_details.batch_number')}
                                     <FormControl>
                                         <Input placeholder="Enter unique identifier or batch number" {...field} />
                                     </FormControl>
@@ -351,7 +357,7 @@ export function ComplaintForm({
                             name="product_details.serial_number"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Serial Number:</FormLabel>
+                                    {renderLabel('Serial Number:', 'product_details.serial_number')}
                                     <FormControl>
                                         <Input placeholder="Enter serial number" {...field} />
                                     </FormControl>
@@ -364,7 +370,7 @@ export function ComplaintForm({
                             name="product_details.purchase_date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Date of Purchase/Rental/Lease:</FormLabel>
+                                    {renderLabel('Date of Purchase/Rental/Lease:', 'product_details.purchase_date')}
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
@@ -410,7 +416,7 @@ export function ComplaintForm({
                         name="complaint_type"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Type of Complaint (Select one):</FormLabel>
+                                {renderLabel('Type of Complaint (Select one):', 'complaint_type.name')}
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={(value) => {
@@ -455,7 +461,7 @@ export function ComplaintForm({
                             name="complaint_type.description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Other (please specify):</FormLabel>
+                                    {renderLabel('Other (please specify):', 'complaint_type.description')}
                                     <FormControl>
                                         <Input
                                             placeholder="Enter complaint type"
@@ -477,7 +483,7 @@ export function ComplaintForm({
                         name="issue_details.description"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Issue Description:</FormLabel>
+                                {renderLabel('Issue Description:', 'issue_details.description')}
                                 <FormControl>
                                     <Textarea
                                         placeholder="Describe the issue in detail"
@@ -495,7 +501,7 @@ export function ComplaintForm({
                             name="issue_details.problem_start_date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>When did the problem start?</FormLabel>
+                                    {renderLabel('When did the problem start?', 'issue_details.problem_start_date')}
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
@@ -536,7 +542,7 @@ export function ComplaintForm({
                             name="issue_details.occurred_before"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel>Has the issue occurred before?</FormLabel>
+                                    {renderLabel('Has the issue occurred before?', 'issue_details.occurred_before')}
                                     <FormControl>
                                         <RadioGroup
                                             onValueChange={field.onChange}
@@ -567,7 +573,7 @@ export function ComplaintForm({
                         name="issue_details.replication_steps"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Steps to replicate the issue (if applicable):</FormLabel>
+                                {renderLabel('Steps to replicate the issue (if applicable):', 'issue_details.replication_steps')}
                                 <FormControl>
                                     <Textarea
                                         placeholder="List the steps to replicate the issue"
@@ -588,7 +594,7 @@ export function ComplaintForm({
                         name="customer_impact"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>How is this issue affecting you?</FormLabel>
+                                {renderLabel('How is this issue affecting you?', 'customer_impact')}
                                 <FormControl>
                                     <Textarea
                                         placeholder="Explain how the issue impacts you"
@@ -609,7 +615,7 @@ export function ComplaintForm({
                         name="previous_contact.reported_before"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Have you reported this issue before? ☐ Yes / ☐ No</FormLabel>
+                                {renderLabel('Have you reported this issue before? ☐ Yes / ☐ No', 'previous_contact.reported_before')}
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
@@ -645,7 +651,7 @@ export function ComplaintForm({
                                     name="previous_contact.reference_number"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Reference Number:</FormLabel>
+                                            {renderLabel('Reference Number:', 'previous_contact.reference_number')}
                                             <FormControl>
                                                 <Input placeholder="Enter reference number" {...field} />
                                             </FormControl>
@@ -658,7 +664,7 @@ export function ComplaintForm({
                                     name="previous_contact.contact_date"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
-                                            <FormLabel>Date of contact:</FormLabel>
+                                            {renderLabel('Date of contact:', 'previous_contact.contact_date')}
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
@@ -700,7 +706,7 @@ export function ComplaintForm({
                                 name="previous_contact.person_contacted"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Person contacted (if applicable):</FormLabel>
+                                        {renderLabel('Person contacted (if applicable):', 'previous_contact.person_contacted')}
                                         <FormControl>
                                             <Input
                                                 placeholder="Enter the name of the person contacted"
@@ -722,7 +728,7 @@ export function ComplaintForm({
                         name="customer_actions.troubleshooting_done"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>Have you attempted any troubleshooting steps? ☐ Yes / ☐ No</FormLabel>
+                                {renderLabel('Have you attempted any troubleshooting steps? ☐ Yes / ☐ No', 'customer_actions.troubleshooting_done')}
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
@@ -753,7 +759,7 @@ export function ComplaintForm({
                             name="customer_actions.troubleshooting_description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>If yes, please describe the actions taken:</FormLabel>
+                                    {renderLabel('If yes, please describe the actions taken:', 'customer_actions.troubleshooting_description')}
                                     <FormControl>
                                         <Textarea
                                             placeholder="Describe the troubleshooting actions taken"
@@ -775,7 +781,7 @@ export function ComplaintForm({
                         name="preferred_resolution_method"
                         render={({ field }) => (
                             <FormItem className="space-y-3">
-                                <FormLabel>How would you like us to resolve this issue?</FormLabel>
+                                {renderLabel('How would you like us to resolve this issue?', 'preferred_resolution_method.name')}
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={(value) => {
@@ -820,7 +826,7 @@ export function ComplaintForm({
                             name="preferred_resolution_method.description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Other (please specify):</FormLabel>
+                                    {renderLabel('Other (please specify):', 'preferred_resolution_method.description')}
                                     <FormControl>
                                         <Input
                                             placeholder="Describe your preferred resolution"
@@ -845,7 +851,7 @@ export function ComplaintForm({
                                     name="replacement_details.batch_number"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Replacement Batch no.:</FormLabel>
+                                            {renderLabel('Replacement Batch no.:', 'replacement_details.batch_number')}
                                             <FormControl>
                                                 <Input placeholder="Enter batch number" {...field} />
                                             </FormControl>
@@ -858,7 +864,7 @@ export function ComplaintForm({
                                     name="replacement_details.serial_number"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Replacement Serial Number:</FormLabel>
+                                            {renderLabel('Replacement Serial Number:', 'replacement_details.serial_number')}
                                             <FormControl>
                                                 <Input
                                                     placeholder="Enter replacement serial number"
@@ -874,7 +880,7 @@ export function ComplaintForm({
                                     name="replacement_details.mfg_date"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
-                                            <FormLabel>Manufacturing Date:</FormLabel>
+                                            {renderLabel('Manufacturing Date:', 'replacement_details.mfg_date')}
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
