@@ -12,9 +12,14 @@ export default function ComplaintsPage() {
             Monitor open complaint investigations and track progress toward closure.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/complaints/new">Create Complaint</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/complaints/serial-lookup">Serial lookup</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/complaints/new">Create Complaint</Link>
+          </Button>
+        </div>
       </div>
 
       <ComplaintsTable />

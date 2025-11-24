@@ -4,7 +4,8 @@ import {
     ComplaintQueryParams,
     ComplaintsApiResponse,
     CreateComplaintPayload, MasterLookupItem,
-    ComplaintStats
+    ComplaintStats,
+    ComplaintSerialStats
 } from '@/lib/api/types/complaints'
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
 import {toast} from "sonner";
@@ -204,6 +205,20 @@ export function useComplaintStats() {
         },
         staleTime: 60_000,
         refetchInterval: 5 * 60_000
+    });
+}
+
+export function useComplaintSerialStats(serialNumber: string): UseQueryResult<ComplaintSerialStats, Error> {
+    const trimmed = typeof serialNumber === 'string' ? serialNumber.trim() : '';
+    return useQuery<ComplaintSerialStats, Error, ComplaintSerialStats, ['complaint-serial-stats', string]>({
+        queryKey: ['complaint-serial-stats', trimmed],
+        enabled: trimmed.length > 0,
+        queryFn: async () => {
+            const response = await complaintsApi.getComplaintSerialStats(trimmed);
+            return response.data as ComplaintSerialStats;
+        },
+        staleTime: 60_000,
+        // Handle errors at call sites if needed
     });
 }
 

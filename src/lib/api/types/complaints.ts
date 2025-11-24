@@ -378,6 +378,28 @@ export interface TimelineStageSummary {
     onTrack: number;
 }
 
+export interface ComplaintSerialStats {
+    serial_number: string;
+    total: number;
+    statusCounts: Record<string, number>;
+    issues: Array<{
+        label: string;
+        count: number;
+    }>;
+    recent: Array<{
+        _id: string;
+        complaint_number?: string;
+        status?: ComplaintStatus;
+        submission_date?: string;
+        created_on?: string;
+        product_serial?: string;
+        replacement_serial?: string;
+        product_model?: string;
+        complaint_type?: string;
+        issue?: string;
+    }>;
+}
+
 export interface TimelineAlert {
     _id: string;
     complaint_number?: string;

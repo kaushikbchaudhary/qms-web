@@ -89,4 +89,8 @@ export const complaintsApi = {
         apiClient.patch(`/api/v1/complaint/${complaintId}/investigation/assignments/read`, {}),
     getComplaintStats: () =>
         apiClient.get('/api/v1/complaint/stats'),
+    getComplaintSerialStats: (serialNumber: string) =>
+        apiClient.get('/api/v1/complaint/serial-stats', {
+            params: { serial_number: serialNumber }
+        }),
 };

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FileRejection } from 'react-dropzone';
@@ -43,7 +44,6 @@ const FileUploadComponent = React.forwardRef<HTMLDivElement, FileUploadComponent
         ref
     ) => {
         const [files, setFiles] = useState<FileWithPreview[]>([]);
-        const [isDragging, setIsDragging] = useState(false);
         const fileInputRef = useRef<HTMLInputElement>(null);
         // Use useEffect to notify parent of file changes after render
         useEffect(() => {
@@ -54,8 +54,6 @@ const FileUploadComponent = React.forwardRef<HTMLDivElement, FileUploadComponent
 
         const onDrop = useCallback(
             (acceptedFiles: File[], fileRejections: FileRejection[]) => {
-                setIsDragging(false);
-
                 // Handle rejected files
                 if (fileRejections.length > 0) {
                     const rejectedFiles = fileRejections.map(({ file, errors }) => ({
@@ -90,10 +88,8 @@ const FileUploadComponent = React.forwardRef<HTMLDivElement, FileUploadComponent
             [multiple, maxFiles]
         );
 
-        const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        const { getRootProps, isDragActive } = useDropzone({
             onDrop,
-            onDragEnter: () => setIsDragging(true),
-            onDragLeave: () => setIsDragging(false),
             // accept: accept === '*' ? accept? accept : undefined : accept,
             maxSize,
             multiple,
