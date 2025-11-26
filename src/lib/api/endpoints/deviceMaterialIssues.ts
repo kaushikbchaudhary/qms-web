@@ -75,6 +75,9 @@ export const deviceMaterialIssuesApi = {
       .post('api/v1/device-issue/export/pdf', payload, { responseType: 'blob' })
       .then((response) => response.data as Blob),
 
+  downloadRequestPdf: (id: string) =>
+    apiFileClient.get(`api/v1/device-issue/${id}/pdf`, { responseType: 'blob' }).then((response) => response.data as Blob),
+
   reopen: (id: string) =>
     apiClient.post(`api/v1/device-issue/${id}/reopen`, {}).then((response) => extractData<DeviceMaterialIssue>(response)),
 };

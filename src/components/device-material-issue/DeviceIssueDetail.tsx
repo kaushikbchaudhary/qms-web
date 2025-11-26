@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, Circle, Clock3, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Circle, Clock3, Download, Loader2, RefreshCw } from 'lucide-react';
 import {
   useDeviceMaterialIssue,
   useDeviceMaterialIssueAcknowledge,
@@ -26,6 +26,7 @@ import {
 import { showApiErrorToast } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { roles } from '@/config/roles';
+import { deviceMaterialIssuesApi } from '@/lib/api/endpoints/deviceMaterialIssues';
 
 const STATUS_SEQUENCE: DeviceMaterialIssueStatus[] = [
   'DRAFT',
@@ -120,6 +121,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
     notes: '',
   });
   const [batchNumber, setBatchNumber] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
   const userRoles = user?.role ?? [];
   const isStoreUser = userRoles.some((roleKey) => STORE_ROLE_ALIASES.includes(roleKey));
   const canRecordStoreSignoff = isStoreUser;
@@ -191,6 +193,24 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
       await refetch();
     } catch (error) {
       showApiErrorToast(error);
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      const blob = await deviceMaterialIssuesApi.downloadRequestPdf(id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const safeNumber = request?.request_number ?? id;
+      link.download = `device-material-request-${safeNumber}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      showApiErrorToast(error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -366,6 +386,14 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          </Button>
+          <Button variant="secondary" onClick={handleDownload} disabled={isDownloading}>
+            {isDownloading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isDownloading ? 'Preparing PDF…' : 'Download PDF'}
           </Button>
           {request.status === 'REJECTED' || request.status === 'CLOSED' ? (
             <Button onClick={handleReopen} disabled={reopenMutation.isPending}>
