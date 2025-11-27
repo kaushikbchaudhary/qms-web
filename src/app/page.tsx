@@ -1,8 +1,40 @@
 'use client';
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { apiClient, apiFileClient } from '@/lib/api/client';
 import { format } from 'date-fns';
+import {
+  Activity,
+  ArrowRight,
+  CalendarClock,
+  Download,
+  History,
+  Loader2,
+  ScanSearch,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { apiClient, apiFileClient } from '@/lib/api/client';
 
 type LifecycleResponse = {
   device?: any;
@@ -108,210 +140,353 @@ export default function Home() {
   const current = result?.currentAssignment ?? {};
   const subscription = result?.subscription ?? {};
   const history = result?.history ?? [];
+  const pagination = result?.historyPagination;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">QMS</p>
-            <h1 className="text-2xl font-semibold text-slate-900">Device Lifecycle Lookup</h1>
-          </div>
-          <div className="text-sm text-slate-500">
-            Enter serial → fetch lifecycle → download PDF
-          </div>
-        </div>
-      </header>
+    <div className="relative isolate min-h-screen overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-50">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-x-0 top-10 h-72 bg-[radial-gradient(800px_at_50%_-20%,rgba(99,102,241,0.18),transparent)] blur-2xl dark:bg-[radial-gradient(800px_at_50%_-20%,rgba(94,234,212,0.12),transparent)]" />
+        <div className="absolute right-10 top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl dark:bg-primary/10" />
+      </div>
 
-      <main className="mx-auto max-w-5xl px-6 py-8 space-y-6">
-        <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Serial Number</label>
-              <input
-                value={serialNo}
-                onChange={(e) => setSerialNo(e.target.value)}
-                placeholder="Enter serial number"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">From Date</label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">To Date</label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Page</label>
-              <input
-                type="number"
-                min={1}
-                value={page}
-                onChange={(e) => setPage(parseInt(e.target.value || '1', 10))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Limit</label>
-              <input
-                type="number"
-                min={1}
-                max={500}
-                value={limit}
-                onChange={(e) => setLimit(parseInt(e.target.value || '25', 10))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={onFetch}
-              disabled={state === 'loading'}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-            >
-              {state === 'loading' ? 'Fetching…' : 'Fetch Lifecycle'}
-            </button>
-            <button
-              onClick={onDownload}
-              disabled={loadingPdf}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-            >
-              {loadingPdf ? 'Preparing PDF…' : 'Download PDF'}
-            </button>
-            {error && <span className="text-sm text-red-600">{error}</span>}
-          </div>
-        </section>
-
-        {state === 'success' && hasData && (
-          <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-slate-900">Device</h2>
-                <p className="text-sm text-slate-600">Serial: <span className="font-medium text-slate-900">{device.serialNo}</span></p>
-                <p className="text-sm text-slate-600">Name: {device.name || '—'}</p>
-                <p className="text-sm text-slate-600">Model: {device.model_no || '—'}</p>
-                <p className="text-sm text-slate-600">Company: {device.company || '—'}</p>
-                <p className="text-sm text-slate-600">Vital: {device.vital || '—'}</p>
-                <p className="text-sm text-slate-600">Status: {device.status || '—'} • Active: {String(device.active)}</p>
-              </div>
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-slate-900">Current Assignment</h2>
-                <p className="text-sm text-slate-600">Clinic: {current?.clinic?.name || '—'}</p>
-                <p className="text-sm text-slate-600">Sub Clinic: {current?.subClinic?.name || '—'}</p>
-                <p className="text-sm text-slate-600">Distributor: {current?.distributor?.name || '—'}</p>
-                <p className="text-sm text-slate-600">Patient: {current?.patient?.name || '—'}</p>
-                <p className="text-sm text-slate-600">Kit: {current?.kit?.id || '—'}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <h3 className="text-md font-semibold text-slate-900">Subscription</h3>
-                <p className="text-sm text-slate-600">Type: {subscription?.subscriptionType || '—'}</p>
-                <p className="text-sm text-slate-600">Charge: {subscription?.subscriptionCharge ?? '—'}</p>
-                <p className="text-sm text-slate-600">ECG Type: {subscription?.ecgType || '—'}</p>
-                <p className="text-sm text-slate-600">Plan: {subscription?.durationWisePlan || '—'}</p>
-                <p className="text-sm text-slate-600">Clinic: {subscription?.clinicName || '—'}</p>
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-md font-semibold text-slate-900">History Window</h3>
-                <p className="text-sm text-slate-600">
-                  From: {result?.historyWindow?.from ? formatDate(result.historyWindow.from) : '—'}
-                </p>
-                <p className="text-sm text-slate-600">
-                  To: {result?.historyWindow?.to ? formatDate(result.historyWindow.to) : '—'}
-                </p>
-                <p className="text-sm text-slate-600">
-                  Records: {result?.historyPagination?.total ?? history.length}
-                </p>
-                <p className="text-sm text-slate-600">
-                  Page: {result?.historyPagination?.page ?? page} / {result?.historyPagination?.pages ?? 1}
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-                <thead className="bg-slate-100 text-slate-700">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Date</th>
-                    <th className="px-3 py-2 text-left">Type</th>
-                    <th className="px-3 py-2 text-left">Details</th>
-                    <th className="px-3 py-2 text-left">Reason</th>
-                    <th className="px-3 py-2 text-left">Created By</th>
-                    <th className="px-3 py-2 text-left">Updated By</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-3 py-3 text-center text-slate-500">
-                        No history found.
-                      </td>
-                    </tr>
-                  )}
-                  {history.map((row: any, idx: number) => (
-                    <tr key={idx} className="border-t border-slate-200">
-                      <td className="px-3 py-2">{formatDate(row?.date)}</td>
-                      <td className="px-3 py-2">{row?.type || '—'}</td>
-                      <td className="px-3 py-2">{row?.details || '—'}</td>
-                      <td className="px-3 py-2">{row?.reason || '—'}</td>
-                      <td className="px-3 py-2">{row?.createdBy?.name || row?.createdBy?.email || row?.createdBy?.id || '—'}</td>
-                      <td className="px-3 py-2">{row?.updatedBy?.name || row?.updatedBy?.email || row?.updatedBy?.id || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => fetchLifecycle(Math.max((result?.historyPagination?.page ?? page) - 1, 1))}
-                disabled={(result?.historyPagination?.page ?? page) <= 1 || isLoading}
-                className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => {
-                  const currentPage = result?.historyPagination?.page ?? page;
-                  const totalPages = result?.historyPagination?.pages ?? 1;
-                  const nextPage = Math.min(currentPage + 1, totalPages);
-                  fetchLifecycle(nextPage);
-                }}
-                disabled={
-                  (result?.historyPagination?.page ?? page) >= (result?.historyPagination?.pages ?? 1) ||
-                  isLoading
-                }
-                className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
-              >
-                Next
-              </button>
-              <span className="text-sm text-slate-600">
-                Showing {(result?.historyPagination?.page ?? page)} / {(result?.historyPagination?.pages ?? 1)}
+      <div className="relative mx-auto max-w-6xl space-y-8 px-4 py-8 md:px-6 md:py-12">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline" className="border-primary/40 bg-primary/5 text-primary dark:border-primary/50 dark:bg-primary/10 dark:text-primary-foreground/90">
+                Device intelligence
+              </Badge>
+              <span className="inline-flex items-center gap-1">
+                <Sparkles className="h-4 w-4" />
+                Trace lifecycle in seconds
               </span>
             </div>
-          </section>
+            <div className="space-y-1">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+                Device Issuance, Assign and Return Acknowledgment Form
+              </h1>
+              <p className="text-base text-muted-foreground">
+                Search by serial number, refine with dates, and export the full trail as a PDF.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/60 px-3 py-1 backdrop-blur">
+                <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                Secure audit ready
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/60 px-3 py-1 backdrop-blur">
+                <History className="h-4 w-4 text-sky-500" />
+                Historical pagination
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <Card className="border-border/70 bg-card/80 shadow-lg backdrop-blur">
+          <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle className="text-xl">Find a device</CardTitle>
+              <CardDescription>Enter a serial number to pull live assignment and history.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <CalendarClock className="h-4 w-4" />
+              Optional date window refines the log.
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-5">
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-sm">Serial number</Label>
+                <Input
+                  value={serialNo}
+                  onChange={(e) => setSerialNo(e.target.value)}
+                  placeholder="e.g. KE1023934591"
+                  autoComplete="off"
+                  className="border-border/80 bg-background/70 backdrop-blur"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">From date</Label>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="border-border/80 bg-background/70 backdrop-blur"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">To date</Label>
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="border-border/80 bg-background/70 backdrop-blur"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Page</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={page}
+                  onChange={(e) => setPage(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                  className="border-border/80 bg-background/70 backdrop-blur"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Limit</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={limit}
+                  onChange={(e) => setLimit(Math.max(1, parseInt(e.target.value || '25', 10)))}
+                  className="border-border/80 bg-background/70 backdrop-blur"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={onFetch}
+                disabled={isLoading}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-sky-600 to-cyan-500 text-white shadow-md transition hover:shadow-lg dark:from-indigo-500 dark:via-blue-500 dark:to-cyan-400"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanSearch className="h-4 w-4" />}
+                {isLoading ? 'Fetching...' : 'Fetch lifecycle'}
+              </Button>
+              <Button
+                onClick={onDownload}
+                variant="outline"
+                disabled={loadingPdf}
+                className="inline-flex items-center gap-2 border-border/80 bg-background/60 backdrop-blur"
+              >
+                {loadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {loadingPdf ? 'Preparing PDF...' : 'Download PDF'}
+              </Button>
+              {error && (
+                <Badge variant="destructive" className="text-xs">
+                  {error}
+                </Badge>
+              )}
+              {!error && hasData && (
+                <Badge variant="outline" className="text-xs border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+                  Live data loaded
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {state === 'success' && hasData && (
+          <div className="space-y-5">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="border-border/70 bg-card/80 shadow-md backdrop-blur">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Activity className="h-5 w-5 text-sky-500" />
+                    Device
+                  </CardTitle>
+                  <CardDescription className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant="outline" className="border-primary/40 bg-primary/5 text-primary dark:border-primary/50 dark:bg-primary/10 dark:text-primary-foreground/90">
+                      {device.status || 'Unknown status'}
+                    </Badge>
+                    <span className="text-muted-foreground">Serial {device.serialNo || '—'}</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Name</span>
+                    <span className="text-foreground font-medium">{device.name || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Model</span>
+                    <span className="text-foreground font-medium">{device.model_no || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Company</span>
+                    <span className="text-foreground font-medium">{device.company || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Vital</span>
+                    <span className="text-foreground font-medium">{device.vital || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Active</span>
+                    <span className="text-foreground font-medium">{String(device.active)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/70 bg-card/80 shadow-md backdrop-blur">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ArrowRight className="h-5 w-5 text-indigo-500" />
+                    Current assignment
+                  </CardTitle>
+                  <CardDescription>Where the device is now.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Clinic</span>
+                    <span className="text-foreground font-medium">{current?.clinic?.name || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Sub clinic</span>
+                    <span className="text-foreground font-medium">{current?.subClinic?.name || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Distributor</span>
+                    <span className="text-foreground font-medium">{current?.distributor?.name || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Patient</span>
+                    <span className="text-foreground font-medium">{current?.patient?.name || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Kit</span>
+                    <span className="text-foreground font-medium">{current?.kit?.id || '—'}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/70 bg-card/80 shadow-md backdrop-blur">
+                <CardHeader className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                    Subscription
+                  </CardTitle>
+                  <CardDescription>Commercial context and plan.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Type</span>
+                    <span className="text-foreground font-medium">{subscription?.subscriptionType || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Charge</span>
+                    <span className="text-foreground font-medium">{subscription?.subscriptionCharge ?? '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>ECG type</span>
+                    <span className="text-foreground font-medium">{subscription?.ecgType || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Plan</span>
+                    <span className="text-foreground font-medium">{subscription?.durationWisePlan || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+                    <span>Clinic</span>
+                    <span className="text-foreground font-medium">{subscription?.clinicName || '—'}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-border/70 bg-card/80 shadow-md backdrop-blur">
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <History className="h-5 w-5 text-amber-500" />
+                    Lifecycle history
+                  </CardTitle>
+                  <CardDescription>Windowed by your filters with pagination.</CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="border-border/70 bg-background/50">
+                    From {result?.historyWindow?.from ? formatDate(result.historyWindow.from) : '—'}
+                  </Badge>
+                  <Badge variant="outline" className="border-border/70 bg-background/50">
+                    To {result?.historyWindow?.to ? formatDate(result.historyWindow.to) : '—'}
+                  </Badge>
+                  <Badge variant="outline" className="border-border/70 bg-background/50">
+                    Records {pagination?.total ?? history.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-xl border border-border/70 bg-background/60 shadow-inner">
+                  <Table>
+                    <TableHeader className="bg-muted/40">
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Details</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Created by</TableHead>
+                        <TableHead>Updated by</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {history.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            No history found for this window.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {history.map((row: any, idx: number) => (
+                        <TableRow key={`${row?.date}-${idx}`}>
+                          <TableCell className="font-medium text-foreground">{formatDate(row?.date)}</TableCell>
+                          <TableCell className="text-foreground">{row?.type || '—'}</TableCell>
+                          <TableCell className="text-muted-foreground">{row?.details || '—'}</TableCell>
+                          <TableCell className="text-muted-foreground">{row?.reason || '—'}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {row?.createdBy?.name || row?.createdBy?.email || row?.createdBy?.id || '—'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {row?.updatedBy?.name || row?.updatedBy?.email || row?.updatedBy?.id || '—'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => fetchLifecycle(Math.max((pagination?.page ?? page) - 1, 1))}
+                    disabled={(pagination?.page ?? page) <= 1 || isLoading}
+                    className="border-border/80 bg-background/60 backdrop-blur"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const currentPage = pagination?.page ?? page;
+                      const totalPages = pagination?.pages ?? 1;
+                      const nextPage = Math.min(currentPage + 1, totalPages);
+                      fetchLifecycle(nextPage);
+                    }}
+                    disabled={(pagination?.page ?? page) >= (pagination?.pages ?? 1) || isLoading}
+                    className="border-border/80 bg-background/60 backdrop-blur"
+                  >
+                    Next
+                  </Button>
+                  <Badge variant="outline" className="border-border/70 bg-background/50 text-xs text-muted-foreground">
+                    Page {(pagination?.page ?? page)} of {(pagination?.pages ?? 1)}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {state === 'error' && !hasData && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-            {error || 'Something went wrong.'}
-          </div>
+          <Card className="border-red-200/70 bg-red-50/70 text-red-700 shadow-md dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-100">
+            <CardHeader>
+              <CardTitle className="text-lg">We couldn&apos;t fetch the lifecycle</CardTitle>
+              <CardDescription className="text-red-700/80 dark:text-red-100/70">
+                {error || 'Something went wrong.'}
+              </CardDescription>
+            </CardHeader>
+          </Card>
         )}
-      </main>
+      </div>
     </div>
   );
 }
