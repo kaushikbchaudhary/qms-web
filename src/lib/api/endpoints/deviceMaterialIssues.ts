@@ -38,6 +38,9 @@ export const deviceMaterialIssuesApi = {
   getById: (id: string) =>
     apiClient.get(`api/v1/device-issue/${id}`).then((response) => extractData<DeviceMaterialIssue>(response)),
 
+  delete: (id: string) =>
+    apiClient.delete(`api/v1/device-issue/${id}`).then((response) => extractData<DeviceMaterialIssue>(response)),
+
   update: (id: string, payload: UpdateDeviceMaterialIssuePayload) =>
     apiClient
       .put(`api/v1/device-issue/${id}`, payload)

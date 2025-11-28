@@ -153,7 +153,7 @@ export default function Home() {
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="outline" className="border-primary/40 bg-primary/5 text-primary dark:border-primary/50 dark:bg-primary/10 dark:text-primary-foreground/90">
+              <Badge variant="outline" className="border-primary/40 bg-primary/5 text-primary dark:border-primary/50 dark:bg-primary/10">
                 Device intelligence
               </Badge>
               <span className="inline-flex items-center gap-1">

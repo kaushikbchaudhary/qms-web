@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, Circle, Clock3, Download, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Circle, Clock3, Download, Loader2, RefreshCw, Pencil, Trash2 } from 'lucide-react';
 import {
   useDeviceMaterialIssue,
   useDeviceMaterialIssueAcknowledge,
@@ -17,6 +17,7 @@ import {
   useDeviceMaterialIssueReopen,
   useDeviceMaterialIssueStatusTransition,
   useDeviceMaterialIssueStoreSignoff,
+  useDeleteDeviceMaterialIssue,
 } from '@/hooks/api/useDeviceMaterialIssues';
 import {
   DeviceMaterialIssue,
@@ -27,6 +28,19 @@ import { showApiErrorToast } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { roles } from '@/config/roles';
 import { deviceMaterialIssuesApi } from '@/lib/api/endpoints/deviceMaterialIssues';
+import { DeviceMaterialIssueForm, DeviceMaterialIssueFormInputs, MODEL_NUMBER_OPTIONS } from '@/components/forms/device-material-issue-form';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useRouter } from 'next/navigation';
 
 const STATUS_SEQUENCE: DeviceMaterialIssueStatus[] = [
   'DRAFT',
@@ -90,6 +104,20 @@ const formatPersonName = (person: any): string => {
   return '—';
 };
 
+const resolveUserId = (input: any): string | undefined => {
+  if (!input) return undefined;
+  if (typeof input === 'string') {
+    return input;
+  }
+  if (typeof input === 'object') {
+    const raw = (input as any)._id ?? (input as any).id;
+    if (typeof raw === 'string') {
+      return raw;
+    }
+  }
+  return undefined;
+};
+
 type DeviceIssueDetailProps = {
   id: string;
 };
@@ -109,11 +137,13 @@ const STATUS_MANAGER_ROLES = [
 export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const { data, isLoading, refetch } = useDeviceMaterialIssue(id);
   const queueHeadQuery = useDeviceMaterialIssueQueueHead();
+  const router = useRouter();
 
   const transitionMutation = useDeviceMaterialIssueStatusTransition(id);
   const storeSignoffMutation = useDeviceMaterialIssueStoreSignoff(id);
   const acknowledgeMutation = useDeviceMaterialIssueAcknowledge(id);
   const reopenMutation = useDeviceMaterialIssueReopen(id);
+  const deleteMutation = useDeleteDeviceMaterialIssue(id);
   const { user } = useAuthStore();
 
   const [statusPayload, setStatusPayload] = useState<DeviceMaterialIssueStatusUpdatePayload>({
@@ -122,7 +152,10 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   });
   const [batchNumber, setBatchNumber] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const userRoles = user?.role ?? [];
+  const isSuperAdmin = userRoles.includes(roles.SUPER_ADMIN);
   const isStoreUser = userRoles.some((roleKey) => STORE_ROLE_ALIASES.includes(roleKey));
   const canRecordStoreSignoff = isStoreUser;
   const canUpdateStatus = false;
@@ -214,6 +247,21 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
     }
   };
 
+  const handleEditSuccess = async () => {
+    setIsEditDialogOpen(false);
+    await refetch();
+  };
+
+  const handleDeleteRequest = async () => {
+    try {
+      await deleteMutation.mutateAsync();
+      setIsDeleteDialogOpen(false);
+      router.push('/dashboard/device-material-issues');
+    } catch (error) {
+      // errors handled by mutation's onError
+    }
+  };
+
   const statusOptions = useMemo(
     () =>
       STATUS_SEQUENCE.map((status) => ({
@@ -221,6 +269,36 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
         label: formatStatus(status),
       })),
     [],
+  );
+
+  const requestOwnerId = resolveUserId(request?.requested_by);
+  const currentUserId = resolveUserId(user?._id ?? (user as any)?.id);
+  const isRequester = Boolean(requestOwnerId && currentUserId && requestOwnerId === currentUserId);
+  const canModifyRequest = request?.status === 'SUBMITTED' && (isSuperAdmin || isRequester);
+  const editInitialValues = useMemo<DeviceMaterialIssueFormInputs>(
+    () => {
+      const model = request?.device_details?.model;
+      const normalizedModel =
+        model && (MODEL_NUMBER_OPTIONS as readonly string[]).includes(model)
+          ? (model as (typeof MODEL_NUMBER_OPTIONS)[number])
+          : undefined;
+      const resolvedQuantity =
+        typeof request?.device_details?.quantity === 'number'
+          ? request.device_details.quantity
+          : Number(request?.device_details?.quantity) || 1;
+      return {
+        deviceName: request?.device_details?.category ?? '',
+        modelNumber: normalizedModel,
+        purpose: request?.purpose?.description ?? '',
+        quantity: resolvedQuantity,
+      };
+    },
+    [
+      request?.device_details?.category,
+      request?.device_details?.model,
+      request?.device_details?.quantity,
+      request?.purpose?.description,
+    ],
   );
 
   if (isLoading || !request) {
@@ -395,6 +473,25 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
             )}
             {isDownloading ? 'Preparing PDF…' : 'Download PDF'}
           </Button>
+          {canModifyRequest ? (
+            <>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" /> Edit request
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete request'}
+              </Button>
+            </>
+          ) : null}
           {request.status === 'REJECTED' || request.status === 'CLOSED' ? (
             <Button onClick={handleReopen} disabled={reopenMutation.isPending}>
               Reopen
@@ -616,6 +713,41 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
           </Button>
         </CardContent>
       </Card>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit request</DialogTitle>
+            <DialogDescription>
+              Update the submitted details before the store team begins processing.
+            </DialogDescription>
+          </DialogHeader>
+          <DeviceMaterialIssueForm
+            mode="edit"
+            issueId={id}
+            initialValues={editInitialValues}
+            onSuccess={handleEditSuccess}
+            submitLabel="Save changes"
+          />
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Only submitted requests can be deleted. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRequest} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

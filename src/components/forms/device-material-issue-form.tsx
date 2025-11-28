@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,37 +9,101 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCreateDeviceMaterialIssue } from '@/hooks/api/useDeviceMaterialIssues';
-import { CreateDeviceMaterialIssuePayload, DeviceMaterialIssuePriority } from '@/lib/api/types/deviceMaterialIssue';
+import { useCreateDeviceMaterialIssue, useUpdateDeviceMaterialIssue } from '@/hooks/api/useDeviceMaterialIssues';
+import {
+  CreateDeviceMaterialIssuePayload,
+  DeviceMaterialIssuePriority,
+  UpdateDeviceMaterialIssuePayload,
+} from '@/lib/api/types/deviceMaterialIssue';
 import { toast } from 'sonner';
 
-const MODEL_NUMBER_OPTIONS = ['OOM 100', 'OOM 7C', 'OOM 12C', 'OOM 12CR'] as const;
+export const MODEL_NUMBER_OPTIONS = ['OOM 100', 'OOM 7C', 'OOM 12C', 'OOM 12CR'] as const;
 
-const schema = z.object({
+export const deviceMaterialIssueFormSchema = z.object({
   deviceName: z.string().trim().min(1, 'Device or material name is required.'),
   modelNumber: z.enum(MODEL_NUMBER_OPTIONS).optional(),
   purpose: z.string().trim().min(1, 'Purpose is required.'),
   quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1.'),
 });
 
-type FormValues = z.infer<typeof schema>;
-type FormInputs = z.input<typeof schema>;
+export type DeviceMaterialIssueFormValues = z.infer<typeof deviceMaterialIssueFormSchema>;
+export type DeviceMaterialIssueFormInputs = z.input<typeof deviceMaterialIssueFormSchema>;
 
-export function DeviceMaterialIssueForm() {
-  const { mutateAsync, isPending } = useCreateDeviceMaterialIssue();
+type DeviceMaterialIssueFormProps = {
+  mode?: 'create' | 'edit';
+  issueId?: string;
+  initialValues?: Partial<DeviceMaterialIssueFormInputs>;
+  onSuccess?: () => void;
+  submitLabel?: string;
+};
 
-  const form = useForm<FormInputs>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      deviceName: '',
-      modelNumber: undefined,
-      purpose: '',
-      quantity: 1,
-    },
+const normalizeModelNumber = (value?: string | null) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!(MODEL_NUMBER_OPTIONS as readonly string[]).includes(trimmed)) {
+    return undefined;
+  }
+  return trimmed as (typeof MODEL_NUMBER_OPTIONS)[number];
+};
+
+export function DeviceMaterialIssueForm({
+  mode = 'create',
+  issueId,
+  initialValues,
+  onSuccess,
+  submitLabel,
+}: DeviceMaterialIssueFormProps) {
+  const isEditMode = mode === 'edit';
+  const createMutation = useCreateDeviceMaterialIssue();
+  const updateMutation = useUpdateDeviceMaterialIssue(issueId ?? '');
+
+  const resolvedDefaults: DeviceMaterialIssueFormInputs = useMemo(
+    () => ({
+      deviceName: initialValues?.deviceName ?? '',
+      modelNumber: normalizeModelNumber(initialValues?.modelNumber as string | undefined),
+      purpose: initialValues?.purpose ?? '',
+      quantity:
+        typeof initialValues?.quantity === 'number'
+          ? initialValues.quantity
+          : Number(initialValues?.quantity) || 1,
+    }),
+    [initialValues?.deviceName, initialValues?.modelNumber, initialValues?.purpose, initialValues?.quantity],
+  );
+
+  const form = useForm<DeviceMaterialIssueFormInputs>({
+    resolver: zodResolver(deviceMaterialIssueFormSchema),
+    defaultValues: resolvedDefaults,
   });
 
-  const onSubmit = async (values: FormInputs) => {
-    const parsed = schema.parse(values);
+  useEffect(() => {
+    form.reset(resolvedDefaults);
+  }, [form, resolvedDefaults]);
+
+  const handleSubmit = async (values: DeviceMaterialIssueFormInputs) => {
+    const parsed = deviceMaterialIssueFormSchema.parse(values);
+
+    if (isEditMode) {
+      if (!issueId) {
+        toast.error('Unable to update: request id is missing.');
+        return;
+      }
+      const updatePayload: UpdateDeviceMaterialIssuePayload = {
+        device_details: {
+          category: parsed.deviceName.trim(),
+          model: parsed.modelNumber?.trim() || undefined,
+          quantity: parsed.quantity,
+        },
+        purpose: {
+          description: parsed.purpose.trim(),
+        },
+      };
+
+      await updateMutation.mutateAsync(updatePayload, {
+        onSuccess,
+      });
+      return;
+    }
+
     const payload: CreateDeviceMaterialIssuePayload = {
       device_details: {
         category: parsed.deviceName.trim(),
@@ -52,17 +117,21 @@ export function DeviceMaterialIssueForm() {
       autoSubmit: true,
     };
 
-    await mutateAsync(payload, {
+    await createMutation.mutateAsync(payload, {
       onSuccess: () => {
-        toast.success('Device/material issue request created.');
-        form.reset();
+        form.reset(resolvedDefaults);
+        onSuccess?.();
       },
     });
   };
 
+  const isSubmitting = isEditMode ? updateMutation.isPending : createMutation.isPending;
+  const submitText = submitLabel ?? (isEditMode ? 'Save changes' : 'Submit request');
+  const pendingText = isEditMode ? 'Saving changes...' : 'Saving...';
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -140,8 +209,8 @@ export function DeviceMaterialIssueForm() {
           )}
         />
 
-        <Button type="submit" disabled={isPending}>
-          {isPending ? 'Saving...' : 'Submit request'}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? pendingText : submitText}
         </Button>
       </form>
     </Form>

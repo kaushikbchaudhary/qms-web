@@ -120,3 +120,17 @@ export const useDeviceMaterialIssueReopen = (id: string) => {
     onError: showApiErrorToast,
   });
 };
+
+export const useDeleteDeviceMaterialIssue = (id: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => deviceMaterialIssuesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['device-material-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['device-material-issue', id] });
+      queryClient.invalidateQueries({ queryKey: ['device-material-issues', 'queue', 'next'] });
+      toast.success('Request deleted');
+    },
+    onError: showApiErrorToast,
+  });
+};
