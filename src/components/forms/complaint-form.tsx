@@ -6,7 +6,6 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -20,6 +19,7 @@ import { FileUploadComponent } from '@/components/forms/FileUploadComponent'
 import { useAttachmentManager } from '@/components/forms/AttachmentManager'
 import { useComplaintFormRequirements } from '@/hooks/useComplaintFormRequirements'
 import { buildComplaintSubmissionSchema } from '@/lib/validations/complaintSubmission'
+import { GrammarInput } from '@/components/shared/GrammarInput'
 
 type ComplaintFormSchema = ReturnType<typeof buildComplaintSubmissionSchema>
 type ComplaintFormValues = z.infer<ComplaintFormSchema>
@@ -485,10 +485,12 @@ export function ComplaintForm({
                             <FormItem>
                                 {renderLabel('Issue Description:', 'issue_details.description')}
                                 <FormControl>
-                                    <Textarea
+                                    <GrammarInput
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        onChange={field.onChange}
                                         placeholder="Describe the issue in detail"
                                         className="min-h-[120px]"
-                                        {...field}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -575,10 +577,12 @@ export function ComplaintForm({
                             <FormItem>
                                 {renderLabel('Steps to replicate the issue (if applicable):', 'issue_details.replication_steps')}
                                 <FormControl>
-                                    <Textarea
+                                    <GrammarInput
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        onChange={field.onChange}
                                         placeholder="List the steps to replicate the issue"
                                         className="min-h-[80px]"
-                                        {...field}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -596,10 +600,12 @@ export function ComplaintForm({
                             <FormItem>
                                 {renderLabel('How is this issue affecting you?', 'customer_impact')}
                                 <FormControl>
-                                    <Textarea
+                                    <GrammarInput
+                                        {...field}
+                                        value={field.value ?? ''}
+                                        onChange={field.onChange}
                                         placeholder="Explain how the issue impacts you"
                                         className="min-h-[100px]"
-                                        {...field}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -757,19 +763,21 @@ export function ComplaintForm({
                         <FormField
                             control={form.control}
                             name="customer_actions.troubleshooting_description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    {renderLabel('If yes, please describe the actions taken:', 'customer_actions.troubleshooting_description')}
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Describe the troubleshooting actions taken"
-                                            className="min-h-[80px]"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            {renderLabel('If yes, please describe the actions taken:', 'customer_actions.troubleshooting_description')}
+                                            <FormControl>
+                                                <GrammarInput
+                                                    {...field}
+                                                    value={field.value ?? ''}
+                                                    onChange={field.onChange}
+                                                    placeholder="Describe the troubleshooting actions taken"
+                                                    className="min-h-[80px]"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
                         />
                     )}
                 </section>

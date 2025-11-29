@@ -9,7 +9,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { capaCategoryValues, capaFormSchema, CapaFormValues } from "@/lib/validations/capa";
 import { useCreateCapa } from "@/hooks/api/useCapa";
 import { CreateCapaPayload, CreateCapaResponse } from "@/lib/api/types/capa";
+import { GrammarInput } from "@/components/shared/GrammarInput";
 
 const CAPA_CATEGORY_OPTIONS = capaCategoryValues.map((value) => ({
   value,
@@ -318,9 +318,10 @@ export function CapaForm() {
                 <FormItem>
                 <FormLabel>Description of the Issue / Finding</FormLabel>
                 <FormControl>
-                    <Textarea
+                    <GrammarInput
                       {...field}
                       value={field.value ?? ""}
+                      onChange={field.onChange}
                       placeholder="Provide a concise description of the issue or finding."
                       className="min-h-[120px]"
                     />
@@ -337,9 +338,10 @@ export function CapaForm() {
               <FormItem>
                 <FormLabel>Correction</FormLabel>
                 <FormControl>
-                  <Textarea
+                  <GrammarInput
                     {...field}
                     value={field.value ?? ""}
+                    onChange={field.onChange}
                     placeholder="Immediate containment or correction actions"
                     className="min-h-[80px]"
                   />
@@ -355,38 +357,40 @@ export function CapaForm() {
               name="correctiveAction"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Corrective Action</FormLabel>
-                  <FormControl>
-                    <Textarea
+                <FormLabel>Corrective Action</FormLabel>
+                <FormControl>
+                    <GrammarInput
                       {...field}
                       value={field.value ?? ""}
+                      onChange={field.onChange}
                       placeholder="Describe long-term corrective measures"
                       className="min-h-[80px]"
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
             <FormField
               control={form.control}
               name="preventiveAction"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preventive Action</FormLabel>
-                  <FormControl>
-                    <Textarea
+                <FormLabel>Preventive Action</FormLabel>
+                <FormControl>
+                    <GrammarInput
                       {...field}
                       value={field.value ?? ""}
+                      onChange={field.onChange}
                       placeholder="Outline preventive measures to avoid recurrence"
                       className="min-h-[80px]"
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -395,38 +399,40 @@ export function CapaForm() {
               name="extensionJustification"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Justification (if extension is required) and proposed extension time</FormLabel>
-                  <FormControl>
-                    <Textarea
+                <FormLabel>Justification (if extension is required) and proposed extension time</FormLabel>
+                <FormControl>
+                    <GrammarInput
                       {...field}
                       value={field.value ?? ""}
+                      onChange={field.onChange}
                       placeholder="Document the rationale for any requested extension and proposed timeline"
                       className="min-h-[80px]"
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
             <FormField
               control={form.control}
               name="effectivenessPlan"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Plan for CAPA Effectiveness Verification</FormLabel>
-                  <FormControl>
-                    <Textarea
+                <FormLabel>Plan for CAPA Effectiveness Verification</FormLabel>
+                <FormControl>
+                    <GrammarInput
                       {...field}
                       value={field.value ?? ""}
+                      onChange={field.onChange}
                       placeholder="Outline how effectiveness of the CAPA will be verified"
                       className="min-h-[80px]"
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
