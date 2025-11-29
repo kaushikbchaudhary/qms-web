@@ -324,6 +324,7 @@ export function CapaForm() {
                       onChange={field.onChange}
                       placeholder="Provide a concise description of the issue or finding."
                       className="min-h-[120px]"
+                      showSuggestion={false}
                     />
                 </FormControl>
                 <FormMessage />
@@ -344,6 +345,7 @@ export function CapaForm() {
                     onChange={field.onChange}
                     placeholder="Immediate containment or correction actions"
                     className="min-h-[80px]"
+                    showSuggestion={false}
                   />
                 </FormControl>
                 <FormMessage />
@@ -365,6 +367,7 @@ export function CapaForm() {
                       onChange={field.onChange}
                       placeholder="Describe long-term corrective measures"
                       className="min-h-[80px]"
+                      showSuggestion={false}
                     />
                 </FormControl>
                 <FormMessage />
@@ -385,6 +388,7 @@ export function CapaForm() {
                       onChange={field.onChange}
                       placeholder="Outline preventive measures to avoid recurrence"
                       className="min-h-[80px]"
+                      showSuggestion={false}
                     />
                 </FormControl>
                 <FormMessage />
@@ -407,6 +411,7 @@ export function CapaForm() {
                       onChange={field.onChange}
                       placeholder="Document the rationale for any requested extension and proposed timeline"
                       className="min-h-[80px]"
+                      showSuggestion={false}
                     />
                 </FormControl>
                 <FormMessage />
@@ -427,6 +432,7 @@ export function CapaForm() {
                       onChange={field.onChange}
                       placeholder="Outline how effectiveness of the CAPA will be verified"
                       className="min-h-[80px]"
+                      showSuggestion={false}
                     />
                 </FormControl>
                 <FormMessage />

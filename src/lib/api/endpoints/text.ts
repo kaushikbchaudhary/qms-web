@@ -9,8 +9,8 @@ const extractData = <T>(response: any): T => {
 };
 
 export const textApi = {
-  correct: (text: string) =>
+  correct: (text: string, options: { limit?: number } = {}) =>
     apiClient
-      .post('api/v1/text/correct', { text })
+      .post('api/v1/text/correct', { text, limit: options.limit ?? 3 })
       .then((response) => extractData<GrammarCorrectionResponse>(response)),
 };

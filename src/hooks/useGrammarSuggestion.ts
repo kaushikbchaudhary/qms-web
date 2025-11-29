@@ -7,6 +7,7 @@ type UseGrammarSuggestionOptions = {
   debounceMs?: number;
   maxCacheEntries?: number;
   maxLength?: number;
+  limit?: number;
 };
 
 type CacheEntry = {
@@ -22,6 +23,7 @@ export const useGrammarSuggestion = ({
   debounceMs = 600,
   maxCacheEntries = 5,
   maxLength = 5000,
+  limit = 3,
 }: UseGrammarSuggestionOptions) => {
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +63,7 @@ export const useGrammarSuggestion = ({
     timerRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await textApi.correct(cleaned);
+        const response = await textApi.correct(cleaned, { limit });
         if (response?.error) {
           setSuggestion(null);
           lastCheckedRef.current = cleaned;

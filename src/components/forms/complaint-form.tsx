@@ -491,6 +491,7 @@ export function ComplaintForm({
                                         onChange={field.onChange}
                                         placeholder="Describe the issue in detail"
                                         className="min-h-[120px]"
+                                        showSuggestion={false}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -583,6 +584,7 @@ export function ComplaintForm({
                                         onChange={field.onChange}
                                         placeholder="List the steps to replicate the issue"
                                         className="min-h-[80px]"
+                                        showSuggestion={false}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -606,6 +608,7 @@ export function ComplaintForm({
                                         onChange={field.onChange}
                                         placeholder="Explain how the issue impacts you"
                                         className="min-h-[100px]"
+                                        showSuggestion={false}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -773,6 +776,7 @@ export function ComplaintForm({
                                                     onChange={field.onChange}
                                                     placeholder="Describe the troubleshooting actions taken"
                                                     className="min-h-[80px]"
+                                                    showSuggestion={false}
                                                 />
                                             </FormControl>
                                             <FormMessage />
