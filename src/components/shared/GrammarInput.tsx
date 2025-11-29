@@ -35,20 +35,28 @@ export const GrammarInput = forwardRef<HTMLTextAreaElement, GrammarInputProps>(
       }
     };
 
-    const ghostText =
-      suggestion && completion
-        ? (suggestion.toLowerCase().startsWith((value ?? '').toLowerCase()) ? value + completion : suggestion)
-        : null;
-
     return (
       <div className="relative">
-        {showSuggestion && ghostText && (
+        {showSuggestion && suggestion && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 whitespace-pre-wrap rounded-md px-3 py-2 text-base leading-relaxed text-[#888]"
-            style={{ opacity: 0.35 }}
+            className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-md"
+            style={{ fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit' }}
           >
-            {ghostText}
+            <div className="whitespace-pre-wrap break-words px-3 py-2">
+              {completion ? (
+                <>
+                  <span className="text-transparent">{value}</span>
+                  <span className="text-[#888]" style={{ opacity: 0.45 }}>
+                    {completion}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[#888]" style={{ opacity: 0.45 }}>
+                  {suggestion}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
@@ -62,7 +70,7 @@ export const GrammarInput = forwardRef<HTMLTextAreaElement, GrammarInputProps>(
             onChange(event.target.value);
           }}
           onKeyDown={handleKeyDown}
-          className={cn('relative bg-transparent', className)}
+          className={cn('relative z-10 bg-transparent', className)}
         />
 
         {isLoading && (
