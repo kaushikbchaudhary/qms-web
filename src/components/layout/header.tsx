@@ -21,6 +21,7 @@ import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
 } from '@/hooks/api/useNotifications';
+import { useWebPush } from '@/hooks/useWebPush';
 import { formatRoleLabel } from '@/config/roles';
 import type { NotificationItem } from '@/lib/api/endpoints/notifications';
 import {
@@ -72,6 +73,14 @@ export function Header({
   const [isBadgeAnimating, setIsBadgeAnimating] = useState(false);
   const { mutateAsync: markNotificationRead } = useMarkNotificationRead();
   const { mutateAsync: markAllNotificationsRead } = useMarkAllNotificationsRead();
+  const {
+    isSupported: isPushSupported,
+    hasConfig: hasPushConfig,
+    permission: pushPermission,
+    status: pushStatus,
+    requestPermissionAndSubscribe,
+  } = useWebPush({ autoSync: false });
+  const pushEnabled = pushPermission === 'granted';
 
   useEffect(() => {
     setIsReady(true);
@@ -412,6 +421,33 @@ export function Header({
                     </Button>
                   </div>
                 </div>
+                {isPushSupported && hasPushConfig && (
+                  <div className="mt-1 rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-foreground">Browser push</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {pushEnabled
+                            ? 'Enabled for this device'
+                            : pushPermission === 'denied'
+                              ? 'Permission blocked in browser settings'
+                              : 'Get alerts even when QMS is closed'}
+                        </span>
+                      </div>
+                      <Button
+                        variant={pushEnabled ? 'secondary' : 'outline'}
+                        size="sm"
+                        disabled={pushPermission === 'denied' || pushStatus === 'syncing'}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          requestPermissionAndSubscribe();
+                        }}
+                      >
+                        {pushEnabled ? 'On' : pushStatus === 'syncing' ? 'Enabling…' : 'Enable'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {notificationsLoading ? (
