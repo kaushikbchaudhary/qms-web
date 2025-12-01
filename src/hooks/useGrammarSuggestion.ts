@@ -28,7 +28,7 @@ export const useGrammarSuggestion = ({
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCheckedRef = useRef<string>('');
   const cacheRef = useRef<CacheEntry[]>([]);
 

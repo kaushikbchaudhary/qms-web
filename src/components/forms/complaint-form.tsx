@@ -20,6 +20,7 @@ import { useAttachmentManager } from '@/components/forms/AttachmentManager'
 import { useComplaintFormRequirements } from '@/hooks/useComplaintFormRequirements'
 import { buildComplaintSubmissionSchema } from '@/lib/validations/complaintSubmission'
 import { GrammarInput } from '@/components/shared/GrammarInput'
+import { ContextSuggestion } from '@/components/shared/ContextSuggestion'
 
 type ComplaintFormSchema = ReturnType<typeof buildComplaintSubmissionSchema>
 type ComplaintFormValues = z.infer<ComplaintFormSchema>
@@ -495,6 +496,23 @@ export function ComplaintForm({
                                     />
                                 </FormControl>
                                 <FormMessage />
+                                <ContextSuggestion
+                                    text={field.value ?? ''}
+                                    onSelect={(pick) => {
+                                        if (pick.issue) {
+                                            field.onChange(pick.issue);
+                                        }
+                                        if (pick.resolution) {
+                                            form.setValue('customer_actions.troubleshooting_description', pick.resolution);
+                                        }
+                                        if (pick.rootCause) {
+                                            form.setValue('complaint_type.description', pick.rootCause);
+                                        }
+                                        if (pick.capa) {
+                                            form.setValue('preferred_resolution_method.description', pick.capa);
+                                        }
+                                    }}
+                                />
                             </FormItem>
                         )}
                     />

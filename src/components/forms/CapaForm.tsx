@@ -18,6 +18,7 @@ import { capaCategoryValues, capaFormSchema, CapaFormValues } from "@/lib/valida
 import { useCreateCapa } from "@/hooks/api/useCapa";
 import { CreateCapaPayload, CreateCapaResponse } from "@/lib/api/types/capa";
 import { GrammarInput } from "@/components/shared/GrammarInput";
+import { ContextSuggestion } from "@/components/shared/ContextSuggestion";
 
 const CAPA_CATEGORY_OPTIONS = capaCategoryValues.map((value) => ({
   value,
@@ -328,6 +329,23 @@ export function CapaForm() {
                     />
                 </FormControl>
                 <FormMessage />
+                <ContextSuggestion
+                  text={field.value ?? ''}
+                  onSelect={(pick) => {
+                    if (pick.issue) {
+                      field.onChange(pick.issue);
+                    }
+                    if (pick.rootCause) {
+                      form.setValue('rootCauseAnalysis', pick.rootCause);
+                    }
+                    if (pick.resolution) {
+                      form.setValue('correction', pick.resolution);
+                    }
+                    if (pick.capa) {
+                      form.setValue('complaintReference', pick.capa);
+                    }
+                  }}
+                />
               </FormItem>
             )}
           />
