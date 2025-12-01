@@ -5,29 +5,28 @@ import { verifyJwt } from '@/lib/auth/auth';
 import { getRedirectPath, hasAccess, resolveRoleKey } from '@/lib/auth/access';
 import { UserRole } from '@/config/roles';
 
-const PUBLIC_ROUTES = ['/auth/login', '/auth/forgot-password', '/auth/reset-password', '/register', '/about'];
+const AUTH_ROUTES = ['/auth/login', '/auth/forgot-password', '/auth/reset-password'];
+const PUBLIC_ROUTES = ['/register', '/about'];
 const PUBLIC_ROUTE_PREFIXES = ['/uploads'];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
-
-    // Allow public routes
-    if (
+    const isAuthRoute = AUTH_ROUTES.includes(pathname);
+    const isPublicRoute =
+        isAuthRoute ||
         PUBLIC_ROUTES.includes(pathname) ||
-        PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
-    ) {
-        const response = NextResponse.next();
-        response.headers.set('x-middleware-cache', 'no-store');
-        return response;
-    }
+        PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
     const token = request.cookies.get('jwt_qms');
-    if (!token) {
-        return NextResponse.redirect(new URL('/auth/login', request.url));
-    }
+    const user: any = token ? verifyJwt(token.value) : null;
 
-    const user:any = verifyJwt(token?.value);
-    if (!user || typeof user.role === 'undefined') {
+    // Allow public/auth routes when not authenticated
+    if (!token || !user || typeof user.role === 'undefined') {
+        if (isPublicRoute) {
+            const response = NextResponse.next();
+            response.headers.set('x-middleware-cache', 'no-store');
+            return response;
+        }
         return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
@@ -48,6 +47,11 @@ export function middleware(request: NextRequest) {
             : `/${redirectPath}`,
         request.url
     );
+
+    // Prevent authenticated users from accessing auth routes
+    if (isAuthRoute) {
+        return NextResponse.redirect(redirectUrl);
+    }
 
     // Check access
     if (!hasAccess(pathname, normalizedRoles)) {
