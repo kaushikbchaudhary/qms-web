@@ -60,15 +60,19 @@ export const useWebPush = (options?: { autoSync?: boolean }) => {
 
   const sendSubscriptionToApi = useCallback(
     async (subscription: SerializedPushSubscription) => {
-      await pushSubscriptionApi.register({
-        subscription,
-        client: {
-          platform: typeof navigator !== 'undefined' ? navigator.platform : undefined,
-          appVersion: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-        },
-      });
-    },
-    []
+    await pushSubscriptionApi.register({
+      subscription,
+      client: {
+        // navigator.platform is deprecated; prefer userAgentData where available
+        platform:
+          typeof navigator !== 'undefined'
+            ? (navigator as any)?.userAgentData?.platform || undefined
+            : undefined,
+        appVersion: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      },
+    });
+  },
+  []
   );
 
   const syncSubscription = useCallback(async () => {
