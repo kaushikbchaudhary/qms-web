@@ -52,11 +52,19 @@ export const useWebPush = (options?: { autoSync?: boolean }) => {
   const hasConfig = Boolean(vapidKey);
   const inFlightRef = useRef(false);
 
-  const registerServiceWorker = useCallback(async () => {
-    const existing = await navigator.serviceWorker.getRegistration('/notifications-sw.js');
-    if (existing) return existing;
-    return navigator.serviceWorker.register('/notifications-sw.js');
-  }, []);
+const registerServiceWorker = useCallback(async () => {
+  const existing = await navigator.serviceWorker.getRegistration('/notifications-sw.js');
+  if (existing) return existing;
+
+  try {
+    const reg = await navigator.serviceWorker.register('/notifications-sw.js');
+    console.log('registered', reg);
+    return reg;
+  } catch (err) {
+    console.error('register failed', err);
+    throw err;
+  }
+}, []);
 
   const sendSubscriptionToApi = useCallback(
     async (subscription: SerializedPushSubscription) => {

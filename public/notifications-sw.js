@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-globals */
 const DEFAULT_ICON = '/file.svg';
 
+console.log('Notifications Service Worker loaded.');
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -12,6 +13,7 @@ self.addEventListener('push', (event) => {
   }
 
   const title = payload.title || 'QMS';
+  console.log('Push notification received:', payload);
   const options = {
     body: payload.body || 'You have a new notification.',
     icon: payload.icon || DEFAULT_ICON,
@@ -24,6 +26,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+console.log('Notifications Service Worker setup complete.');
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification?.data?.url || '/';
