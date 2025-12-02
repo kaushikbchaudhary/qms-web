@@ -113,12 +113,20 @@ export const useWebPush = (options?: { autoSync?: boolean }) => {
       setStatus('error');
       const message = err?.message ?? 'Unable to enable browser notifications.';
       setError(message);
+      if (message && message !== 'Unable to enable browser notifications.') {
+        toast.error(message);
+      }
       const currentPermission =
         typeof Notification !== 'undefined' ? Notification.permission : ('default' as NotificationPermission);
       if (err?.name === 'NotAllowedError' || currentPermission === 'denied') {
         toast.error('Browser notifications are blocked. Please enable them in your browser settings.');
       } else {
-        showApiErrorToast(err);
+        if (!message || message === 'Unable to enable browser notifications.') {
+          showApiErrorToast(err);
+        }
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[push] enable failed', err);
+        }
       }
     } finally {
       inFlightRef.current = false;

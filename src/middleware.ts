@@ -17,6 +17,13 @@ export function middleware(request: NextRequest) {
         PUBLIC_ROUTES.includes(pathname) ||
         PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
+    // Always allow the service worker to be fetched directly
+    if (pathname === '/notifications-sw.js') {
+        const response = NextResponse.next();
+        response.headers.set('x-middleware-cache', 'no-store');
+        return response;
+    }
+
     const token = request.cookies.get('jwt_qms');
     const user: any = token ? verifyJwt(token.value) : null;
 
