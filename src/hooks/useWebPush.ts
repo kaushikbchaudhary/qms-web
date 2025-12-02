@@ -52,40 +52,36 @@ export const useWebPush = (options?: { autoSync?: boolean }) => {
   const hasConfig = Boolean(vapidKey);
   const inFlightRef = useRef(false);
 
-const registerServiceWorker = useCallback(async () => {
-  const existing = await navigator.serviceWorker.getRegistration('/notifications-sw.js');
-  if (existing) return existing;
+  const registerServiceWorker = useCallback(async () => {
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing) return existing;
 
-  try {
-    const reg = await navigator.serviceWorker.register('/notifications-sw.js');
-    console.log('registered', reg);
-    return reg;
-  } catch (err) {
-    console.error('register failed', err);
-    throw err;
-  }
-}, []);
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const rootScope = registrations.find((reg) => reg.scope === `${window.location.origin}/`);
+    if (rootScope) return rootScope;
+
+    return navigator.serviceWorker.register('/notifications-sw.js');
+  }, []);
 
   const sendSubscriptionToApi = useCallback(
     async (subscription: SerializedPushSubscription) => {
-    await pushSubscriptionApi.register({
-      subscription,
-      client: {
-        // navigator.platform is deprecated; prefer userAgentData where available
-        platform:
-          typeof navigator !== 'undefined'
-            ? (navigator as any)?.userAgentData?.platform || undefined
-            : undefined,
-        appVersion: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      },
-    });
-  },
-  []
+      await pushSubscriptionApi.register({
+        subscription,
+        client: {
+          // navigator.platform is deprecated; prefer userAgentData where available
+          platform:
+            typeof navigator !== 'undefined'
+              ? (navigator as any)?.userAgentData?.platform || undefined
+              : undefined,
+          appVersion: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+        },
+      });
+    },
+    []
   );
 
   const syncSubscription = useCallback(async () => {
     if (!isSupported || !hasConfig || !isAuthenticated || !userId) return;
-    if (permission !== 'granted') return;
     if (inFlightRef.current) return;
 
     inFlightRef.current = true;
@@ -94,6 +90,10 @@ const registerServiceWorker = useCallback(async () => {
 
     try {
       const registration = await registerServiceWorker();
+      if (permission !== 'granted') {
+        setStatus('idle');
+        return;
+      }
       const existing = await registration.pushManager.getSubscription();
       const subscription =
         existing ||
@@ -153,7 +153,11 @@ const registerServiceWorker = useCallback(async () => {
   useEffect(() => {
     setIsSupported(isBrowserSupported());
     setPermission(typeof Notification === 'undefined' ? 'denied' : Notification.permission);
-  }, []);
+
+    if (isBrowserSupported()) {
+      registerServiceWorker().catch(() => undefined);
+    }
+  }, [registerServiceWorker]);
 
   useEffect(() => {
     if (!autoSync) return;
