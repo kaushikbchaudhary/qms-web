@@ -1,11 +1,17 @@
-import jwt from 'jsonwebtoken';
-
-// const SECRET = process.env.JWT_SECRET; // match backend
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 export function verifyJwt(token: string) {
     try {
-        const decoded = jwt.decode(token);
-        // jwt.verify(token, SECRET, { algorithms: ['HS256'] });
+        const decoded = jwt.decode(token) as JwtPayload | string | null;
+        if (!decoded || typeof decoded === 'string') {
+            return null;
+        }
+
+        // Treat expired tokens as invalid to avoid redirect loops.
+        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+            return null;
+        }
+
         return decoded;
     } catch {
         return null;
