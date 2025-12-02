@@ -68,6 +68,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/((?!api|_next|favicon.ico).*)', // Excludes API & static files
+        '/((?!api|_next|favicon.ico|notifications-sw\\.js).*)', // Excludes API & static files & service worker
     ],
 };
