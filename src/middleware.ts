@@ -6,7 +6,7 @@ import { getRedirectPath, hasAccess, resolveRoleKey } from '@/lib/auth/access';
 import { UserRole } from '@/config/roles';
 
 const AUTH_ROUTES = ['/auth/login', '/auth/forgot-password', '/auth/reset-password'];
-const PUBLIC_ROUTES = ['/register', '/about'];
+const PUBLIC_ROUTES = ['/register', '/about', '/notifications-sw.js'];
 const PUBLIC_ROUTE_PREFIXES = ['/uploads'];
 
 export function middleware(request: NextRequest) {
