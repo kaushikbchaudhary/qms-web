@@ -8,14 +8,24 @@ import { useAuthStore } from '@/stores/authStore';
 type PushStatus = 'idle' | 'syncing' | 'error' | 'subscribed';
 
 const toUint8Array = (base64: string) => {
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
-  const normalized = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = typeof window !== 'undefined' ? window.atob(normalized) : '';
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i += 1) {
-    outputArray[i] = rawData.charCodeAt(i);
+  const trimmed = (base64 || '').trim();
+  if (!trimmed) {
+    throw new Error('VAPID public key is missing.');
   }
-  return outputArray;
+
+  const padding = '='.repeat((4 - (trimmed.length % 4)) % 4);
+  const normalized = (trimmed + padding).replace(/-/g, '+').replace(/_/g, '/');
+
+  try {
+    const rawData = typeof window !== 'undefined' ? window.atob(normalized) : '';
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i += 1) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  } catch (error) {
+    throw new Error('Invalid VAPID public key. Please check NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY.');
+  }
 };
 
 const isBrowserSupported = () =>
@@ -41,7 +51,7 @@ const normalizeSubscription = (subscription: PushSubscription | null): Serialize
 export const useWebPush = (options?: { autoSync?: boolean }) => {
   const { isAuthenticated, user } = useAuthStore();
   const userId = user?._id;
-  const vapidKey = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY;
+  const vapidKey = (process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY || '').trim();
   const autoSync = options?.autoSync ?? true;
   const [status, setStatus] = useState<PushStatus>('idle');
   const [permission, setPermission] = useState<NotificationPermission>(
