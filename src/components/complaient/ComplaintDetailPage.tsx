@@ -801,7 +801,7 @@ const ComplaintDetailPage = (params:Props) => {
             await refetch();
         } catch (error) {
             console.error('Failed to update complaint status', error);
-            toast.error('Failed to update status. Please try again.');
+            // toast.error('Failed to update status. Please try again.');
         }
     };
 
