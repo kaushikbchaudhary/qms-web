@@ -83,6 +83,10 @@ export const complaintsApi = {
         apiFileClient.get(`/api/v1/complaint/${complaintId}/pdf`, {
             responseType: 'blob'
         }).then(response => response.data as Blob),
+    exportComplaintsExcel: () =>
+        apiFileClient.get('/api/v1/complaint/export/excel', {
+            responseType: 'blob'
+        }).then(response => response.data as Blob),
     assignInvestigation: (complaintId: string, data: { assignees: { userId: string; note?: string }[] }) =>
         apiClient.post(`/api/v1/complaint/${complaintId}/investigation/assignments`, data),
     markInvestigationAssignmentRead: (complaintId: string) =>
