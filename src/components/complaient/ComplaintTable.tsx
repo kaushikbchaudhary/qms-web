@@ -170,7 +170,7 @@ export function ComplaintsTable() {
 
     const queryParams: ComplaintQueryParams = useMemo(() => ({
         page_size: pagination.pageSize,
-        page_index: pagination.pageIndex,
+        page_index: pagination.pageIndex + 1, // API uses 1-based pages
         global_value: debouncedGlobalFilterValue,
         global_filter: globalFilterFields,
         sort_by: sorting[0]?.id || "submission_date",
