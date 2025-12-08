@@ -1,5 +1,12 @@
 import {apiClient} from '../client';
-import {AuthPayload, AuthResponse, PasswordLoginPayload, ForgotPasswordPayload, ResetPasswordPayload} from "@/lib/api/types/authTypes";
+import {
+    AuthPayload,
+    AuthResponse,
+    PasswordLoginPayload,
+    ForgotPasswordPayload,
+    ResetPasswordPayload,
+    SessionSummary
+} from "@/lib/api/types/authTypes";
 
 export const authApi = {
     otpRequest: (data: AuthPayload):Promise<AuthResponse> =>
@@ -14,4 +21,12 @@ export const authApi = {
         apiClient.post('api/v1/auth/password/reset', data),
     logout: ():Promise<AuthResponse> =>
         apiClient.get('/api/v1/auth/logout'),
+    refresh: (sessionId: string):Promise<AuthResponse> =>
+        apiClient.post('/api/v1/auth/refresh', { sessionId }, { skipAuthErrorHandling: true }),
+    listSessions: ():Promise<AuthResponse<SessionSummary[]>> =>
+        apiClient.get('/api/v1/auth/sessions'),
+    logoutAll: ():Promise<AuthResponse> =>
+        apiClient.post('/api/v1/auth/logoutAll'),
+    logoutDevice: (sessionId: string):Promise<AuthResponse> =>
+        apiClient.delete(`/api/v1/auth/logoutDevice/${sessionId}`),
 };

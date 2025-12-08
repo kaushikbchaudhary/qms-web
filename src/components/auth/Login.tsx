@@ -648,8 +648,9 @@ export default function LoginPage() {
           const authData = response?.data ?? {};
           const resolvedUser = authData.user ?? authData;
           const token = authData.token;
+          const sessionId = authData.sessionId;
           if (resolvedUser) {
-            useAuthStore.getState().login(resolvedUser, token);
+            useAuthStore.getState().login(resolvedUser, token, sessionId);
             const role = resolvedUser.role?.[0];
             const redirectPath = roleRedirects[role] || "/";
             setTimeout(() => {
@@ -679,10 +680,11 @@ export default function LoginPage() {
       const authData = response?.data ?? {};
       const userData = authData.user ?? authData;
       const token = authData.token;
+      const sessionId = authData.sessionId;
       if (userData) {
         form.resetField("password");
         setShowPassword(false);
-        useAuthStore.getState().login(userData, token);
+        useAuthStore.getState().login(userData, token, sessionId);
         const role = userData.role?.[0];
         const redirectPath = roleRedirects[role] || "/";
         setTimeout(() => {

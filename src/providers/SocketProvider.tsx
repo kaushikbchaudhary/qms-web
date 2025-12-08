@@ -135,7 +135,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
         const unsubscribe = useAuthStore.subscribe((state, prevState) => {
             if (
                 state.isAuthenticated !== prevState.isAuthenticated ||
-                state.user?._id !== prevState.user?._id
+                state.user?._id !== prevState.user?._id ||
+                state.sessionId !== prevState.sessionId
             ) {
                 ensureSocket();
             }

@@ -11,6 +11,7 @@ const PUBLIC_ROUTE_PREFIXES = ['/uploads'];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    console.log('Middleware invoked for path:', pathname);
     const isAuthRoute = AUTH_ROUTES.includes(pathname);
     const isPublicRoute =
         isAuthRoute ||
@@ -18,11 +19,20 @@ export function middleware(request: NextRequest) {
         PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
     const token = request.cookies.get('jwt_qms');
+    const refreshToken = request.cookies.get('jwt_qms_refresh');
+    const sessionIdCookie = request.cookies.get('qms_session_id');
+    console.log('JWT Token:', token);
     const user: any = token ? verifyJwt(token.value) : null;
 
     // Allow public/auth routes when not authenticated
     if (!token || !user || typeof user.role === 'undefined') {
+        const hasRefreshArtifacts = Boolean(refreshToken?.value || sessionIdCookie?.value);
         if (isPublicRoute) {
+            const response = NextResponse.next();
+            response.headers.set('x-middleware-cache', 'no-store');
+            return response;
+        }
+        if (hasRefreshArtifacts) {
             const response = NextResponse.next();
             response.headers.set('x-middleware-cache', 'no-store');
             return response;
