@@ -58,6 +58,7 @@ import { useGetUsers } from '@/hooks/api/useUser';
 import AttachmentViewer from "@/components/complaient/AttachmentViewer";
 import { ComplaintForm } from "@/components/forms/complaint-form";
 import { useRouter } from 'next/navigation';
+import { can as buildCan } from "@/lib/auth/permissions";
 
 const ROLE_VALUE_SET = new Set<string>(Object.values(roles));
 
@@ -417,11 +418,15 @@ const ComplaintDetailPage = (params:Props) => {
         }
     }, [complaint, myInvestigationAssignment]);
 
+    const permissionChecker = buildCan(currentUser);
+
     // Helper functions
     const getUserRole = (user: UserData | null | undefined): roles | null =>
         normalizeRole(user?.role?.[0]);
     const getRoleConfig = (role: roles | null) =>
         role ? ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] : undefined;
+    const permissionKeyForStatus = (status: Complaint['status']) =>
+        `complaint.transition.${status.toLowerCase()}`;
     const mapButtonVariant = (variant: string): 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' => {
         if (variant === 'destructive' || variant === 'outline' || variant === 'secondary' || variant === 'ghost' || variant === 'link') {
             return variant;
@@ -442,8 +447,16 @@ const ComplaintDetailPage = (params:Props) => {
         const roleConfig = getRoleConfig(userRole);
         console.log('User Role:', userRole,complaint.status);
         const allowedTransitions = roleConfig?.canTransitionTo[complaint.status] || [];
-        console.log('Allowed Transitions:', allowedTransitions);
-        return allowedTransitions as Complaint['status'][];
+        const allStatuses = Object.values(COMPLAINT_STATUS) as Complaint['status'][];
+        const permissionFiltered = allStatuses
+            .filter((status) => status !== complaint.status) // do not offer current status (e.g., SUBMITTED when already there)
+            .filter((status) =>
+                permissionChecker(permissionKeyForStatus(status), () =>
+                    (allowedTransitions as Complaint['status'][]).includes(status)
+                )
+            );
+        console.log('Allowed Transitions:', permissionFiltered);
+        return permissionFiltered;
     };
 
     const investigationFormDefaults = useMemo(() => {
@@ -625,17 +638,18 @@ const ComplaintDetailPage = (params:Props) => {
         const userRole = getUserRole(currentUser);
         const roleConfig = getRoleConfig(userRole);
 
-        if (section === 'investigation') {
-            if (!currentUser) return false;
-            if (userRole === roles.QA) return true;
-            return isAssignedInvestigator;
-        }
+        const legacyAllowed = () => {
+            if (section === 'investigation') {
+                if (!currentUser) return false;
+                if (userRole === roles.QA) return true;
+                return isAssignedInvestigator;
+            }
+            if (!roleConfig) return false;
+            if (roleConfig.canEdit === 'all') return true;
+            return Array.isArray(roleConfig.canEdit) ? roleConfig.canEdit.includes(section) : false;
+        };
 
-        if (!roleConfig) return false;
-        if (roleConfig.canEdit === 'all') return true;
-
-        console.log('Role Config:', roleConfig);
-        return Array.isArray(roleConfig.canEdit) ? roleConfig.canEdit.includes(section) : false;
+        return permissionChecker(`complaint.edit.${section}`, legacyAllowed);
     };
 
     const customerCommunicationFormDefaults = useMemo((): Partial<CustomerCommunicationFormData> => {
@@ -727,9 +741,9 @@ const ComplaintDetailPage = (params:Props) => {
         ? getRoleConfig(currentUserRole)?.label || formatRoleLabel(currentUserRole) || 'User'
         : 'User';
 
-    const canAssignInvestigators = currentUserRole
-        ? INVESTIGATOR_ASSIGN_ROLES.includes(currentUserRole)
-        : false;
+    const canAssignInvestigators = permissionChecker('complaint.assign.investigators', () =>
+        currentUserRole ? INVESTIGATOR_ASSIGN_ROLES.includes(currentUserRole) : false
+    );
 
     const handleAssignInvestigators = async () => {
         if (!selectedInvestigators.length) {

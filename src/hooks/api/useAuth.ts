@@ -80,7 +80,7 @@ export function useLogoutAll() {
             return response?.data;
         },
         onSuccess: () => {
-            useAuthStore.getState().setSession({ sessionId: useAuthStore.getState().sessionId ?? null, token: localStorage.getItem('token') });
+            useAuthStore.getState().setSession({ sessionId: useAuthStore.getState().sessionId ?? null });
         },
         onError: showApiErrorToast,
     });

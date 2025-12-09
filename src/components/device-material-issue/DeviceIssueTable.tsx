@@ -30,6 +30,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { can as buildCan } from '@/lib/auth/permissions';
 
 const getCustomFieldString = (issue: DeviceMaterialIssue, key: string): string | undefined => {
   const raw = issue.custom_fields?.[key];
@@ -201,10 +202,13 @@ const formatDateRangeLabel = (range?: DateRange) => {
 
 export function DeviceIssueTable() {
   const { user } = useAuthStore();
+  const permissionCheck = buildCan(user);
   const userRoles = user?.role ?? [];
   const isSuperAdmin = userRoles.includes(roles.SUPER_ADMIN);
   const isStoreUser = userRoles.some((roleKey) => STORE_ROLE_ALIASES.includes(roleKey));
-  const restrictToSelf = !isSuperAdmin && !isStoreUser ? user?._id : undefined;
+  const canManageAny = permissionCheck('device_issue.manage.drafts_any', () => isSuperAdmin);
+  const restrictToSelf = !canManageAny && !isStoreUser ? user?._id : undefined;
+  const canExport = permissionCheck('device_issue.export.pdf', () => isSuperAdmin);
 
   const { pagination, setPagination } = useTableState(20);
   const [statusFilter, setStatusFilter] = useState<'SUBMITTED' | 'READY_FOR_PICKUP' | 'ISSUED'>('SUBMITTED');
@@ -337,7 +341,7 @@ export function DeviceIssueTable() {
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!isSuperAdmin || statusFilter !== 'ISSUED') {
+    if (!canExport || statusFilter !== 'ISSUED') {
       return;
     }
 
@@ -367,7 +371,7 @@ export function DeviceIssueTable() {
     } finally {
       setIsExporting(false);
     }
-  }, [isSuperAdmin, statusFilter, queryParams]);
+  }, [canExport, statusFilter, queryParams]);
 
   const handleRowSelect = useCallback(
     (issue: DeviceMaterialIssue, rowIndex: number) => {
@@ -675,7 +679,7 @@ export function DeviceIssueTable() {
               </div>
             </PopoverContent>
           </Popover>
-          {isSuperAdmin && statusFilter === 'ISSUED' ? (
+          {canExport && statusFilter === 'ISSUED' ? (
             <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
               <Download className="mr-2 h-4 w-4" />
               {isExporting ? 'Preparing…' : 'Download PDF'}

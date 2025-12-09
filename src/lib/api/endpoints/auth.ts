@@ -21,8 +21,8 @@ export const authApi = {
         apiClient.post('api/v1/auth/password/reset', data),
     logout: ():Promise<AuthResponse> =>
         apiClient.get('/api/v1/auth/logout'),
-    refresh: (sessionId: string):Promise<AuthResponse> =>
-        apiClient.post('/api/v1/auth/refresh', { sessionId }, { skipAuthErrorHandling: true }),
+    refresh: (sessionId?: string):Promise<AuthResponse> =>
+        apiClient.post('/api/v1/auth/refresh', sessionId ? { sessionId } : {}, { skipAuthErrorHandling: true }),
     listSessions: ():Promise<AuthResponse<SessionSummary[]>> =>
         apiClient.get('/api/v1/auth/sessions'),
     logoutAll: ():Promise<AuthResponse> =>

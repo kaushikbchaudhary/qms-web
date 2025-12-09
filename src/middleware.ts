@@ -20,13 +20,12 @@ export function middleware(request: NextRequest) {
 
     const token = request.cookies.get('jwt_qms');
     const refreshToken = request.cookies.get('jwt_qms_refresh');
-    const sessionIdCookie = request.cookies.get('qms_session_id');
     console.log('JWT Token:', token);
     const user: any = token ? verifyJwt(token.value) : null;
 
     // Allow public/auth routes when not authenticated
     if (!token || !user || typeof user.role === 'undefined') {
-        const hasRefreshArtifacts = Boolean(refreshToken?.value || sessionIdCookie?.value);
+        const hasRefreshArtifacts = Boolean(refreshToken?.value);
         if (isPublicRoute) {
             const response = NextResponse.next();
             response.headers.set('x-middleware-cache', 'no-store');

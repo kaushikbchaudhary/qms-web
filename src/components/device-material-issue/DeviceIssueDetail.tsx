@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
+import { can as buildCan } from '@/lib/auth/permissions';
 
 const STATUS_SEQUENCE: DeviceMaterialIssueStatus[] = [
   'DRAFT',
@@ -145,6 +146,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const reopenMutation = useDeviceMaterialIssueReopen(id);
   const deleteMutation = useDeleteDeviceMaterialIssue(id);
   const { user } = useAuthStore();
+  const permissionCheck = buildCan(user);
 
   const [statusPayload, setStatusPayload] = useState<DeviceMaterialIssueStatusUpdatePayload>({
     newStatus: data?.status ?? 'SUBMITTED',
@@ -157,7 +159,8 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const userRoles = user?.role ?? [];
   const isSuperAdmin = userRoles.includes(roles.SUPER_ADMIN);
   const isStoreUser = userRoles.some((roleKey) => STORE_ROLE_ALIASES.includes(roleKey));
-  const canRecordStoreSignoff = isStoreUser;
+  const canManageAnyDraft = permissionCheck('device_issue.manage.drafts_any', () => isSuperAdmin);
+  const canRecordStoreSignoff = permissionCheck('device_issue.prepare_pickup', () => isStoreUser || isSuperAdmin);
   const canUpdateStatus = false;
 
   useEffect(() => {
@@ -274,7 +277,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
   const requestOwnerId = resolveUserId(request?.requested_by);
   const currentUserId = resolveUserId(user?._id ?? (user as any)?.id);
   const isRequester = Boolean(requestOwnerId && currentUserId && requestOwnerId === currentUserId);
-  const canModifyRequest = request?.status === 'SUBMITTED' && (isSuperAdmin || isRequester);
+  const canModifyRequest = request?.status === 'SUBMITTED' && (canManageAnyDraft || isRequester);
   const editInitialValues = useMemo<DeviceMaterialIssueFormInputs>(
     () => {
       const model = request?.device_details?.model;
@@ -316,7 +319,7 @@ export function DeviceIssueDetail({ id }: DeviceIssueDetailProps) {
     request.pickup?.store_signed_at &&
     request.pickup?.store_signature_path,
   );
-  const storeSignoffInProgress = !storeSignoffComplete && isStoreUser;
+  const storeSignoffInProgress = !storeSignoffComplete && canRecordStoreSignoff;
   const recipientAcknowledged = Boolean(request.recipient?.signed_at);
   const awaitingRecipient = !recipientAcknowledged;
 

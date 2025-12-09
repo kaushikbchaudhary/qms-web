@@ -50,6 +50,7 @@ export const ROLE_LABELS: Record<roles, string> = {
 
 const MANAGE_USER_ROUTES = ['/admin/users', '/admin/users/edit-user/[id]'];
 const SITE_CONFIGURATION_ROUTES = ['/admin/settings'];
+const PERMISSION_ROUTES = ['/admin/permissions'];
 const UNIVERSAL_ROUTES = [
     '/',
     '/dashboard',
@@ -71,7 +72,7 @@ const UNIVERSAL_ROUTES = [
 
 export const ROLE_ACCESS = {
     [roles.SUPER_ADMIN]: {
-        routes: [...UNIVERSAL_ROUTES, ...MANAGE_USER_ROUTES, ...SITE_CONFIGURATION_ROUTES],
+        routes: [...UNIVERSAL_ROUTES, ...MANAGE_USER_ROUTES, ...SITE_CONFIGURATION_ROUTES, ...PERMISSION_ROUTES],
         redirect: '/admin/dashboard',
     },
     [roles.SUPPORT]: {

@@ -12,6 +12,7 @@ export type UserData = {
     emailId: string;
     isVerified?: boolean;
     organization?: string;
+    permissions?: string[];
     // Add other fields you need
 };
 
@@ -19,8 +20,9 @@ type AuthState = {
     user: UserData | null;
     isAuthenticated: boolean;
     sessionId: string | null;
-    login: (userData: UserData, token?: string, sessionId?: string | null) => void;
-    setSession: (params: { token?: string | null; sessionId?: string | null }) => void;
+    token: string | null;
+    login: (userData: UserData, token?: string | null, sessionId?: string | null) => void;
+    setSession: (params: { sessionId?: string | null; token?: string | null }) => void;
     logout: () => void;
 };
 
@@ -30,46 +32,28 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             isAuthenticated: false,
             sessionId: null,
+            token: null,
             login: (userData, token, sessionId) => {
-                if (typeof window !== 'undefined') {
-                    if (token) {
-                        localStorage.setItem('token', token);
-                    }
-                    if (sessionId) {
-                        localStorage.setItem('sessionId', sessionId);
-                    }
-                }
                 set({
                     user: userData,
                     isAuthenticated: true,
                     sessionId: sessionId ?? null,
+                    token: token ?? null,
                 });
             },
-            setSession: ({ token, sessionId }) => {
-                if (typeof window !== 'undefined') {
-                    if (token) {
-                        localStorage.setItem('token', token);
-                    }
-                    if (sessionId) {
-                        localStorage.setItem('sessionId', sessionId);
-                    } else {
-                        localStorage.removeItem('sessionId');
-                    }
-                }
+            setSession: ({ sessionId, token }) => {
                 set((state) => ({
                     ...state,
                     sessionId: sessionId ?? null,
+                    token: token ?? state.token,
                 }));
             },
             logout: () => {
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('sessionId');
-                }
                 set({
                     user: null,
                     isAuthenticated: false,
                     sessionId: null,
+                    token: null,
                 });
             },
         }),

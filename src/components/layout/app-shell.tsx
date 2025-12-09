@@ -30,6 +30,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const userRoles = user?.role ?? [];
+  const userPermissions = user?.permissions ?? [];
   const isAuthenticated = !!user;
   const logoutMutation = useLogout();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -71,11 +72,20 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
-  const canView = (roles?: string[], requiresAuth?: boolean, hideWhenAuthenticated?: boolean) => {
+  const hasPermissions = (needed?: string[]) =>
+    !needed || needed.length === 0 || needed.every((key) => userPermissions.includes(key));
+
+  const canView = (
+    roles?: string[],
+    requiresAuth?: boolean,
+    hideWhenAuthenticated?: boolean,
+    permissions?: string[],
+  ) => {
     if (hideWhenAuthenticated && isAuthenticated) return false;
     if (requiresAuth && !isAuthenticated) return false;
     if (!roles || roles.length === 0) return true;
-    return roles.some((role) => userRoles.includes(role));
+    const roleAllowed = roles.some((role) => userRoles.includes(role));
+    return roleAllowed && hasPermissions(permissions);
   };
 
   const layoutClasses = cn(
@@ -116,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
             <nav className="space-y-6">
               {navSections.map((section) => {
                 const links = section.items.filter((item) =>
-                  canView(item.roles, item.requiresAuth, item.hideWhenAuthenticated),
+                  canView(item.roles, item.requiresAuth, item.hideWhenAuthenticated, item.permissions),
                 );
                 if (links.length === 0) return null;
 

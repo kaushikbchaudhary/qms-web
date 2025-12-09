@@ -3,6 +3,16 @@ import axios, { AxiosInstance } from 'axios';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 
+const clearClientAuth = () => {
+    try {
+        localStorage.removeItem('auth-storage');
+        localStorage.removeItem('token');
+        localStorage.removeItem('sessionId');
+    } catch {
+        // ignore
+    }
+};
+
 const trimTrailingSlashes = (value?: string | null) => value?.replace(/\/+$/, '') ?? '';
 
 const resolveBaseUrl = () => {
@@ -32,53 +42,46 @@ const apiFileClient = axios.create({
   withCredentials: true,
 });
 
-// Shared request interceptor
-const getAuthToken = () => {
-    if (typeof window === 'undefined') return undefined;
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-        return storedToken;
-    }
-    const cookieMatch = document.cookie.match(/jwt_qms=([^;]+)/);
-    const cookieToken = cookieMatch?.[1];
-    if (cookieToken) {
-        localStorage.setItem('token', cookieToken);
-    }
-    return cookieToken ?? undefined;
-};
-
 const shouldSkipUnauthorizedHandling = (error: any) => {
   return Boolean(error?.config?.skipAuthErrorHandling);
 };
 
 let refreshPromise: Promise<string | null> | null = null;
+let logoutInProgress = false;
+let transientAccessToken: string | null = null;
+
+const forceLogout = () => {
+    if (typeof window === 'undefined') return;
+    if (logoutInProgress) return;
+    logoutInProgress = true;
+    const { logout } = useAuthStore.getState();
+    logout();
+    clearClientAuth();
+    if (window.location.pathname !== '/auth/login') {
+        window.location.replace('/auth/login');
+    }
+    setTimeout(() => {
+        logoutInProgress = false;
+    }, 1000);
+};
 
 const performRefresh = async () => {
     if (typeof window === 'undefined') return null;
-    const { sessionId, setSession, logout } = useAuthStore.getState();
-    const cachedSessionId = sessionId ?? localStorage.getItem('sessionId') ?? undefined;
-    if (!cachedSessionId) {
-        logout();
-        return null;
-    }
+    const { sessionId, setSession } = useAuthStore.getState();
 
     if (!refreshPromise) {
-        refreshPromise = apiClient.post('/api/v1/auth/refresh', { sessionId: cachedSessionId }, { skipAuthErrorHandling: true })
+        refreshPromise = apiClient
+            .post('/api/v1/auth/refresh', sessionId ? { sessionId } : {}, { skipAuthErrorHandling: true })
             .then((response: any) => {
                 const data = response?.data ?? {};
-                const token = data?.token;
-                const newSessionId = data?.sessionId ?? cachedSessionId;
-                if (token) {
-                    setSession({ token, sessionId: newSessionId });
-                    return token;
-                }
-                return null;
+                const newSessionId = data?.sessionId ?? sessionId ?? null;
+                const token = data?.token ?? null;
+                setSession({ sessionId: newSessionId, token });
+                transientAccessToken = token;
+                return token;
             })
-            .catch((error) => {
-                logout();
-                if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
-                    window.location.replace('/auth/login');
-                }
+            .catch(() => {
+                forceLogout();
                 return null;
             })
             .finally(() => {
@@ -93,9 +96,10 @@ const setupInterceptors = ({client, directResponse = false
 }:{client:  AxiosInstance,directResponse?:boolean}) => {
     client.interceptors.request.use(
         (config) => {
-            const token = getAuthToken();
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
+            const storeToken = typeof window !== 'undefined' ? useAuthStore.getState().token : null;
+            const bearer = transientAccessToken || storeToken;
+            if (bearer) {
+                config.headers.Authorization = `Bearer ${transientAccessToken}`;
             }
             if (config.data instanceof FormData) {
                 config.headers['Content-Type'] = 'multipart/form-data';
@@ -114,30 +118,23 @@ const setupInterceptors = ({client, directResponse = false
             }
             if (error?.response?.status === 401 && !shouldSkipUnauthorizedHandling(error)) {
                 const originalRequest = error.config;
-                if ((originalRequest as any)?._retry) {
-                    useAuthStore.getState().logout();
-                    if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
-                        window.location.replace('/auth/login');
-                    }
+                if ((originalRequest as any)?._retry || logoutInProgress) {
+                    // forceLogout();
                     return Promise.reject(error);
                 }
 
                 (originalRequest as any)._retry = true;
 
-                return performRefresh()
-                    .then((newToken) => {
-                        if (newToken) {
-                            originalRequest.headers = {
-                                ...(originalRequest.headers || {}),
-                                Authorization: `Bearer ${newToken}`,
-                            };
-                            return client(originalRequest);
-                        }
-                        return Promise.reject(error);
-                    })
-                    .catch(() => {
-                        return Promise.reject(error);
-                    });
+                return performRefresh().then((token) => {
+                    if (token) {
+                        originalRequest.headers = {
+                            ...(originalRequest.headers || {}),
+                            Authorization: `Bearer ${token}`,
+                        };
+                        return client(originalRequest);
+                    }
+                    return Promise.reject(error);
+                });
             }
             return Promise.reject(error);
         }
