@@ -25,6 +25,7 @@ export type SessionSummary = {
     userAgent?: string;
     createdAt?: string;
     lastUsedAt?: string;
+    isCurrent?: boolean;
 };
 
 export type AuthSuccessData = {

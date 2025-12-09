@@ -130,7 +130,7 @@ const PasswordSettingsPage = () => {
                         onClick={() => logoutAll.mutate()}
                     >
                         {logoutAll.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
-                        Logout all devices
+                        Logout other devices
                     </Button>
                 </CardHeader>
                 <CardContent>
@@ -144,7 +144,7 @@ const PasswordSettingsPage = () => {
                     ) : (
                         <div className="space-y-3">
                             {sessions.map((session) => {
-                                const isCurrent = session.sessionId === currentSessionId;
+                                const isCurrent = session.isCurrent ?? (session.sessionId === currentSessionId);
                                 return (
                                     <div
                                         key={session.sessionId}

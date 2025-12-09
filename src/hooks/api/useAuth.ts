@@ -76,12 +76,11 @@ export function useLogoutAll() {
     return useMutation({
         mutationFn: async () => {
             const response = await authApi.logoutAll();
-            toast.success(response?.message ?? 'Logged out from all devices.');
-            useAuthStore.getState().logout();
-            if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
-                window.location.replace('/auth/login');
-            }
+            toast.success(response?.message ?? 'Logged out from other devices.');
             return response?.data;
+        },
+        onSuccess: () => {
+            useAuthStore.getState().setSession({ sessionId: useAuthStore.getState().sessionId ?? null, token: localStorage.getItem('token') });
         },
         onError: showApiErrorToast,
     });
@@ -97,6 +96,7 @@ export function useLogoutDevice() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sessions'] });
+            toast.success('Device logged out successfully.');
         },
         onError: showApiErrorToast,
     });

@@ -26,7 +26,7 @@ export const authApi = {
     listSessions: ():Promise<AuthResponse<SessionSummary[]>> =>
         apiClient.get('/api/v1/auth/sessions'),
     logoutAll: ():Promise<AuthResponse> =>
-        apiClient.post('/api/v1/auth/logoutAll'),
+        apiClient.delete('/api/v1/auth/sessions'),
     logoutDevice: (sessionId: string):Promise<AuthResponse> =>
-        apiClient.delete(`/api/v1/auth/logoutDevice/${sessionId}`),
+        apiClient.delete(`/api/v1/auth/sessions/${sessionId}`),
 };
