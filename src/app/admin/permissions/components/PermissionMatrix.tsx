@@ -157,13 +157,15 @@ export const PermissionMatrix: React.FC<Props> = ({
         </div>
       </div>
       <TooltipProvider delayDuration={150}>
-        <div className="overflow-auto rounded-lg border">
+        <div className="relative max-h-[70vh] overflow-auto rounded-lg border">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="border-b px-4 py-3 text-left font-medium">Permission</th>
+                <th className="sticky left-0 top-0 z-30 border-b bg-muted/50 px-4 py-3 text-left font-medium">
+                  Permission
+                </th>
                 {roles.map((role) => (
-                  <th key={role} className="border-b px-3 py-3 text-center font-medium">
+                  <th key={role} className="sticky top-0 z-20 border-b bg-muted/50 px-3 py-3 text-center font-medium">
                     {role}
                   </th>
                 ))}
@@ -177,7 +179,7 @@ export const PermissionMatrix: React.FC<Props> = ({
                   'Toggle access for this feature.';
                 return (
                   <tr key={permission.key} className="hover:bg-muted/30">
-                    <td className="border-b px-4 py-2">
+                    <td className="sticky left-0 z-10 border-b bg-background px-4 py-2">
                       <div className="font-medium">{permission.key}</div>
                       <div className="text-xs text-muted-foreground">
                         {permission.description || permissionHelp[permission.key] || ''}
