@@ -56,9 +56,6 @@ export default function ComplaintSerialLookupPage() {
           <Button variant="secondary" onClick={() => handleQuickFill(serialInput.trim())} disabled={!serialInput.trim()}>
             Refresh lookup
           </Button>
-          <Button asChild>
-            <Link href="/dashboard/complaints">Back to complaints</Link>
-          </Button>
         </div>
       </div>
 
