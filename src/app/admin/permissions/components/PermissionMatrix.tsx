@@ -40,45 +40,18 @@ export const PermissionMatrix: React.FC<Props> = ({
     () => ({
       'complaint.view': 'Allows viewing complaint records and dashboard lists.',
       'complaint.edit.received_info': 'Allows entering received_info and moving complaint to Under Investigation.',
-      'complaint.edit.investigation': 'Allows editing investigation section and related CAPA links.',
       'complaint.edit.customer_communication': 'Allows updating customer communication and related risk info.',
       'complaint.edit.risk_management': 'Allows editing risk management section.',
       'complaint.edit.closure': 'Allows completing closure approvals.',
       'complaint.transition.submitted': 'Allows setting status to SUBMITTED (initial entry).',
       'complaint.transition.under_investigation': 'Allows moving to UNDER_INVESTIGATION.',
-      'complaint.transition.resolved': 'Allows moving to RESOLVED (requires investigator acknowledgements).',
       'complaint.transition.rejected': 'Allows moving to REJECTED.',
       'complaint.transition.closed': 'Allows moving to CLOSED.',
       'complaint.assign.investigators': 'Allows assigning investigation officers.',
       'complaint.delete': 'Allows soft-deleting complaints.',
       'complaint.export': 'Allows exporting complaints (Excel/PDF).',
       'complaint.stats.view': 'Allows viewing complaint stats/serial stats.',
-      'device_issue.create': 'Allows creating/listing device/material requests.',
-      'device_issue.edit.requester_snapshot': 'Allows editing requester snapshot fields.',
-      'device_issue.edit.device_details': 'Allows editing device details.',
-      'device_issue.edit.purpose': 'Allows editing request purpose.',
-      'device_issue.edit.priority': 'Allows editing priority.',
-      'device_issue.edit.production': 'Allows editing production section (store/production teams).',
-      'device_issue.edit.pickup': 'Allows editing pickup/store issuance info.',
-      'device_issue.edit.custom_fields': 'Allows editing custom fields on request.',
-      'device_issue.transition.draft': 'Allows keeping/setting request in DRAFT.',
-      'device_issue.transition.submitted': 'Allows submitting requests.',
-      'device_issue.transition.under_review': 'Allows moving to UNDER_REVIEW.',
-      'device_issue.transition.approved': 'Allows moving to APPROVED.',
-      'device_issue.transition.in_production': 'Allows moving to IN_PRODUCTION.',
-      'device_issue.transition.ready_for_pickup': 'Allows moving to READY_FOR_PICKUP.',
-      'device_issue.transition.issued': 'Allows moving to ISSUED (requires recipient signature).',
-      'device_issue.transition.closed': 'Allows moving to CLOSED.',
-      'device_issue.transition.rejected': 'Allows moving to REJECTED.',
-      'device_issue.manage.drafts_any': 'Allows editing/deleting any draft/submitted request (bypasses requester-only rule).',
-      'device_issue.delete.own_submitted': 'Allows deleting own draft/submitted request.',
-      'device_issue.prepare_pickup': 'Allows recording batch/pickup sign-off in store/engineering flow.',
-      'device_issue.export.pdf': 'Allows exporting device/material requests to PDF.',
-      'site_config.view_private': 'Allows viewing private site configuration.',
       'site_config.update': 'Allows updating site configuration and permission matrix.',
-      'user.signature.upload.self': 'Allows uploading own signature.',
-      'user.signature.upload.others': 'Allows uploading signature for other users.',
-      'user.password.update.self': 'Allows changing own password.',
     }),
     [],
   );
@@ -120,7 +93,7 @@ export const PermissionMatrix: React.FC<Props> = ({
             <Input
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
-              placeholder="complaint.edit.investigation"
+              placeholder="complaint.edit.customer_communication"
             />
           </div>
           <div className="flex-1 space-y-2">
@@ -161,11 +134,11 @@ export const PermissionMatrix: React.FC<Props> = ({
           <table className="w-full border-collapse text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="sticky left-0 top-0 z-30 border-b bg-muted/50 px-4 py-3 text-left font-medium">
+                <th className="sticky left-0 top-0 z-30 border-b bg-muted shadow-sm px-4 py-3 text-left font-medium">
                   Permission
                 </th>
                 {roles.map((role) => (
-                  <th key={role} className="sticky top-0 z-20 border-b bg-muted/50 px-3 py-3 text-center font-medium">
+                  <th key={role} className="sticky top-0 z-20 border-b bg-muted shadow-sm px-3 py-3 text-center font-medium">
                     {role}
                   </th>
                 ))}
@@ -179,7 +152,7 @@ export const PermissionMatrix: React.FC<Props> = ({
                   'Toggle access for this feature.';
                 return (
                   <tr key={permission.key} className="hover:bg-muted/30">
-                    <td className="sticky left-0 z-10 border-b bg-background px-4 py-2">
+                    <td className="sticky left-0 z-10 border-b bg-background shadow-sm px-4 py-2">
                       <div className="font-medium">{permission.key}</div>
                       <div className="text-xs text-muted-foreground">
                         {permission.description || permissionHelp[permission.key] || ''}

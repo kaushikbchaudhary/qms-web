@@ -18,7 +18,6 @@ export type NavLink = {
   href: string;
   icon?: LucideIcon;
   roles?: string[];
-  permissions?: string[];
   hotkey?: string;
   requiresAuth?: boolean;
   hideWhenAuthenticated?: boolean;
@@ -44,7 +43,6 @@ export const navSections: NavSection[] = [
         href: "/dashboard/complaints",
         icon: ClipboardList,
         roles: allRoles,
-        permissions: ['complaint.view'],
       },
       {
         title: "Device Requests",
@@ -74,7 +72,6 @@ export const navSections: NavSection[] = [
         href: "/dashboard/complaints/new",
         icon: ClipboardPlus,
         roles: allRoles,
-        permissions: ['complaint.view'],
         hotkey: "N",
       },
       {
@@ -126,7 +123,6 @@ export const navSections: NavSection[] = [
         href: "/admin/permissions",
         icon: Settings,
         roles: [roles.SUPER_ADMIN],
-        permissions: ['site_config.update'],
       },
     ],
   },

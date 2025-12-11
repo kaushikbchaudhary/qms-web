@@ -72,20 +72,15 @@ export function AppShell({ children }: AppShellProps) {
     return <>{children}</>;
   }
 
-  const hasPermissions = (needed?: string[]) =>
-    !needed || needed.length === 0 || needed.every((key) => userPermissions.includes(key));
-
   const canView = (
     roles?: string[],
     requiresAuth?: boolean,
     hideWhenAuthenticated?: boolean,
-    permissions?: string[],
   ) => {
     if (hideWhenAuthenticated && isAuthenticated) return false;
     if (requiresAuth && !isAuthenticated) return false;
     if (!roles || roles.length === 0) return true;
-    const roleAllowed = roles.some((role) => userRoles.includes(role));
-    return roleAllowed && hasPermissions(permissions);
+    return roles.some((role) => userRoles.includes(role));
   };
 
   const layoutClasses = cn(
@@ -126,7 +121,7 @@ export function AppShell({ children }: AppShellProps) {
             <nav className="space-y-6">
               {navSections.map((section) => {
                 const links = section.items.filter((item) =>
-                  canView(item.roles, item.requiresAuth, item.hideWhenAuthenticated, item.permissions),
+                  canView(item.roles, item.requiresAuth, item.hideWhenAuthenticated),
                 );
                 if (links.length === 0) return null;
 
