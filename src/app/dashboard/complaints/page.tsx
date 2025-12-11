@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { ComplaintsTable } from "@/components/complaient/ComplaintTable";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,9 @@ export default function ComplaintsPage() {
         </div>
       </div>
 
-      <ComplaintsTable />
+      <Suspense fallback={null}>
+        <ComplaintsTable />
+      </Suspense>
     </div>
   );
 }

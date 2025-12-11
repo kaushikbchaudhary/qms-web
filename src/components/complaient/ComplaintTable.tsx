@@ -135,7 +135,7 @@ export function ComplaintsTable() {
     } = tableState
     const [globalFilter, setGlobalFilter] = useState("")
     const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('ALL');
-    const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'assigned_to_me' | 'assigned_unread' | 'investigator' | 'investigator_unread'>('all');
+    const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'assigned_to_me' | 'assigned_unread' | 'investigator' | 'investigator_unread' | 'unassigned_investigation'>('all');
     const [dateFilter, setDateFilter] = useState<DateFilterState>({ key: 'ALL' });
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
     const [pendingCustomRange, setPendingCustomRange] = useState<DateRange | undefined>();
@@ -153,11 +153,15 @@ export function ComplaintsTable() {
 
     const debouncedGlobalFilterValue = useDebounce(globalFilter, 500); // 500ms delay
 
-    const statusFilters = useMemo(() => (
-        statusFilter === 'ALL'
+    const statusFilters = useMemo(() => {
+        const targetStatus = assignmentFilter === 'unassigned_investigation'
+            ? 'UNDER_INVESTIGATION'
+            : statusFilter;
+
+        return targetStatus === 'ALL'
             ? []
-            : [{ field: 'status', operator: 'eq', value: statusFilter }]
-    ), [statusFilter]);
+            : [{ field: 'status', operator: 'eq', value: targetStatus }];
+    }, [statusFilter, assignmentFilter]);
 
     const dateRangeFilters = useMemo(() => {
         if (dateFilter.key === 'ALL' || !dateFilter.range?.from) {
@@ -204,7 +208,12 @@ export function ComplaintsTable() {
         sort_by: sorting[0]?.id || "submission_date",
         sort_order: -1, // sorting[0]?.desc ? -1 : 1,
         filters: combinedFilters,
-        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        status: assignmentFilter === 'unassigned_investigation'
+            ? 'UNDER_INVESTIGATION'
+            : statusFilter === 'ALL'
+                ? undefined
+                : statusFilter,
+        unassigned_investigation: assignmentFilter === 'unassigned_investigation' ? true : undefined,
         assigned_to: !currentUser ? undefined : (assignmentFilter === 'assigned_to_me' || assignmentFilter === 'assigned_unread') ? currentUser._id : undefined,
         assignee_read: assignmentFilter === 'assigned_unread' ? 'unread' : undefined,
         investigator_user: !currentUser ? undefined : (assignmentFilter === 'investigator' || assignmentFilter === 'investigator_unread') ? currentUser._id : undefined,
@@ -257,6 +266,12 @@ export function ComplaintsTable() {
             setPendingCustomRange(dateFilter.key === 'CUSTOM' ? dateFilter.range : undefined);
         }
     }, [isDateFilterOpen, dateFilter.key, dateFilter.range]);
+
+    useEffect(() => {
+        if (assignmentFilter === 'unassigned_investigation' && statusFilter !== 'UNDER_INVESTIGATION') {
+            setAssignmentFilter('all');
+        }
+    }, [statusFilter, assignmentFilter]);
 
     useEffect(() => {
         if (isSearchOpen) {
@@ -370,6 +385,10 @@ export function ComplaintsTable() {
                                     } else if (value === 'timeline_closure_overdue') {
                                         setTimelineFilter('closure_overdue');
                                         setAssignmentFilter('all');
+                                    } else if (value === 'unassigned_investigation') {
+                                        setTimelineFilter('all');
+                                        setAssignmentFilter('unassigned_investigation');
+                                        setStatusFilter('UNDER_INVESTIGATION');
                                     } else {
                                         setTimelineFilter('all');
                                         setAssignmentFilter(value as typeof assignmentFilter);
@@ -386,6 +405,7 @@ export function ComplaintsTable() {
                                     <SelectItem value="timeline_closure_overdue">Closure overdue</SelectItem>
                                     <SelectItem value="investigator">My investigation tasks</SelectItem>
                                     <SelectItem value="investigator_unread">My unread investigation tasks</SelectItem>
+                                    <SelectItem value="unassigned_investigation">Unassigned investigations</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
