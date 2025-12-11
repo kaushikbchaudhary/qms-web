@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { endOfMonth, format, startOfMonth, subDays } from 'date-fns';
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
 
 type StatusFilterValue = ComplaintStatus | 'ALL';
 
@@ -91,8 +92,35 @@ const formatDateRangeLabel = (range?: DateRange) => {
     return fromLabel === toLabel ? fromLabel : `${fromLabel} – ${toLabel}`;
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+
+const parsePaginationFromSearchParams = (params: ReturnType<typeof useSearchParams> | null) => {
+    const pageParam = params?.get('page');
+    const pageSizeParam = params?.get('pageSize');
+
+    const parsedPage = Number.parseInt(pageParam ?? '', 10);
+    const parsedPageSize = Number.parseInt(pageSizeParam ?? '', 10);
+
+    const pageIndex = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage - 1 : 0;
+    const pageSize = PAGE_SIZE_OPTIONS.includes(parsedPageSize as (typeof PAGE_SIZE_OPTIONS)[number])
+        ? parsedPageSize
+        : PAGE_SIZE_OPTIONS[0];
+
+    return { pageIndex, pageSize };
+};
+
 export function ComplaintsTable() {
-    const tableState = useTableState()
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const initialPaginationRef = useRef<{ pageIndex: number; pageSize: number } | null>(null);
+
+    if (!initialPaginationRef.current) {
+        initialPaginationRef.current = parsePaginationFromSearchParams(searchParams);
+    }
+
+    const tableState = useTableState(initialPaginationRef.current.pageSize, initialPaginationRef.current)
     const {
         pagination,
         setPagination,
@@ -202,6 +230,27 @@ export function ComplaintsTable() {
             showApiErrorToast(error);
         }
     }, [isError, error]);
+
+    useEffect(() => {
+        if (!searchParams) return;
+
+        const currentParams = new URLSearchParams(searchParams.toString());
+        const currentPage = Number.parseInt(currentParams.get('page') ?? '', 10);
+        const currentPageSize = Number.parseInt(currentParams.get('pageSize') ?? '', 10);
+        const pageMatches = Number.isFinite(currentPage)
+            ? currentPage === pagination.pageIndex + 1
+            : pagination.pageIndex === 0;
+        const sizeMatches = Number.isFinite(currentPageSize)
+            ? currentPageSize === pagination.pageSize
+            : false;
+
+        if (pageMatches && sizeMatches) return;
+
+        currentParams.set('page', String(pagination.pageIndex + 1));
+        currentParams.set('pageSize', String(pagination.pageSize));
+
+        router.replace(`${pathname}?${currentParams.toString()}`, { scroll: false });
+    }, [pagination.pageIndex, pagination.pageSize, router, pathname, searchParams]);
 
     useEffect(() => {
         if (isDateFilterOpen) {
@@ -435,7 +484,7 @@ export function ComplaintsTable() {
                     manualPagination: true,
                     manualSorting: true,
                     manualFiltering: true,
-                    pageSizeOptions: [10, 25, 50, 100],
+                    pageSizeOptions: [...PAGE_SIZE_OPTIONS],
                 }}
                 sorting={sorting}
                 onSortingChange={setSorting}

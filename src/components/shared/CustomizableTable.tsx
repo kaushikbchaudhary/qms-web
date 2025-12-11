@@ -510,11 +510,11 @@ export default function CustomizableTable<TData, TValue>({
 }
 
 // Utility hook to use with your API calls
-export function useTableState(defaultPageSize = 10) {
-    const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: 0,
-        pageSize: defaultPageSize,
-    })
+export function useTableState(defaultPageSize = 10, initialPagination?: PaginationState) {
+    const [pagination, setPagination] = React.useState<PaginationState>(() => ({
+        pageIndex: initialPagination?.pageIndex ?? 0,
+        pageSize: initialPagination?.pageSize ?? defaultPageSize,
+    }))
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
