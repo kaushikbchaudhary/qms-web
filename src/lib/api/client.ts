@@ -102,7 +102,7 @@ const setupInterceptors = ({client, directResponse = false
             }
             return config;
         },
-        (error: any) => Promise.reject(error)
+        (_error: any) => Promise.reject(_error)
     );
 
     client.interceptors.response.use(

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,9 +22,14 @@ const formatDate = (value?: string) => {
   }).format(date);
 };
 
-export default function ComplaintSerialLookupPage() {
-  const [serialInput, setSerialInput] = useState("");
-  const [querySerial, setQuerySerial] = useState("");
+function ComplaintSerialLookupContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const initialSerial = searchParams?.get("serial") ?? "";
+
+  const [serialInput, setSerialInput] = useState(initialSerial);
+  const [querySerial, setQuerySerial] = useState(initialSerial);
   const { data: stats, isFetching } = useComplaintSerialStats(querySerial);
 
   const statusEntries = useMemo(() => {
@@ -33,13 +39,37 @@ export default function ComplaintSerialLookupPage() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setQuerySerial(serialInput.trim());
+    const trimmed = serialInput.trim();
+    setQuerySerial(trimmed);
+    const params = new URLSearchParams(window.location.search);
+    if (trimmed) {
+      params.set("serial", trimmed);
+    } else {
+      params.delete("serial");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
   const handleQuickFill = (value: string) => {
     setSerialInput(value);
     setQuerySerial(value);
+    const params = new URLSearchParams(window.location.search);
+    if (value) {
+      params.set("serial", value);
+    } else {
+      params.delete("serial");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
+
+  useEffect(() => {
+    const serialParam = searchParams?.get("serial") ?? "";
+    setSerialInput(serialParam);
+    setQuerySerial(serialParam);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const hasResults = Boolean(stats && stats.total > 0);
 
@@ -75,7 +105,18 @@ export default function ComplaintSerialLookupPage() {
               <Button type="submit" disabled={!serialInput.trim() || isFetching}>
                 {isFetching ? "Searching..." : "Search"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setSerialInput("")}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSerialInput("");
+                  setQuerySerial("");
+                  const params = new URLSearchParams(window.location.search);
+                  params.delete("serial");
+                  const qs = params.toString();
+                  router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+                }}
+              >
                 Clear
               </Button>
             </div>
@@ -204,5 +245,13 @@ export default function ComplaintSerialLookupPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ComplaintSerialLookupPage() {
+  return (
+    <Suspense fallback={null}>
+      <ComplaintSerialLookupContent />
+    </Suspense>
   );
 }
