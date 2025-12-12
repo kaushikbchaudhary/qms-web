@@ -59,6 +59,7 @@ const UNIVERSAL_ROUTES = [
     '/dashboard/complaints',
     '/dashboard/complaints/new',
     '/dashboard/complaints/[id]',
+    '/dashboard/device-lifecycle',
     '/dashboard/device-material-issues',
     '/dashboard/device-material-issues/new',
     '/dashboard/device-material-issues/[id]',
