@@ -39,6 +39,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { BackButton } from "@/components/navigation/BackButton";
 
 type HeaderProps = {
   onToggleSidebar?: () => void;
@@ -235,6 +236,7 @@ export function Header({
       <header className={headerClassName}>
         <div className="flex h-16 items-center justify-between px-6 sm:px-8">
           <div className="flex items-center gap-3">
+            <BackButton fallbackHref="/dashboard/complaints" />
             {!!onToggleSidebar && (
               <Button
                 type="button"
@@ -287,8 +289,9 @@ export function Header({
 
   return (
     <header className={headerClassName}>
-      <div className="flex h-16 items-center justify-between px-6 sm:px-8">
+        <div className="flex h-16 items-center justify-between px-6 sm:px-8">
         <div className="flex items-center gap-3 sm:gap-4">
+          <BackButton fallbackHref="/dashboard/complaints" />
           {onToggleSidebar && (
             <TooltipProvider delayDuration={0}>
               <Tooltip>

@@ -12,7 +12,6 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Footer } from "@/components/layout/footer";
 import { useLogout } from "@/hooks/api/useAuth";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/navigation/BackButton";
 import {
   Tooltip,
   TooltipContent,
@@ -242,9 +241,6 @@ export function AppShell({ children }: AppShellProps) {
                 </Button>
               </div>
             )}
-            <div className="mb-4">
-              <BackButton fallbackHref={resolveFallbackHref()} />
-            </div>
             {children}
             <div className="mt-12">
               <Footer />
