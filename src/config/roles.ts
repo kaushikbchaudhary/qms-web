@@ -77,67 +77,67 @@ export const ROLE_ACCESS = {
     },
     [roles.SUPPORT]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.QA]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.PRODUCTION]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/',
+        redirect: '/dashboard',
     },
     [roles.SOFTWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/',
+        redirect: '/dashboard',
     },
     [roles.DESIGN_DEVELOPMENT]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.DEVOPS]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.CLINICAL_RESEARCH]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.AI_ML_TEAM]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/',
+        redirect: '/dashboard',
     },
     [roles.QC_TEAM]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/',
+        redirect: '/dashboard',
     },
     [roles.QUALITY_ANALYST_SOFTWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.QA_HARDWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.ENGINEERING_MAINTENANCE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/',
+        redirect: '/dashboard',
     },
     [roles.EMBEDDED_HARDWARE_FIRMWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.REGULATORY_AFFAIRS]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard/complaints',
+        redirect: '/dashboard',
     },
     [roles.STORE_INVENTORY]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/',
+        redirect: '/dashboard',
     },
     [roles.SALES_MARKETING]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/',
+        redirect: '/dashboard',
     },
 };
 
