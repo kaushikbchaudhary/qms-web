@@ -15,6 +15,7 @@ import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useCreateComplaint, useLookup } from '@/hooks/api/useComplaints'
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { CreateComplaintPayload, MasterLookupItem, ReplacementDetails } from '@/lib/api/types/complaints'
 import { FileUploadComponent } from '@/components/forms/FileUploadComponent'
 import { useAttachmentManager } from '@/components/forms/AttachmentManager'
@@ -57,6 +58,7 @@ export function ComplaintForm({
     submitLabel,
     loading,
 }: ComplaintFormProps) {
+    const router = useRouter()
     const { requirements } = useComplaintFormRequirements()
     const schema = useMemo(() => buildComplaintSubmissionSchema(requirements), [requirements])
     const resolver = useMemo(() => zodResolver(schema) as Resolver<ComplaintFormValues>, [schema])
@@ -205,10 +207,15 @@ export function ComplaintForm({
                 onSuccess?.()
             } else {
                 createComplaint(payload, {
-                    onSuccess: () => {
+                    onSuccess: (response) => {
+                        const newId = (response as any)?.data?._id ?? (response as any)?._id ?? null;
                         form.reset()
                         setAttachments([])
                         setPathsAttachments([])
+                        if (newId) {
+                            router.push(`/dashboard/complaints/${newId}`)
+                            return;
+                        }
                         onSuccess?.()
                     },
                     onError: () => {

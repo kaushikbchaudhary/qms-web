@@ -16,6 +16,7 @@ import {
   UpdateDeviceMaterialIssuePayload,
 } from '@/lib/api/types/deviceMaterialIssue';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export const MODEL_NUMBER_OPTIONS = ['OOM 100', 'OOM 7C', 'OOM 12C', 'OOM 12CR'] as const;
 
@@ -56,6 +57,7 @@ export function DeviceMaterialIssueForm({
   const isEditMode = mode === 'edit';
   const createMutation = useCreateDeviceMaterialIssue();
   const updateMutation = useUpdateDeviceMaterialIssue(issueId ?? '');
+  const router = useRouter();
 
   const resolvedDefaults: DeviceMaterialIssueFormInputs = useMemo(
     () => ({
@@ -118,8 +120,12 @@ export function DeviceMaterialIssueForm({
     };
 
     await createMutation.mutateAsync(payload, {
-      onSuccess: () => {
+      onSuccess: (created) => {
         form.reset(resolvedDefaults);
+        if (created && (created as any)._id) {
+          router.push(`/dashboard/device-material-issues/${(created as any)._id}`);
+          return;
+        }
         onSuccess?.();
       },
     });
