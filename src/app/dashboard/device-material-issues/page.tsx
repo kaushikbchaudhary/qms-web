@@ -7,7 +7,7 @@ export default function DeviceMaterialIssuesPage() {
     <div className="space-y-6 py-8">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Device material issue requests</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Device/Material issue requests</h1>
           <p className="text-sm text-muted-foreground">
             Track device and material issuance across production, QA, and field teams.
           </p>

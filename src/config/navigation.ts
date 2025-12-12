@@ -45,7 +45,7 @@ export const navSections: NavSection[] = [
         roles: allRoles,
       },
       {
-        title: "Device Requests",
+        title: "Device/Material Requests",
         href: "/dashboard/device-material-issues",
         icon: PackageSearch,
         roles: allRoles,

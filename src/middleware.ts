@@ -23,16 +23,15 @@ export function middleware(request: NextRequest) {
     const sessionIdCookie = request.cookies.get('qms_session_id');
     console.log('JWT Token:', token);
     const user: any = token ? verifyJwt(token.value) : null;
+    const hasRefreshArtifacts = Boolean(refreshToken?.value || sessionIdCookie?.value);
 
     // Allow public/auth routes when not authenticated
     if (!token || !user || typeof user.role === 'undefined') {
-        const response = isPublicRoute
-            ? NextResponse.next()
-            : NextResponse.redirect(new URL('/auth/login', request.url));
+        const response =
+            isPublicRoute || hasRefreshArtifacts
+                ? NextResponse.next()
+                : NextResponse.redirect(new URL('/auth/login', request.url));
         response.headers.set('x-middleware-cache', 'no-store');
-        response.cookies.delete('jwt_qms');
-        response.cookies.delete('jwt_qms_refresh');
-        response.cookies.delete('qms_session_id');
         return response;
     }
 
@@ -45,9 +44,6 @@ export function middleware(request: NextRequest) {
     if (normalizedRoles.length === 0) {
         const loginUrl = new URL('/auth/login', request.url);
         const response = NextResponse.redirect(loginUrl);
-        response.cookies.delete('jwt_qms');
-        response.cookies.delete('jwt_qms_refresh');
-        response.cookies.delete('qms_session_id');
         return response;
     }
 
