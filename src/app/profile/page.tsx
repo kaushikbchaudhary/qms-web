@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useUpdatePassword } from '@/hooks/api/useUser';
 import { toast } from 'sonner';
+import { useSessions, useLogoutAll, useLogoutDevice } from '@/hooks/api/useAuth';
+import { formatDistanceToNow } from 'date-fns';
+import { Loader2, LogOut, Smartphone } from 'lucide-react';
 
 const PasswordSettingsPage = () => {
     const user = useAuthStore((state) => state.user);
@@ -55,8 +58,39 @@ const PasswordSettingsPage = () => {
         );
     };
 
+    const { data: sessions, isLoading: sessionsLoading } = useSessions();
+    const logoutAll = useLogoutAll();
+    const logoutDevice = useLogoutDevice();
+    const currentSessionId = useAuthStore.getState().sessionId;
+
+    const parseUserAgent = (userAgent?: string) => {
+        const ua = userAgent || '';
+        const lower = ua.toLowerCase();
+
+        let browser = 'Browser';
+        if (lower.includes('chrome')) browser = 'Chrome';
+        else if (lower.includes('safari')) browser = 'Safari';
+        else if (lower.includes('firefox')) browser = 'Firefox';
+        else if (lower.includes('edg') || lower.includes('edge')) browser = 'Edge';
+
+        let os = 'Device';
+        if (lower.includes('windows')) os = 'Windows';
+        else if (lower.includes('mac os') || lower.includes('macintosh')) os = 'macOS';
+        else if (lower.includes('android')) os = 'Android';
+        else if (lower.includes('iphone') || lower.includes('ipad') || lower.includes('ios')) os = 'iOS';
+        else if (lower.includes('linux')) os = 'Linux';
+
+        const deviceLabel = `${browser} on ${os}`;
+        return { browser, os, deviceLabel };
+    };
+
+    const handleLogoutDevice = (sessionId?: string) => {
+        if (!sessionId) return;
+        logoutDevice.mutate(sessionId);
+    };
+
     return (
-        <div className="container max-w-xl py-10">
+        <div className="container max-w-5xl py-10 space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Change Password</CardTitle>
@@ -101,6 +135,78 @@ const PasswordSettingsPage = () => {
                             {updatePassword.isPending ? 'Updating...' : 'Update Password'}
                         </Button>
                     </form>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-2">
+                    <div>
+                        <CardTitle>Active Sessions</CardTitle>
+                        <CardDescription>Manage devices currently signed in to your account.</CardDescription>
+                    </div>
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={logoutAll.isPending}
+                        onClick={() => logoutAll.mutate()}
+                    >
+                        {logoutAll.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
+                        Logout other devices
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {sessionsLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading sessions…
+                        </div>
+                    ) : !sessions?.length ? (
+                        <p className="text-sm text-muted-foreground">No active sessions found.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {sessions.map((session) => {
+                                const isCurrent = session.isCurrent ?? (session.sessionId === currentSessionId);
+                                const { deviceLabel } = parseUserAgent(session.deviceName || session.userAgent);
+                                return (
+                                    <div
+                                        key={session.sessionId}
+                                        className="flex flex-col gap-2 rounded-lg border bg-card/50 p-4 md:flex-row md:items-center md:justify-between"
+                                    >
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2 text-sm font-medium">
+                                                <Smartphone className="h-4 w-4 text-muted-foreground" />
+                                                <span>{deviceLabel}</span>
+                                                {isCurrent && (
+                                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                                                        Current device
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {session.deviceName ? session.deviceName : session.userAgent || 'User agent unavailable'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {session.ipAddress ? `IP: ${session.ipAddress}` : 'IP: —'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                Logged in {session.createdAt ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true }) : '—'} • Last active{' '}
+                                                {session.lastUsedAt ? formatDistanceToNow(new Date(session.lastUsedAt), { addSuffix: true }) : '—'}
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={isCurrent || logoutDevice.isPending}
+                                            onClick={() => handleLogoutDevice(session.sessionId)}
+                                        >
+                                            {logoutDevice.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
+                                            Logout device
+                                        </Button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

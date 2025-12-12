@@ -1,8 +1,15 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {toast} from "sonner";
 import {showApiErrorToast} from "@/lib/utils";
 import {authApi} from "@/lib/api/endpoints/auth";
-import {AuthPayload, AuthResponse, PasswordLoginPayload, ForgotPasswordPayload, ResetPasswordPayload} from "@/lib/api/types/authTypes";
+import {
+    AuthPayload,
+    AuthResponse,
+    PasswordLoginPayload,
+    ForgotPasswordPayload,
+    ResetPasswordPayload,
+    SessionSummary
+} from "@/lib/api/types/authTypes";
 import { useAuthStore } from "@/stores/authStore";
 
 export function useRequestOtp() {
@@ -61,6 +68,46 @@ export function useLogout() {
                 window.location.replace('/auth/login');
             }
             return response.data;
+        },
+    });
+}
+
+export function useLogoutAll() {
+    return useMutation({
+        mutationFn: async () => {
+            const response = await authApi.logoutAll();
+            toast.success(response?.message ?? 'Logged out from other devices.');
+            return response?.data;
+        },
+        onSuccess: () => {
+            useAuthStore.getState().setSession({ sessionId: useAuthStore.getState().sessionId ?? null, token: localStorage.getItem('token') });
+        },
+        onError: showApiErrorToast,
+    });
+}
+
+export function useLogoutDevice() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (sessionId: string) => {
+            const response = await authApi.logoutDevice(sessionId);
+            toast.success(response?.message ?? 'Device session revoked.');
+            return response?.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sessions'] });
+            toast.success('Device logged out successfully.');
+        },
+        onError: showApiErrorToast,
+    });
+}
+
+export function useSessions() {
+    return useQuery({
+        queryKey: ['sessions'],
+        queryFn: async (): Promise<SessionSummary[]> => {
+            const response = await authApi.listSessions();
+            return (response?.data ?? []) as SessionSummary[];
         },
     });
 }

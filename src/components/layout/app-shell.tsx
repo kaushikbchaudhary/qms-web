@@ -12,6 +12,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Footer } from "@/components/layout/footer";
 import { useLogout } from "@/hooks/api/useAuth";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/navigation/BackButton";
 import {
   Tooltip,
   TooltipContent,
@@ -88,6 +89,17 @@ export function AppShell({ children }: AppShellProps) {
     sidebarCollapsed ? "w-20 rounded-3xl" : "w-72 rounded-3xl",
     isFocusMode ? "lg:hidden" : "lg:flex lg:sticky lg:top-4"
   );
+
+  const resolveFallbackHref = () => {
+    if (!pathname) return "/";
+    if (pathname.startsWith("/dashboard/complaints")) return "/dashboard/complaints";
+    if (pathname.startsWith("/dashboard/device-material-issues")) return "/dashboard/device-material-issues";
+    if (pathname.startsWith("/dashboard/capa")) return "/dashboard/capa";
+    if (pathname.startsWith("/dashboard/nc")) return "/dashboard/nc";
+    if (pathname.startsWith("/admin")) return "/admin";
+    if (pathname.startsWith("/profile")) return "/profile";
+    return "/dashboard/complaints";
+  };
 
   return (
     <div className={layoutClasses}>
@@ -230,6 +242,9 @@ export function AppShell({ children }: AppShellProps) {
                 </Button>
               </div>
             )}
+            <div className="mb-4">
+              <BackButton fallbackHref={resolveFallbackHref()} />
+            </div>
             {children}
             <div className="mt-12">
               <Footer />

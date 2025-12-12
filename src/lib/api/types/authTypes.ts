@@ -18,8 +18,25 @@ export interface ResetPasswordPayload {
     password: string;
 }
 
-export interface AuthResponse {
+export type SessionSummary = {
+    sessionId: string;
+    deviceName?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    createdAt?: string;
+    lastUsedAt?: string;
+    isCurrent?: boolean;
+};
+
+export type AuthSuccessData = {
+    user?: any;
+    token?: string;
+    refreshToken?: string;
+    sessionId?: string;
+};
+
+export interface AuthResponse<T = AuthSuccessData> {
     success: boolean;
     message: string;
-    data?: any;
+    data?: T;
 }

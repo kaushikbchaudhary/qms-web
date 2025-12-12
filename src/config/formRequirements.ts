@@ -33,6 +33,7 @@ export type ComplaintClosureRequirementMap = Record<string, boolean>;
 
 export const COMPLAINT_SUBMISSION_FIELDS: ComplaintSubmissionFieldDefinition[] = [
     { path: 'customer.name', label: 'Customer Name', defaultRequired: true },
+    { path: 'customer.patient_id', label: 'Patient ID', defaultRequired: false },
     { path: 'customer.company', label: 'Customer Company', defaultRequired: false },
     { path: 'customer.contact_number', label: 'Customer Contact Number', defaultRequired: true },
     { path: 'customer.email', label: 'Customer Email', defaultRequired: true },

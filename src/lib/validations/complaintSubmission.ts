@@ -109,6 +109,10 @@ export const buildComplaintSubmissionSchema = (requirements: ComplaintSubmission
                 message: 'Name must be at least 2 characters',
                 minLength: 2,
             }),
+            patient_id: stringField(requirements, 'customer.patient_id', {
+                message: 'Patient ID is required',
+                minLength: 1,
+            }),
             company: preprocessOptionalString(),
             contact_number: phoneField(requirements, 'customer.contact_number'),
             email: stringField(requirements, 'customer.email', {

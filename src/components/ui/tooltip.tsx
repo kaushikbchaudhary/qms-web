@@ -74,7 +74,7 @@ export function TooltipTrigger({
   children,
   asChild,
 }: TooltipTriggerProps): React.ReactElement {
-  const { setOpen, delayDuration, setAnchor } = useTooltipContext("TooltipTrigger");
+  const { open, setOpen, delayDuration, setAnchor } = useTooltipContext("TooltipTrigger");
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleOpen = React.useCallback(
@@ -86,6 +86,18 @@ export function TooltipTrigger({
       setAnchor(target);
     },
     [delayDuration, setOpen, setAnchor]
+  );
+
+  const handleOpenImmediate = React.useCallback(
+    (target: HTMLElement) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setOpen(true);
+      setAnchor(target);
+    },
+    [setOpen, setAnchor]
   );
 
   const handleClose = React.useCallback(() => {
@@ -137,7 +149,11 @@ export function TooltipTrigger({
       if (typeof childProps.onClick === "function") {
         (childProps.onClick as (event: React.MouseEvent) => void)(event);
       }
-      handleClose();
+      if (open) {
+        handleClose();
+      } else {
+        handleOpenImmediate(event.currentTarget as HTMLElement);
+      }
     },
     "aria-describedby": childProps["aria-describedby"] as string | undefined,
   };
@@ -270,7 +286,7 @@ export const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentPro
         ref={ref}
         role="tooltip"
         className={cn(
-          "pointer-events-none fixed z-[99999] flex min-w-max",
+          "pointer-events-none fixed z-[99999] flex",
           className
         )}
         style={{
@@ -281,7 +297,7 @@ export const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentPro
         }}
         {...props}
       >
-        <div className="rounded-md border border-border/40 bg-background/95 px-3 py-1.5 text-sm text-foreground shadow-lg">
+        <div className="max-w-[520px] whitespace-pre-wrap break-words rounded-md border border-border/40 bg-background/95 px-3 py-1.5 text-sm text-foreground shadow-lg">
           {props.children}
         </div>
       </div>

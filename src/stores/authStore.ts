@@ -18,7 +18,9 @@ export type UserData = {
 type AuthState = {
     user: UserData | null;
     isAuthenticated: boolean;
-    login: (userData: UserData, token?: string) => void;
+    sessionId: string | null;
+    login: (userData: UserData, token?: string, sessionId?: string | null) => void;
+    setSession: (params: { token?: string | null; sessionId?: string | null }) => void;
     logout: () => void;
 };
 
@@ -27,22 +29,47 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             user: null,
             isAuthenticated: false,
-            login: (userData, token) => {
-                if (typeof window !== 'undefined' && token) {
-                    localStorage.setItem('token', token);
+            sessionId: null,
+            login: (userData, token, sessionId) => {
+                if (typeof window !== 'undefined') {
+                    if (token) {
+                        localStorage.setItem('token', token);
+                    }
+                    if (sessionId) {
+                        localStorage.setItem('sessionId', sessionId);
+                    }
                 }
                 set({
                     user: userData,
-                    isAuthenticated: true
+                    isAuthenticated: true,
+                    sessionId: sessionId ?? null,
                 });
+            },
+            setSession: ({ token, sessionId }) => {
+                if (typeof window !== 'undefined') {
+                    if (token) {
+                        localStorage.setItem('token', token);
+                    }
+                    if (sessionId) {
+                        localStorage.setItem('sessionId', sessionId);
+                    } else {
+                        localStorage.removeItem('sessionId');
+                    }
+                }
+                set((state) => ({
+                    ...state,
+                    sessionId: sessionId ?? null,
+                }));
             },
             logout: () => {
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('token');
+                    localStorage.removeItem('sessionId');
                 }
                 set({
                     user: null,
-                    isAuthenticated: false
+                    isAuthenticated: false,
+                    sessionId: null,
                 });
             },
         }),
@@ -51,7 +78,8 @@ export const useAuthStore = create<AuthState>()(
             storage: createJSONStorage(() => localStorage), // or sessionStorage
             partialize: (state) => ({
                 user: state.user,
-                isAuthenticated: state.isAuthenticated
+                isAuthenticated: state.isAuthenticated,
+                sessionId: state.sessionId
             }),
         }
     )

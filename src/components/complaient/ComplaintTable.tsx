@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { endOfMonth, format, startOfMonth, subDays } from 'date-fns';
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
 
 type StatusFilterValue = ComplaintStatus | 'ALL';
 
@@ -91,8 +92,35 @@ const formatDateRangeLabel = (range?: DateRange) => {
     return fromLabel === toLabel ? fromLabel : `${fromLabel} – ${toLabel}`;
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+
+const parsePaginationFromSearchParams = (params: ReturnType<typeof useSearchParams> | null) => {
+    const pageParam = params?.get('page');
+    const pageSizeParam = params?.get('pageSize');
+
+    const parsedPage = Number.parseInt(pageParam ?? '', 10);
+    const parsedPageSize = Number.parseInt(pageSizeParam ?? '', 10);
+
+    const pageIndex = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage - 1 : 0;
+    const pageSize = PAGE_SIZE_OPTIONS.includes(parsedPageSize as (typeof PAGE_SIZE_OPTIONS)[number])
+        ? parsedPageSize
+        : PAGE_SIZE_OPTIONS[0];
+
+    return { pageIndex, pageSize };
+};
+
 export function ComplaintsTable() {
-    const tableState = useTableState()
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const initialPaginationRef = useRef<{ pageIndex: number; pageSize: number } | null>(null);
+
+    if (!initialPaginationRef.current) {
+        initialPaginationRef.current = parsePaginationFromSearchParams(searchParams);
+    }
+
+    const tableState = useTableState(initialPaginationRef.current.pageSize, initialPaginationRef.current)
     const {
         pagination,
         setPagination,
@@ -107,7 +135,7 @@ export function ComplaintsTable() {
     } = tableState
     const [globalFilter, setGlobalFilter] = useState("")
     const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('ALL');
-    const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'assigned_to_me' | 'assigned_unread' | 'investigator' | 'investigator_unread'>('all');
+    const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'assigned_to_me' | 'assigned_unread' | 'investigator' | 'investigator_unread' | 'unassigned_investigation'>('all');
     const [dateFilter, setDateFilter] = useState<DateFilterState>({ key: 'ALL' });
     const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
     const [pendingCustomRange, setPendingCustomRange] = useState<DateRange | undefined>();
@@ -115,7 +143,9 @@ export function ComplaintsTable() {
     const [timelineFilter, setTimelineFilter] = useState<'all' | 'investigation_overdue' | 'closure_overdue'>('all');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [globalFilterFields] = useState<string[]>([
+        "complaint_number",
         "customer.name",
+        "customer.patient_id",
         "customer.company",
         "product_details.model",
         "product_details.serial_number",
@@ -125,11 +155,15 @@ export function ComplaintsTable() {
 
     const debouncedGlobalFilterValue = useDebounce(globalFilter, 500); // 500ms delay
 
-    const statusFilters = useMemo(() => (
-        statusFilter === 'ALL'
+    const statusFilters = useMemo(() => {
+        const targetStatus = assignmentFilter === 'unassigned_investigation'
+            ? 'UNDER_INVESTIGATION'
+            : statusFilter;
+
+        return targetStatus === 'ALL'
             ? []
-            : [{ field: 'status', operator: 'eq', value: statusFilter }]
-    ), [statusFilter]);
+            : [{ field: 'status', operator: 'eq', value: targetStatus }];
+    }, [statusFilter, assignmentFilter]);
 
     const dateRangeFilters = useMemo(() => {
         if (dateFilter.key === 'ALL' || !dateFilter.range?.from) {
@@ -176,7 +210,12 @@ export function ComplaintsTable() {
         sort_by: sorting[0]?.id || "submission_date",
         sort_order: -1, // sorting[0]?.desc ? -1 : 1,
         filters: combinedFilters,
-        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        status: assignmentFilter === 'unassigned_investigation'
+            ? 'UNDER_INVESTIGATION'
+            : statusFilter === 'ALL'
+                ? undefined
+                : statusFilter,
+        unassigned_investigation: assignmentFilter === 'unassigned_investigation' ? true : undefined,
         assigned_to: !currentUser ? undefined : (assignmentFilter === 'assigned_to_me' || assignmentFilter === 'assigned_unread') ? currentUser._id : undefined,
         assignee_read: assignmentFilter === 'assigned_unread' ? 'unread' : undefined,
         investigator_user: !currentUser ? undefined : (assignmentFilter === 'investigator' || assignmentFilter === 'investigator_unread') ? currentUser._id : undefined,
@@ -204,10 +243,37 @@ export function ComplaintsTable() {
     }, [isError, error]);
 
     useEffect(() => {
+        if (!searchParams) return;
+
+        const currentParams = new URLSearchParams(searchParams.toString());
+        const currentPage = Number.parseInt(currentParams.get('page') ?? '', 10);
+        const currentPageSize = Number.parseInt(currentParams.get('pageSize') ?? '', 10);
+        const pageMatches = Number.isFinite(currentPage)
+            ? currentPage === pagination.pageIndex + 1
+            : pagination.pageIndex === 0;
+        const sizeMatches = Number.isFinite(currentPageSize)
+            ? currentPageSize === pagination.pageSize
+            : false;
+
+        if (pageMatches && sizeMatches) return;
+
+        currentParams.set('page', String(pagination.pageIndex + 1));
+        currentParams.set('pageSize', String(pagination.pageSize));
+
+        router.replace(`${pathname}?${currentParams.toString()}`, { scroll: false });
+    }, [pagination.pageIndex, pagination.pageSize, router, pathname, searchParams]);
+
+    useEffect(() => {
         if (isDateFilterOpen) {
             setPendingCustomRange(dateFilter.key === 'CUSTOM' ? dateFilter.range : undefined);
         }
     }, [isDateFilterOpen, dateFilter.key, dateFilter.range]);
+
+    useEffect(() => {
+        if (assignmentFilter === 'unassigned_investigation' && statusFilter !== 'UNDER_INVESTIGATION') {
+            setAssignmentFilter('all');
+        }
+    }, [statusFilter, assignmentFilter]);
 
     useEffect(() => {
         if (isSearchOpen) {
@@ -321,6 +387,10 @@ export function ComplaintsTable() {
                                     } else if (value === 'timeline_closure_overdue') {
                                         setTimelineFilter('closure_overdue');
                                         setAssignmentFilter('all');
+                                    } else if (value === 'unassigned_investigation') {
+                                        setTimelineFilter('all');
+                                        setAssignmentFilter('unassigned_investigation');
+                                        setStatusFilter('UNDER_INVESTIGATION');
                                     } else {
                                         setTimelineFilter('all');
                                         setAssignmentFilter(value as typeof assignmentFilter);
@@ -337,6 +407,7 @@ export function ComplaintsTable() {
                                     <SelectItem value="timeline_closure_overdue">Closure overdue</SelectItem>
                                     <SelectItem value="investigator">My investigation tasks</SelectItem>
                                     <SelectItem value="investigator_unread">My unread investigation tasks</SelectItem>
+                                    <SelectItem value="unassigned_investigation">Unassigned investigations</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -435,7 +506,7 @@ export function ComplaintsTable() {
                     manualPagination: true,
                     manualSorting: true,
                     manualFiltering: true,
-                    pageSizeOptions: [10, 25, 50, 100],
+                    pageSizeOptions: [...PAGE_SIZE_OPTIONS],
                 }}
                 sorting={sorting}
                 onSortingChange={setSorting}
