@@ -143,7 +143,9 @@ export function ComplaintsTable() {
     const [timelineFilter, setTimelineFilter] = useState<'all' | 'investigation_overdue' | 'closure_overdue'>('all');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [globalFilterFields] = useState<string[]>([
+        "complaint_number",
         "customer.name",
+        "customer.patient_id",
         "customer.company",
         "product_details.model",
         "product_details.serial_number",

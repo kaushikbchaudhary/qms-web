@@ -12,6 +12,7 @@ export interface Complaint {
 
 export interface ComplaintCustomer {
     name?: string;
+    patient_id?: string;
     company?: string;
     contact_number?: string;
     email?: string;
@@ -158,6 +159,7 @@ export interface Config {
 // Sub-types for the complaint
 export interface Customer {
     name: string;
+    patient_id?: string;
     company: string;
     contact_number: string;
     email: string;

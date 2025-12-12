@@ -67,6 +67,7 @@ export type Complaint = {
     submission_date: string
     customer: {
         name: string
+        patient_id?: string
         company: string
         contact_number: string
         email: string
@@ -310,6 +311,18 @@ export const ColumnsComplaints: ColumnDef<Complaint>[] = [
     {
         accessorKey: "customer.name",
         header: "Customer Name",
+        cell: ({ row }) => {
+            const name = row.original?.customer?.name || '-';
+            const patientId = row.original?.customer?.patient_id;
+            return (
+                <div className="flex flex-col">
+                    <span className="font-medium">{name}</span>
+                    {patientId ? (
+                        <span className="text-xs text-muted-foreground">Patient ID: {patientId}</span>
+                    ) : null}
+                </div>
+            );
+        },
     },
     {
         accessorKey: "customer.company",

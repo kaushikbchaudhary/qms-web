@@ -70,6 +70,7 @@ export function ComplaintForm({
     const baseDefaults: ComplaintFormValues = {
         customer: {
             name: '',
+            patient_id: '',
             company: '',
             contact_number: '',
             email: '',
@@ -267,6 +268,19 @@ export function ComplaintForm({
                                     {renderLabel('Customer Name:', 'customer.name')}
                                     <FormControl>
                                         <Input placeholder="Enter customer name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="customer.patient_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                    {renderLabel('Patient ID:', 'customer.patient_id')}
+                                    <FormControl>
+                                        <Input placeholder="Enter patient ID" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

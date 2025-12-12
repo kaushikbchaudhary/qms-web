@@ -568,7 +568,13 @@ const ComplaintDetailPage = (params:Props) => {
         const prevContact = complaint.previous_contact ?? {};
         const customerActions = complaint.customer_actions ?? {};
         return {
-            customer: complaint.customer ?? {},
+            customer: {
+                name: complaint.customer?.name ?? '',
+                patient_id: complaint.customer?.patient_id ?? '',
+                company: complaint.customer?.company ?? '',
+                contact_number: complaint.customer?.contact_number ?? '',
+                email: complaint.customer?.email ?? '',
+            },
             product_details: {
                 ...(complaint.product_details ?? {}),
                 purchase_date: complaint.product_details?.purchase_date || ''
@@ -1490,6 +1496,10 @@ const ComplaintDetailPage = (params:Props) => {
                                 <div>
                                     <span className="font-medium">Customer Name:</span>
                                     <span className="ml-2">{safeText(complaint.customer?.name)}</span>
+                                </div>
+                                <div>
+                                    <span className="font-medium">Patient ID:</span>
+                                    <span className="ml-2">{safeText(complaint.customer?.patient_id)}</span>
                                 </div>
                                 <div>
                                     <span className="font-medium">Company (if applicable):</span>
