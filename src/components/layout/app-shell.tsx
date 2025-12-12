@@ -210,40 +210,47 @@ export function AppShell({ children }: AppShellProps) {
 
       <div
         className={cn(
-          "flex h-full w-full flex-1 flex-col rounded-3xl border border-border/30 bg-background shadow-sm transition-all duration-300 overflow-hidden",
+          "flex h-screen w-full flex-1 flex-col rounded-3xl border border-border/30 bg-background shadow-sm transition-all duration-300 overflow-hidden",
           isFocusMode && "shadow-none"
         )}
       >
-        <Header
-          onToggleSidebar={handleToggleSidebar}
-          isSidebarCollapsed={sidebarCollapsed}
-          onToggleFocusMode={handleToggleFocusMode}
-          isFocusMode={isFocusMode}
-        />
         <div className="flex-1 overflow-hidden">
           <div
             className={cn(
-              "relative h-full overflow-y-auto overflow-x-hidden px-4 py-6 pb-24 sm:px-8 lg:pb-10",
-              isFocusMode && "px-4 py-4 pb-16 sm:px-6"
+              "relative h-full overflow-y-auto overflow-x-hidden",
+              isFocusMode && ""
             )}
           >
-            {isFocusMode && (
-              <div className="sticky top-4 z-20 flex justify-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleToggleFocusMode}
-                  className="backdrop-blur supports-[backdrop-filter]:bg-background/70"
-                >
-                  <Minimize2 className="mr-2 h-4 w-4" />
-                  Exit Focus View
-                </Button>
+            <Header
+              onToggleSidebar={handleToggleSidebar}
+              isSidebarCollapsed={sidebarCollapsed}
+              onToggleFocusMode={handleToggleFocusMode}
+              isFocusMode={isFocusMode}
+            />
+            <div
+              className={cn(
+                "px-4 py-6 pb-24 sm:px-8 lg:pb-10",
+                isFocusMode && "px-4 py-4 pb-16 sm:px-6"
+              )}
+            >
+              {isFocusMode && (
+                <div className="sticky top-4 z-20 flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleToggleFocusMode}
+                    className="backdrop-blur supports-[backdrop-filter]:bg-background/70"
+                  >
+                    <Minimize2 className="mr-2 h-4 w-4" />
+                    Exit Focus View
+                  </Button>
+                </div>
+              )}
+              {children}
+              <div className="mt-12">
+                <Footer />
               </div>
-            )}
-            {children}
-            <div className="mt-12">
-              <Footer />
             </div>
           </div>
         </div>
