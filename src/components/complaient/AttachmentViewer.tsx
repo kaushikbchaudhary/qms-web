@@ -9,10 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { FileIcon, ImageIcon, VideoIcon, Cross2Icon, DownloadIcon, ReloadIcon } from "@radix-ui/react-icons";
 import {complaintsApi} from "@/lib/api/endpoints/complaints";
+import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [currentAttachment, setCurrentAttachment] = useState<string | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [zoom, setZoom] = useState(1);
 
     // Filter out null values and create clean array of valid attachments
     const validAttachments = attachments.filter((attachment): attachment is string =>
@@ -66,6 +70,8 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
     const openAttachment = (path: string) => {
         setCurrentAttachment(path);
         setIsOpen(true);
+        setIsFullscreen(false);
+        setZoom(1);
     };
 
     useEffect(() => {
@@ -114,19 +120,57 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
             </div>
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-auto">
+                <DialogContent
+                    className={cn(
+                        "w-[1100px] max-w-[98vw] max-h-[90vh] overflow-hidden",
+                        isFullscreen && "w-[calc(100vw-32px)] h-[96vh] max-w-[calc(100vw-32px)] max-h-[96vh]"
+                    )}
+                >
                     <DialogHeader>
                         <div className="flex justify-between items-center">
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-center">
                                 {attachmentData?.url && (
-                                    <a
-                                        href={attachmentData.url}
-                                        download={getFileNameFromUrl(currentAttachment || '')}
-                                        className="text-primary hover:text-primary-dark mx-1"
-                                    >
-                                        <DownloadIcon className="w-5 h-5" />
-                                    </a>
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setIsFullscreen((prev) => !prev)}
+                                            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                                        >
+                                            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                        </Button>
+                                        {attachmentData.type === 'image' && (
+                                            <>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setZoom((prev) => Math.min(prev + 0.25, 5))}
+                                                    aria-label="Zoom in"
+                                                >
+                                                    <ZoomIn className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setZoom((prev) => Math.max(prev - 0.25, 0.25))}
+                                                    aria-label="Zoom out"
+                                                >
+                                                    <ZoomOut className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                        <a
+                                            href={attachmentData.url}
+                                            download={getFileNameFromUrl(currentAttachment || '')}
+                                            className="text-primary hover:text-primary-dark mx-1"
+                                        >
+                                            <DownloadIcon className="w-5 h-5" />
+                                        </a>
+                                    </>
                                 )}
                             </div>
                             <DialogTitle>
@@ -153,13 +197,21 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
                             </Button>
                         </div>
                     ) : attachmentData ? (
-                        <div className="mt-4 flex justify-center items-center">
+                        <div
+                            className={cn(
+                                "mt-4 flex w-full justify-center items-center",
+                                isFullscreen ? "h-[calc(96vh-120px)]" : "max-h-[80vh]"
+                            )}
+                        >
                             {attachmentData.type === 'image' && (
-                                <img
-                                    src={attachmentData.url}
-                                    alt="Attachment preview"
-                                    className="max-w-full max-h-[70vh] object-contain mx-auto rounded-md shadow-sm"
-                                />
+                                <div className="relative flex h-full w-full items-center justify-center overflow-auto rounded-md bg-muted/20">
+                                    <img
+                                        src={attachmentData.url}
+                                        alt="Attachment preview"
+                                        className="max-h-full max-w-full object-contain rounded-md shadow-sm"
+                                        style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
+                                    />
+                                </div>
                             )}
 
                             {attachmentData.type === 'pdf' && (
