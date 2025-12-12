@@ -43,11 +43,13 @@ export function middleware(request: NextRequest) {
         .filter((role: UserRole | undefined): role is UserRole => Boolean(role));
 
     if (normalizedRoles.length === 0) {
-        const loginUrl = new URL('/auth/login', request.url);
-        const response = NextResponse.redirect(loginUrl);
+        const response = isAuthRoute || isPublicRoute
+            ? NextResponse.next()
+            : NextResponse.redirect(new URL('/auth/login', request.url));
         response.cookies.delete('jwt_qms');
         response.cookies.delete('jwt_qms_refresh');
         response.cookies.delete('qms_session_id');
+        response.headers.set('x-middleware-cache', 'no-store');
         return response;
     }
 
