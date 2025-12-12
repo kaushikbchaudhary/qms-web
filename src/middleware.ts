@@ -12,6 +12,9 @@ const PUBLIC_ROUTE_PREFIXES = ['/uploads'];
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     console.log('Middleware invoked for path:', pathname);
+    if (pathname === '/') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    }
     const isAuthRoute = AUTH_ROUTES.includes(pathname);
     const isPublicRoute =
         isAuthRoute ||

@@ -40,5 +40,5 @@ export function getRedirectPath(userRoles: string[]): string {
       return ROLE_ACCESS[resolvedRole].redirect;
     }
   }
-  return '/dashboard';
+  return '/admin/dashboard';
 }

@@ -51,7 +51,6 @@ export const ROLE_LABELS: Record<roles, string> = {
 const MANAGE_USER_ROUTES = ['/admin/users', '/admin/users/edit-user/[id]'];
 const SITE_CONFIGURATION_ROUTES = ['/admin/settings'];
 const UNIVERSAL_ROUTES = [
-    '/',
     '/dashboard',
     '/profile',
     '/staff',
@@ -77,67 +76,67 @@ export const ROLE_ACCESS = {
     },
     [roles.SUPPORT]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.QA]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.PRODUCTION]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.SOFTWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.DESIGN_DEVELOPMENT]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.DEVOPS]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.CLINICAL_RESEARCH]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.AI_ML_TEAM]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.QC_TEAM]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.QUALITY_ANALYST_SOFTWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.QA_HARDWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.ENGINEERING_MAINTENANCE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.EMBEDDED_HARDWARE_FIRMWARE]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.REGULATORY_AFFAIRS]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.STORE_INVENTORY]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
     [roles.SALES_MARKETING]: {
         routes: UNIVERSAL_ROUTES,
-        redirect: '/dashboard',
+        redirect: '/admin/dashboard',
     },
 };
 

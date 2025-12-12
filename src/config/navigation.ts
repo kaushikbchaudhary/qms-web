@@ -35,11 +35,6 @@ export const navSections: NavSection[] = [
     title: "Workspace",
     items: [
       {
-        title: "Home",
-        href: "/",
-        icon: LayoutDashboard,
-      },
-      {
         title: "Complaints",
         href: "/dashboard/complaints",
         icon: ClipboardList,
