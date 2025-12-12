@@ -26,18 +26,14 @@ export function middleware(request: NextRequest) {
 
     // Allow public/auth routes when not authenticated
     if (!token || !user || typeof user.role === 'undefined') {
-        const hasRefreshArtifacts = Boolean(refreshToken?.value || sessionIdCookie?.value);
-        if (isPublicRoute) {
-            const response = NextResponse.next();
-            response.headers.set('x-middleware-cache', 'no-store');
-            return response;
-        }
-        if (hasRefreshArtifacts) {
-            const response = NextResponse.next();
-            response.headers.set('x-middleware-cache', 'no-store');
-            return response;
-        }
-        return NextResponse.redirect(new URL('/auth/login', request.url));
+        const response = isPublicRoute
+            ? NextResponse.next()
+            : NextResponse.redirect(new URL('/auth/login', request.url));
+        response.headers.set('x-middleware-cache', 'no-store');
+        response.cookies.delete('jwt_qms');
+        response.cookies.delete('jwt_qms_refresh');
+        response.cookies.delete('qms_session_id');
+        return response;
     }
 
     // Handle roles array (your token shows role as array)
@@ -47,7 +43,12 @@ export function middleware(request: NextRequest) {
         .filter((role: UserRole | undefined): role is UserRole => Boolean(role));
 
     if (normalizedRoles.length === 0) {
-        return NextResponse.redirect(new URL('/auth/login', request.url));
+        const loginUrl = new URL('/auth/login', request.url);
+        const response = NextResponse.redirect(loginUrl);
+        response.cookies.delete('jwt_qms');
+        response.cookies.delete('jwt_qms_refresh');
+        response.cookies.delete('qms_session_id');
+        return response;
     }
 
     const redirectPath = getRedirectPath(normalizedRoles);

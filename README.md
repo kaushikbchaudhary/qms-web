@@ -1,6 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Project setup (API + Web)
 
-## Getting Started
+### 1) Backend (qms-api)
+1. Copy env: `cp envfiles(FE&BE)/.env.api .env` and fill `MONGO_URI`, etc.
+2. Install deps: `cd qms-api && npm install`.
+3. Seed MRN configs (required before any new records): `npm run seed:mrn-configs`.
+4. Regenerate identifiers to the new MRN patterns:
+   - Fill blanks only: `npm run migrate:mrn-identifiers`
+   - Rewrite all using created dates: `npm run migrate:mrn-identifiers -- --force`
+     (if validation blocks on dirty data, temporarily fix offending records or skip validation in the script for that run).
+5. Seed baseline data as needed:
+   - Master data: `npm run seed:master`
+   - Super admin user: `npm run seed:superadmin`
+   - Test users (optional): `npm run seed:test-users`
+5. Start API: `npm run dev` (or `npm run start` after `npm run build`).
+
+### 2) Frontend (qms-web)
+1. Install deps: `npm install`.
+2. Copy env: `cp envfiles(FE&BE)/.env.web .env.local` (or similar) and set API base URL/ports.
+3. Run dev server: `npm run dev` (defaults to http://localhost:3005).
+4. Proxy (optional): `node proxy.js` if you need local API proxying.
+
+## Getting Started (web)
 
 First, run the development server:
 
