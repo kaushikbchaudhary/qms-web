@@ -519,6 +519,9 @@ export function ComplaintsTable() {
                 columnFilters={columnFilters}
                 onColumnFiltersChange={setColumnFilters}
                 showRowSelection
+                stickyHeader
+                stickyPagination
+                maxBodyHeightClass="max-h-[70vh]"
             />
         </div>
     )
