@@ -146,6 +146,18 @@ export interface DataTableProps<TData, TValue> {
      * Optional row className resolver
      */
     getRowClassName?: (row: TData, rowIndex: number) => string | undefined
+    /**
+     * Optional max height class for the scrollable table body (e.g., "max-h-[70vh]")
+     */
+    maxBodyHeightClass?: string
+    /**
+     * Stick the table header to the top of the scroll container
+     */
+    stickyHeader?: boolean
+    /**
+     * Stick the pagination controls to the bottom of the container
+     */
+    stickyPagination?: boolean
 }
 
 export default function CustomizableTable<TData, TValue>({
@@ -180,6 +192,9 @@ export default function CustomizableTable<TData, TValue>({
                                              },
                                              onRowClick,
                                              getRowClassName,
+                                             maxBodyHeightClass = "max-h-[65vh]",
+                                             stickyHeader = false,
+                                             stickyPagination = false,
                                          }: DataTableProps<TData, TValue>) {
     const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
         pageIndex: 0,
@@ -347,90 +362,88 @@ export default function CustomizableTable<TData, TValue>({
             </div>
 
             {/* Table */}
-            <div className="w-full overflow-hidden rounded-md border">
-                <div className="w-full overflow-x-auto">
+            <div className={`grid w-full overflow-hidden rounded-md border bg-card/60 ${maxBodyHeightClass} grid-rows-[1fr_auto]`}>
+                <div className="relative w-full overflow-auto">
                     {isLoading ? (
                         loadingComponent || defaultLoadingComponent
                     ) : (
-                <Table className="min-w-full">
-                    <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
-                                    const columnMeta = header.column.columnDef.meta as CustomColumnMeta | undefined;
-                                    const headClassName = columnMeta?.className ?? columnMeta?.actionClassName ?? "";
-
-                                    return (
-                                        <TableHead key={header.id} className={headClassName}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                        </TableHead>
-                                    );
-                                })}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-
-                    <TableBody>
-                        { error ? (
-                            errorComponent || defaultErrorComponent
-                        ) : table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => {
-                                const resolvedClassName = getRowClassName
-                                    ? getRowClassName(row.original, row.index) ?? ''
-                                    : '';
-                                const isClickable = Boolean(onRowClick) && !resolvedClassName.includes('cursor-not-allowed');
-                                const rowClasses = [
-                                    'transition-colors',
-                                    isClickable ? 'cursor-pointer hover:bg-muted/60' : '',
-                                    resolvedClassName,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' ');
-
-                                return (
-                                    <TableRow
-                                        key={row.id}
-                                        data-state={row.getIsSelected() && "selected"}
-                                        onClick={
-                                            onRowClick
-                                                ? () => onRowClick(row.original, row.index)
-                                                : undefined
-                                        }
-                                        className={rowClasses}
-                                    >
-                                        {row.getVisibleCells().map((cell) => {
-                                            const cellMeta = cell.column.columnDef.meta as CustomColumnMeta | undefined;
-                                            const cellClassName = cellMeta?.className ?? cellMeta?.actionClassName ?? "";
+                        <Table className="min-w-full">
+                            <TableHeader className={stickyHeader ? "sticky top-0 z-20 bg-background" : undefined}>
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id}>
+                                        {headerGroup.headers.map((header) => {
+                                            const columnMeta = header.column.columnDef.meta as CustomColumnMeta | undefined;
+                                            const headClassName = columnMeta?.className ?? columnMeta?.actionClassName ?? "";
 
                                             return (
-                                                <TableCell key={cell.id} className={cellClassName}>
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </TableCell>
+                                                <TableHead key={header.id} className={headClassName}>
+                                                    {header.isPlaceholder
+                                                        ? null
+                                                        : flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                </TableHead>
                                             );
                                         })}
                                     </TableRow>
-                                );
-                            })
-                        ) : (
-                            emptyStateComponent || defaultEmptyStateComponent
-                            )}
-                    </TableBody>
-                </Table>
+                                ))}
+                            </TableHeader>
+
+                            <TableBody>
+                                { error ? (
+                                    errorComponent || defaultErrorComponent
+                                ) : table.getRowModel().rows?.length ? (
+                                    table.getRowModel().rows.map((row) => {
+                                        const resolvedClassName = getRowClassName
+                                            ? getRowClassName(row.original, row.index) ?? ''
+                                            : '';
+                                        const isClickable = Boolean(onRowClick) && !resolvedClassName.includes('cursor-not-allowed');
+                                        const rowClasses = [
+                                            'transition-colors',
+                                            isClickable ? 'cursor-pointer hover:bg-muted/60' : '',
+                                            resolvedClassName,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ');
+
+                                        return (
+                                            <TableRow
+                                                key={row.id}
+                                                data-state={row.getIsSelected() && "selected"}
+                                                onClick={
+                                                    onRowClick
+                                                        ? () => onRowClick(row.original, row.index)
+                                                        : undefined
+                                                }
+                                                className={rowClasses}
+                                            >
+                                                {row.getVisibleCells().map((cell) => {
+                                                    const cellMeta = cell.column.columnDef.meta as CustomColumnMeta | undefined;
+                                                    const cellClassName = cellMeta?.className ?? cellMeta?.actionClassName ?? "";
+
+                                                    return (
+                                                        <TableCell key={cell.id} className={cellClassName}>
+                                                            {flexRender(
+                                                                cell.column.columnDef.cell,
+                                                                cell.getContext()
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })}
+                                            </TableRow>
+                                        );
+                                    })
+                                ) : (
+                                    emptyStateComponent || defaultEmptyStateComponent
+                                    )}
+                            </TableBody>
+                        </Table>
                     )}
                 </div>
-            </div>
-
-            {/* Pagination and row selection info */}
-            {showPagination && resolvedTotalItems !== 0 && (
-                <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                {/* Pagination and row selection info */}
+                {showPagination && resolvedTotalItems !== 0 && (
+                    <div className={`flex flex-col gap-3 border-t bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${stickyPagination ? "sticky bottom-0 z-30" : ""}`}>
                     <div className="text-sm text-muted-foreground">
                         {resolvedTotalItems === 0 ? (
                             'No records to display.'
@@ -504,7 +517,8 @@ export default function CustomizableTable<TData, TValue>({
                         </div>
                     </div>
                 </div>
-            )}
+                )}
+            </div>
         </div>
     )
 }

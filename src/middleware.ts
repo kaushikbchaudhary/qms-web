@@ -12,6 +12,9 @@ const PUBLIC_ROUTE_PREFIXES = ['/uploads'];
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     console.log('Middleware invoked for path:', pathname);
+    if (pathname === '/') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    }
     const isAuthRoute = AUTH_ROUTES.includes(pathname);
     const isPublicRoute =
         isAuthRoute ||
@@ -23,16 +26,15 @@ export function middleware(request: NextRequest) {
     const sessionIdCookie = request.cookies.get('qms_session_id');
     console.log('JWT Token:', token);
     const user: any = token ? verifyJwt(token.value) : null;
+    const hasRefreshArtifacts = Boolean(refreshToken?.value || sessionIdCookie?.value);
 
     // Allow public/auth routes when not authenticated
     if (!token || !user || typeof user.role === 'undefined') {
-        const response = isPublicRoute
-            ? NextResponse.next()
-            : NextResponse.redirect(new URL('/auth/login', request.url));
+        const response =
+            isPublicRoute || hasRefreshArtifacts
+                ? NextResponse.next()
+                : NextResponse.redirect(new URL('/auth/login', request.url));
         response.headers.set('x-middleware-cache', 'no-store');
-        response.cookies.delete('jwt_qms');
-        response.cookies.delete('jwt_qms_refresh');
-        response.cookies.delete('qms_session_id');
         return response;
     }
 
@@ -43,13 +45,8 @@ export function middleware(request: NextRequest) {
         .filter((role: UserRole | undefined): role is UserRole => Boolean(role));
 
     if (normalizedRoles.length === 0) {
-        const response = isAuthRoute || isPublicRoute
-            ? NextResponse.next()
-            : NextResponse.redirect(new URL('/auth/login', request.url));
-        response.cookies.delete('jwt_qms');
-        response.cookies.delete('jwt_qms_refresh');
-        response.cookies.delete('qms_session_id');
-        response.headers.set('x-middleware-cache', 'no-store');
+        const loginUrl = new URL('/auth/login', request.url);
+        const response = NextResponse.redirect(loginUrl);
         return response;
     }
 

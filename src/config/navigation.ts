@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogIn,
   LogOut as LogOutIcon,
+  ScanSearch,
   PackagePlus,
   PackageSearch,
   Settings,
@@ -34,22 +35,23 @@ export const navSections: NavSection[] = [
     title: "Workspace",
     items: [
       {
-        title: "Home",
-        href: "/",
-        icon: LayoutDashboard,
-      },
-      {
         title: "Complaints",
         href: "/dashboard/complaints",
         icon: ClipboardList,
         roles: allRoles,
       },
       {
-        title: "Device Requests",
+        title: "Device/Material Requests",
         href: "/dashboard/device-material-issues",
         icon: PackageSearch,
         roles: allRoles,
       },
+      // {
+      //   title: "Device Lifecycle",
+      //   href: "/dashboard/device-lifecycle",
+      //   icon: ScanSearch,
+      //   roles: allRoles,
+      // },
       {
         title: "CAPA Records",
         href: "/dashboard/capa",
@@ -94,6 +96,12 @@ export const navSections: NavSection[] = [
         icon: PackagePlus,
         roles: allRoles,
         hotkey: "D",
+      },
+      {
+        title: "Device Lifecycle Lookup",
+        href: "/dashboard/device-lifecycle",
+        icon: ScanSearch,
+        roles: allRoles,
       },
     ],
   },

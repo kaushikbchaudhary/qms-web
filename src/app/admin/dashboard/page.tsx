@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useComplaintStats } from '@/hooks/api/useComplaints'
 import {
@@ -35,6 +35,29 @@ const formatRoleList = (roleValue: any): string => {
 
 const valueOrZero = (value?: number) => (typeof value === 'number' ? value : 0)
 
+const useCountUp = (target: number, duration = 900) => {
+  const [value, setValue] = useState(0)
+  const startRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    startRef.current = null
+    setValue(0)
+    let frame: number
+    const step = (timestamp: number) => {
+      if (startRef.current === null) startRef.current = timestamp
+      const progress = Math.min((timestamp - startRef.current) / duration, 1)
+      setValue(Math.floor(progress * target))
+      if (progress < 1) {
+        frame = requestAnimationFrame(step)
+      }
+    }
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  }, [target, duration])
+
+  return value
+}
+
 export default function AdminDashboardPage() {
   const { data, isLoading, isError } = useComplaintStats()
   const router = useRouter()
@@ -45,6 +68,7 @@ export default function AdminDashboardPage() {
   const inProgress = valueOrZero(statusCounts['UNDER_INVESTIGATION'])
   const submitted = valueOrZero(statusCounts['SUBMITTED'])
   const resolved = valueOrZero(statusCounts['RESOLVED'])
+  const unassigned = valueOrZero(investigatorAssignmentSummary.unassigned)
 
   const statusDistribution = useMemo(() => {
     if (!totalComplaints || totalComplaints === 0) return []
@@ -54,6 +78,40 @@ export default function AdminDashboardPage() {
       percentage: Math.round((valueOrZero(count) / totalComplaints) * 100),
     }))
   }, [statusCounts, totalComplaints])
+
+  const totalAnimated = useCountUp(totalComplaints)
+  const awaitingAnimated = useCountUp(inProgress + submitted)
+  const resolvedAnimated = useCountUp(resolved)
+  const unassignedAnimated = useCountUp(unassigned)
+  const [barTrigger, setBarTrigger] = useState(false)
+  const [animatedStatusCounts, setAnimatedStatusCounts] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    setBarTrigger(false)
+    const t = setTimeout(() => setBarTrigger(true), 100)
+    return () => clearTimeout(t)
+  }, [statusCounts, totalComplaints])
+
+  useEffect(() => {
+    let frame: number
+    const start = performance.now()
+    const duration = 800
+
+    const step = (timestamp: number) => {
+      const progress = Math.min((timestamp - start) / duration, 1)
+      const next: Record<string, number> = {}
+      statusDistribution.forEach(({ status, count }) => {
+        next[status] = Math.round(count * progress)
+      })
+      setAnimatedStatusCounts(next)
+      if (progress < 1) {
+        frame = requestAnimationFrame(step)
+      }
+    }
+
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+  }, [statusDistribution])
 
   const timelineSummary = data?.timelineSummary ?? {
     investigation: { overdue: 0, dueSoon: 0, onTrack: 0 },
@@ -112,40 +170,40 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
+        <Card className="overflow-hidden transition duration-300 transform hover:scale-105 hover:shadow-xl">
           <CardHeader className="pb-2">
             <CardDescription>Total complaints</CardDescription>
-            <CardTitle className="text-3xl">{totalComplaints}</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{totalAnimated}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
             <ClipboardList className="h-4 w-4" /> Overall volume being tracked
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden transition duration-300 transform hover:scale-105 hover:shadow-xl">
           <CardHeader className="pb-2">
             <CardDescription>Awaiting investigation</CardDescription>
-            <CardTitle className="text-3xl">{inProgress + submitted}</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{awaitingAnimated}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
             <Target className="h-4 w-4" /> {inProgress} currently under investigation
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden transition duration-300 transform hover:scale-105 hover:shadow-xl">
           <CardHeader className="pb-2">
             <CardDescription>Resolved</CardDescription>
-            <CardTitle className="text-3xl">{resolved}</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{resolvedAnimated}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
             <Rocket className="h-4 w-4" /> Cases closed successfully
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden transition duration-300 transform hover:scale-105 hover:shadow-xl">
           <CardHeader className="pb-2">
             <CardDescription>Complaints without investigator</CardDescription>
-            <CardTitle className="text-3xl">{investigatorAssignmentSummary.unassigned}</CardTitle>
+            <CardTitle className="text-3xl tabular-nums">{unassignedAnimated}</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="h-4 w-4" /> Waiting for investigator assignment
@@ -167,10 +225,15 @@ export default function AdminDashboardPage() {
                 <div key={status} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="capitalize">{status.replace(/_/g, ' ').toLowerCase()}</span>
-                    <span className="font-medium">{count}</span>
+                    <span className="font-medium tabular-nums">
+                      {animatedStatusCounts[status] ?? 0}
+                    </span>
                   </div>
                   <div className="h-2 rounded-full bg-muted">
-                    <div className="h-2 rounded-full bg-primary" style={{ width: `${percentage}%` }} />
+                    <div
+                      className="h-2 rounded-full bg-primary transition-all duration-700 ease-out"
+                      style={{ width: barTrigger ? `${percentage}%` : '0%' }}
+                    />
                   </div>
                 </div>
               ))
