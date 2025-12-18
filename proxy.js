@@ -15,8 +15,8 @@ const options = {
 
 https
     .createServer(options, (req, res) => {
-        proxy.web(req, res, { target: 'http://localhost:3000' });
+        proxy.web(req, res, { target: 'http://localhost:3005' });
     })
-    .listen(3001, () => {
-        console.log('🔐 HTTPS Proxy running at https://0.0.0.0:3001');
+    .listen(3005, () => {
+        console.log('🔐 HTTPS Proxy running at https://0.0.0.0:3005');
     });
