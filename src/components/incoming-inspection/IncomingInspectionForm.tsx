@@ -17,9 +17,12 @@ import {
   UpdateIncomingInspectionPayload,
 } from '@/lib/api/types/incomingInspection';
 import { useCreateIncomingInspection, useUpdateIncomingInspection } from '@/hooks/api/useIncomingInspections';
+import { useUsersByRole } from '@/hooks/api/useUsers';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api/client';
+
+const Required = () => <span className="ml-0.5 text-destructive">*</span>;
 
 const formatBatchLot = (mpn?: string, dateStr?: string) => {
   if (!mpn || !dateStr) return '';
@@ -69,38 +72,42 @@ type MaterialMaster = {
 const inspectionSchema = z.object({
   component_type: z.enum(componentTypes),
   details: z.object({
-    material_name: z.string().trim().optional(),
-    batch_lot_no: z.string().trim().optional(),
-    inward_date: z.string().optional(),
-    inward_quantity: z.coerce.number().optional(),
-    mpn_no: z.string().trim().optional(),
-    material_master_id: z.string().trim().optional(),
-    material_category: z.string().trim().optional(),
+    material_name: z.string().trim().min(1, 'Material name is required'),
+    batch_lot_no: z.string().trim().min(1, 'Batch/Lot no. is required'),
+    inward_date: z.string().min(1, 'Inward date is required'),
+    inward_quantity: z.coerce.number(),
+    mpn_no: z.string().trim().min(1, 'MPN is required'),
+    material_master_id: z.string().trim().min(1, 'Material master is required'),
+    material_category: z.string().trim().min(1, 'Material category is required'),
   }),
   sampling: z.object({
-    total_sample_tested: z.coerce.number().optional(),
-    sample_number: z.string().trim().optional(),
+    total_sample_tested: z.coerce.number(),
+    sample_number: z.string().trim().min(1, 'Sample number is required'),
   }),
   inspection_checklist: z.array(
     z.object({
       sr_no: z.number(),
-      test_name: z.string(),
-      specification: z.string(),
-      observation: z.string().optional(),
-      result: z.enum(['PASS', 'FAIL']).optional(),
+      test_name: z.string().min(1, 'Test name is required'),
+      specification: z.string().min(1, 'Specification is required'),
+      observation: z.string().min(1, 'Observation is required'),
+      result: z.enum(['PASS', 'FAIL']),
     }),
-  ),
+  ).min(1, 'Inspection checklist is required'),
   release_decision: z.object({
-    overall_result: z.enum(['PASS', 'FAIL']).optional(),
-    released: z.boolean().optional(),
+    overall_result: z.enum(['PASS', 'FAIL']),
+    released: z.boolean(),
   }),
   tested_by: z.object({
-    name: z.string().trim().optional(),
-    signed_at: z.string().optional(),
+    user: z.string().trim().min(1, 'QC user is required'),
+    name: z.string().trim().min(1, 'QC name is required'),
+    signed_at: z.string().min(1, 'QC date is required'),
+    signature_path: z.string().trim().optional(),
   }),
   approved_by: z.object({
-    name: z.string().trim().optional(),
-    signed_at: z.string().optional(),
+    user: z.string().trim().min(1, 'QA user is required'),
+    name: z.string().trim().min(1, 'QA name is required'),
+    signed_at: z.string().min(1, 'QA date is required'),
+    signature_path: z.string().trim().optional(),
   }),
 });
 
@@ -117,6 +124,16 @@ type IncomingInspectionFormProps = {
 
 const buildDefaults = (values?: Partial<IncomingInspectionFormInputs>): IncomingInspectionFormInputs => {
   const componentType = values?.component_type ?? 'CONNECTOR';
+  const normalizeChecklist = (list?: IncomingInspectionFormInputs['inspection_checklist']) => {
+    const source = list && list.length ? list : DEFAULT_CHECKLISTS[componentType];
+    return source.map((row) => ({
+      sr_no: row.sr_no,
+      test_name: row.test_name,
+      specification: row.specification,
+      observation: row.observation ?? '',
+      result: (row.result as 'PASS' | 'FAIL' | undefined) ?? 'PASS',
+    }));
+  };
   return {
     component_type: componentType,
     details: {
@@ -133,20 +150,21 @@ const buildDefaults = (values?: Partial<IncomingInspectionFormInputs>): Incoming
       sample_number: values?.sampling?.sample_number ?? '',
     },
     release_decision: {
-      overall_result: values?.release_decision?.overall_result,
-      released: values?.release_decision?.released,
+      overall_result: values?.release_decision?.overall_result ?? 'PASS',
+      released: values?.release_decision?.released ?? false,
     },
-    inspection_checklist:
-      values?.inspection_checklist && values.inspection_checklist.length > 0
-        ? values.inspection_checklist
-        : DEFAULT_CHECKLISTS[componentType],
+    inspection_checklist: normalizeChecklist(values?.inspection_checklist),
     tested_by: {
+      user: values?.tested_by?.user ?? '',
       name: values?.tested_by?.name ?? '',
       signed_at: values?.tested_by?.signed_at ?? '',
+      signature_path: values?.tested_by?.signature_path ?? '',
     },
     approved_by: {
+      user: values?.approved_by?.user ?? '',
       name: values?.approved_by?.name ?? '',
       signed_at: values?.approved_by?.signed_at ?? '',
+      signature_path: values?.approved_by?.signature_path ?? '',
     },
   };
 };
@@ -164,6 +182,8 @@ export function IncomingInspectionForm({
   const router = useRouter();
   const [materials, setMaterials] = useState<MaterialMaster[]>([]);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('');
+  const qcUsersQuery = useUsersByRole(['qc-team']);
+  const qaUsersQuery = useUsersByRole(['quality-assurance']);
 
   const resolvedDefaults = useMemo<IncomingInspectionFormInputs>(() => buildDefaults(initialValues), [initialValues]);
 
@@ -233,7 +253,13 @@ export function IncomingInspectionForm({
 
   useEffect(() => {
     if (!selectedComponent) return;
-    const nextDefaults = DEFAULT_CHECKLISTS[selectedComponent];
+    const nextDefaults = DEFAULT_CHECKLISTS[selectedComponent].map((row) => ({
+      sr_no: row.sr_no,
+      test_name: row.test_name,
+      specification: row.specification,
+      observation: row.observation ?? '',
+      result: (row.result as 'PASS' | 'FAIL' | undefined) ?? 'PASS',
+    }));
     if (!isEditMode) {
       replace(nextDefaults);
     }
@@ -278,7 +304,9 @@ export function IncomingInspectionForm({
               name="component_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Component type</FormLabel>
+                  <FormLabel>
+                    Component type <Required />
+                  </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -301,7 +329,9 @@ export function IncomingInspectionForm({
 
           <div className="grid gap-4 md:grid-cols-2">
             <FormItem>
-              <FormLabel>Material master</FormLabel>
+              <FormLabel>
+                Material master <Required />
+              </FormLabel>
               <Select
                 onValueChange={(value) => {
                   setSelectedMaterialId(value);
@@ -334,7 +364,9 @@ export function IncomingInspectionForm({
               name="details.material_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Material name</FormLabel>
+                  <FormLabel>
+                    Material name <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Enter material name" {...field} />
                   </FormControl>
@@ -347,7 +379,9 @@ export function IncomingInspectionForm({
               name="details.batch_lot_no"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Batch/Lot no.</FormLabel>
+                  <FormLabel>
+                    Batch/Lot no. <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Enter batch or lot no." {...field} />
                   </FormControl>
@@ -360,7 +394,9 @@ export function IncomingInspectionForm({
               name="details.inward_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Inward date</FormLabel>
+                  <FormLabel>
+                    Inward date <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -373,7 +409,9 @@ export function IncomingInspectionForm({
               name="details.inward_quantity"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Inward quantity</FormLabel>
+                  <FormLabel>
+                    Inward quantity <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -400,7 +438,9 @@ export function IncomingInspectionForm({
               name="details.mpn_no"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>MPN no. (if applicable)</FormLabel>
+                  <FormLabel>
+                    MPN no. (if applicable) <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Enter MPN" {...field} />
                   </FormControl>
@@ -416,7 +456,9 @@ export function IncomingInspectionForm({
               name="sampling.total_sample_tested"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Total sample tested</FormLabel>
+                  <FormLabel>
+                    Total sample tested <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -443,7 +485,9 @@ export function IncomingInspectionForm({
               name="sampling.sample_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sample number</FormLabel>
+                  <FormLabel>
+                    Sample number <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input placeholder="Sample number" {...field} />
                   </FormControl>
@@ -465,8 +509,10 @@ export function IncomingInspectionForm({
                   control={form.control}
                   name={`inspection_checklist.${index}.observation`}
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observation</FormLabel>
+                <FormItem>
+                      <FormLabel>
+                        Observation <Required />
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="Observation" {...field} />
                       </FormControl>
@@ -478,8 +524,10 @@ export function IncomingInspectionForm({
                   control={form.control}
                   name={`inspection_checklist.${index}.result`}
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Result</FormLabel>
+                <FormItem>
+                      <FormLabel>
+                        Result <Required />
+                      </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl>
                           <SelectTrigger>
@@ -508,7 +556,9 @@ export function IncomingInspectionForm({
               name="release_decision.overall_result"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Overall result</FormLabel>
+                  <FormLabel>
+                    Overall result <Required />
+                  </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value ?? ''}>
                     <FormControl>
                       <SelectTrigger>
@@ -529,7 +579,9 @@ export function IncomingInspectionForm({
               name="release_decision.released"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Released for further use</FormLabel>
+                  <FormLabel>
+                    Released for further use <Required />
+                  </FormLabel>
                   <Select
                     onValueChange={(value) => field.onChange(value === 'true')}
                     value={field.value === undefined ? '' : String(field.value)}
@@ -553,13 +605,46 @@ export function IncomingInspectionForm({
           <div className="grid gap-4 md:grid-cols-2">
             <FormField
               control={form.control}
-              name="tested_by.name"
-              render={({ field }) => (
+              name="tested_by.user"
+              render={() => (
                 <FormItem>
-                  <FormLabel>Tested by (QC)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="QC name" {...field} />
-                  </FormControl>
+                  <FormLabel>
+                    Tested by (QC) <Required />
+                  </FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      const selected = qcUsersQuery.data?.find((u) => u._id === value);
+                      form.setValue('tested_by.user', selected?._id ?? '');
+                      form.setValue('tested_by.name', selected?.displayName ?? '');
+                      form.setValue('tested_by.signature_path', selected?.signature?.path ?? '');
+                      if (!form.getValues('tested_by.signed_at')) {
+                        form.setValue('tested_by.signed_at', new Date().toISOString().slice(0, 10));
+                      }
+                    }}
+                    value={
+                      form.watch('tested_by.user') ??
+                      (qcUsersQuery.data?.find((u) => u.displayName === form.watch('tested_by.name'))?._id ?? '')
+                    }
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                    <SelectValue placeholder="Select QC user" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {(qcUsersQuery.data ?? []).length === 0 ? (
+                        <SelectItem value="__no_qc__" disabled>
+                          No QC users
+                        </SelectItem>
+                      ) : (
+                        qcUsersQuery.data?.map((user) => (
+                          <SelectItem key={user._id} value={user._id}>
+                            {user.displayName}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -569,7 +654,9 @@ export function IncomingInspectionForm({
               name="tested_by.signed_at"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tested date</FormLabel>
+                  <FormLabel>
+                    Tested date <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -579,13 +666,46 @@ export function IncomingInspectionForm({
             />
             <FormField
               control={form.control}
-              name="approved_by.name"
-              render={({ field }) => (
+              name="approved_by.user"
+              render={() => (
                 <FormItem>
-                  <FormLabel>Approved by (QA)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="QA name" {...field} />
-                  </FormControl>
+                  <FormLabel>
+                    Approved by (QA) <Required />
+                  </FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      const selected = qaUsersQuery.data?.find((u) => u._id === value);
+                      form.setValue('approved_by.user', selected?._id ?? '');
+                      form.setValue('approved_by.name', selected?.displayName ?? '');
+                      form.setValue('approved_by.signature_path', selected?.signature?.path ?? '');
+                      if (!form.getValues('approved_by.signed_at')) {
+                        form.setValue('approved_by.signed_at', new Date().toISOString().slice(0, 10));
+                      }
+                    }}
+                    value={
+                      form.watch('approved_by.user') ??
+                      (qaUsersQuery.data?.find((u) => u.displayName === form.watch('approved_by.name'))?._id ?? '')
+                    }
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select QA user" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {(qaUsersQuery.data ?? []).length === 0 ? (
+                        <SelectItem value="__no_qa__" disabled>
+                          No QA users
+                        </SelectItem>
+                      ) : (
+                        qaUsersQuery.data?.map((user) => (
+                          <SelectItem key={user._id} value={user._id}>
+                            {user.displayName}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -595,7 +715,9 @@ export function IncomingInspectionForm({
               name="approved_by.signed_at"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Approved date</FormLabel>
+                  <FormLabel>
+                    Approved date <Required />
+                  </FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -633,6 +755,8 @@ export function IncomingInspectionForm({
         releaseDecision={form.watch('release_decision')}
         testedBy={form.watch('tested_by')}
         approvedBy={form.watch('approved_by')}
+        testedSignaturePath={form.watch('tested_by.signature_path')}
+        approvedSignaturePath={form.watch('approved_by.signature_path')}
       />
     </div>
   );

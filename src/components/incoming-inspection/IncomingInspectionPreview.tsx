@@ -2,6 +2,7 @@
 
 import { IncomingInspectionChecklistRow } from '@/lib/api/types/incomingInspection';
 import { COMPONENT_LABELS } from './constants';
+import { useEffect, useState } from 'react';
 
 type IncomingInspectionPreviewProps = {
   componentType: keyof typeof COMPONENT_LABELS;
@@ -23,6 +24,8 @@ type IncomingInspectionPreviewProps = {
   };
   testedBy?: { name?: string; signed_at?: string };
   approvedBy?: { name?: string; signed_at?: string };
+  testedSignaturePath?: string;
+  approvedSignaturePath?: string;
 };
 
 const formatDate = (value?: string) => {
@@ -44,7 +47,45 @@ export function IncomingInspectionPreview({
   releaseDecision,
   testedBy,
   approvedBy,
+  testedSignaturePath,
+  approvedSignaturePath,
 }: IncomingInspectionPreviewProps) {
+  const [qcSignatureSrc, setQcSignatureSrc] = useState<string | undefined>();
+  const [qaSignatureSrc, setQaSignatureSrc] = useState<string | undefined>();
+
+  useEffect(() => {
+    const resolveAndLoad = async (path: string | undefined, setter: (val?: string) => void) => {
+      if (!path) {
+        setter(undefined);
+        return;
+      }
+      const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
+      const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+      const url = base ? `${base}${normalizedPath}` : normalizedPath;
+      try {
+        const resp = await fetch(url, { credentials: 'include' });
+        if (!resp.ok) {
+          setter(undefined);
+          return;
+        }
+        const blob = await resp.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setter(objectUrl);
+      } catch {
+        setter(undefined);
+      }
+    };
+
+    resolveAndLoad(testedSignaturePath, setQcSignatureSrc);
+    resolveAndLoad(approvedSignaturePath, setQaSignatureSrc);
+
+    return () => {
+      if (qcSignatureSrc) URL.revokeObjectURL(qcSignatureSrc);
+      if (qaSignatureSrc) URL.revokeObjectURL(qaSignatureSrc);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [testedSignaturePath, approvedSignaturePath]);
+
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-6 text-xs">
       <div className="text-center font-semibold uppercase tracking-wider text-rose-600">Master Copy</div>
@@ -114,30 +155,34 @@ export function IncomingInspectionPreview({
       </table>
 
       <div className="mt-3 text-[11px]">
-        Based on the above results, the tested materials have
-        {releaseDecision?.overall_result === 'PASS'
-          ? ' passed'
-          : releaseDecision?.overall_result === 'FAIL'
-            ? ' failed'
-            : ' passed/failed'}{' '}
+        Based on the above results, the tested materials have{' '}
+        <span className={!releaseDecision || releaseDecision.overall_result === 'PASS' ? '' : 'line-through'}>
+          passed
+        </span>{' '}
+        /{' '}
+        <span className={!releaseDecision || releaseDecision.overall_result === 'FAIL' ? '' : 'line-through'}>
+          failed
+        </span>{' '}
         all tests and are{' '}
-        {releaseDecision?.released === true
-          ? 'released'
-          : releaseDecision?.released === false
-            ? 'not released'
-            : 'released/not released'}{' '}
+        <span className={!releaseDecision || releaseDecision.released === true ? '' : 'line-through'}>
+          released
+        </span>{' '}
+        /{' '}
+        <span className={!releaseDecision || releaseDecision.released === false ? '' : 'line-through'}>
+          not released
+        </span>{' '}
         for further use.
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 border text-[11px]">
-        <div className="border-r p-2">
+        <div className="border-r p-2 text-center">
           <div className="font-semibold">Tested By (QC) Sign & Date</div>
-          <div>{testedBy?.name ?? ''}</div>
+          {qcSignatureSrc ? <img src={qcSignatureSrc} alt="QC signature" className="mt-1 max-h-12 mx-auto" /> : null}
           <div>{formatDate(testedBy?.signed_at)}</div>
         </div>
-        <div className="p-2">
+        <div className="p-2 text-center">
           <div className="font-semibold">Approved By (QA) Sign & Date</div>
-          <div>{approvedBy?.name ?? ''}</div>
+          {qaSignatureSrc ? <img src={qaSignatureSrc} alt="QA signature" className="mt-1 max-h-12 mx-auto" /> : null}
           <div>{formatDate(approvedBy?.signed_at)}</div>
         </div>
       </div>

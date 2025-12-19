@@ -46,12 +46,16 @@ export interface IncomingInspection {
     released?: boolean;
   };
   tested_by?: {
+    user?: string;
     name?: string;
     signed_at?: string;
+    signature_path?: string;
   };
   approved_by?: {
+    user?: string;
     name?: string;
     signed_at?: string;
+    signature_path?: string;
   };
   status?: 'DRAFT' | 'FINALIZED';
   created_at?: string;
