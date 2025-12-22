@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Download, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,8 @@ export function IncomingInspectionTable() {
     dateFrom: '',
     dateTo: '',
   });
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const queryParams = useMemo<IncomingInspectionQueryParams>(() => {
     const fieldFilters: IncomingInspectionQueryParams['filters'] = [];
@@ -95,15 +97,21 @@ export function IncomingInspectionTable() {
     }
 
     return {
-      page_index: 1,
-      page_size: 20,
+      page_index: pageIndex,
+      page_size: pageSize,
       sort_by: 'updated_at',
       sort_order: -1,
       ...(fieldFilters.length ? { filters: fieldFilters } : {}),
     };
-  }, [filters]);
+  }, [filters, pageIndex, pageSize]);
 
   const { data, isLoading } = useIncomingInspectionList(queryParams);
+  const totalCount = data?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  useEffect(() => {
+    setPageIndex(1);
+  }, [filters, pageSize]);
 
   const handleDownload = useCallback(async (id: string) => {
     try {
@@ -218,70 +226,117 @@ export function IncomingInspectionTable() {
           </div>
         </div>
       </div>
-      <table className="w-full text-sm">
-        <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
-          <tr>
-            <th className="px-4 py-3 text-left">Form</th>
-            <th className="px-4 py-3 text-left">Primary component</th>
-            <th className="px-4 py-3 text-left">Material</th>
-            <th className="px-4 py-3 text-left">Batch/Lot</th>
-            <th className="px-4 py-3 text-left">Inward date</th>
-            <th className="px-4 py-3 text-left">Components</th>
-            <th className="px-4 py-3 text-left">Status</th>
-            <th className="px-4 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.list.map((record) => {
-            const primary = record.components?.[0];
-            const label = primary?.component_type ? COMPONENT_LABELS[primary.component_type] : '—';
-            const details = primary?.details;
-            const status = record.status ?? 'DRAFT';
-            const badgeStyle =
-              status === 'FINALIZED'
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-amber-50 text-amber-700';
-            return (
-              <tr key={record._id} className="border-t">
-                <td className="px-4 py-3 font-medium">{record.form_number ?? '—'}</td>
-                <td className="px-4 py-3">
-                  <Link
-                    className="font-medium text-primary hover:underline"
-                    href={`/dashboard/incoming-inspections/${record._id}`}
-                  >
-                    {label}
-                  </Link>
-                </td>
-                <td className="px-4 py-3">{details?.material_name ?? '—'}</td>
-                <td className="px-4 py-3">{details?.batch_lot_no ?? '—'}</td>
-                <td className="px-4 py-3">
-                  {details?.inward_date ? new Date(details.inward_date).toLocaleDateString() : '—'}
-                </td>
-                <td className="px-4 py-3">{record.components?.length ?? 0}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${badgeStyle}`}>
-                    {status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/dashboard/incoming-inspections/${record._id}`}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Update
-                      </Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDownload(record._id)}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="max-h-[520px] overflow-auto">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3 text-left">Form</th>
+              <th className="px-4 py-3 text-left">Primary component</th>
+              <th className="px-4 py-3 text-left">Material</th>
+              <th className="px-4 py-3 text-left">Batch/Lot</th>
+              <th className="px-4 py-3 text-left">Inward date</th>
+              <th className="px-4 py-3 text-left">Components</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.list.map((record) => {
+              const primary = record.components?.[0];
+              const label = primary?.component_type ? COMPONENT_LABELS[primary.component_type] : '—';
+              const details = primary?.details;
+              const status = record.status ?? 'DRAFT';
+              const badgeStyle =
+                status === 'FINALIZED'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-amber-50 text-amber-700';
+              return (
+                <tr key={record._id} className="border-t">
+                  <td className="px-4 py-3 font-medium">{record.form_number ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      className="font-medium text-primary hover:underline"
+                      href={`/dashboard/incoming-inspections/${record._id}`}
+                    >
+                      {label}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">{details?.material_name ?? '—'}</td>
+                  <td className="px-4 py-3">{details?.batch_lot_no ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    {details?.inward_date ? new Date(details.inward_date).toLocaleDateString() : '—'}
+                  </td>
+                  <td className="px-4 py-3">{record.components?.length ?? 0}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${badgeStyle}`}>
+                      {status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/incoming-inspections/${record._id}`}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Update
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDownload(record._id)}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/10 px-4 py-3 text-sm">
+        <div className="text-xs text-muted-foreground">
+          Page {pageIndex} of {totalPages}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Rows</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(value) => setPageSize(Number(value))}
+            >
+              <SelectTrigger className="h-8 w-[90px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 30, 50].map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pageIndex <= 1}
+              onClick={() => setPageIndex((prev) => Math.max(1, prev - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pageIndex >= totalPages}
+              onClick={() => setPageIndex((prev) => Math.min(totalPages, prev + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
