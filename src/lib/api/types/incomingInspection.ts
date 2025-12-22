@@ -23,40 +23,39 @@ export interface IncomingInspectionChecklistRow {
 export interface IncomingInspection {
   _id: string;
   form_number?: string;
-  document_number?: string;
-  revision_number?: string;
-  effective_date?: string;
-  component_type: IncomingInspectionComponentType;
-  details?: {
-    material_name?: string;
-    batch_lot_no?: string;
-    inward_date?: string;
-    inward_quantity?: number;
-    mpn_no?: string;
-    material_master_id?: string;
-    material_category?: string;
-  };
-  sampling?: {
-    total_sample_tested?: number;
-    sample_number?: string;
-  };
-  inspection_checklist?: IncomingInspectionChecklistRow[];
-  release_decision?: {
-    overall_result?: IncomingInspectionResult;
-    released?: boolean;
-  };
-  tested_by?: {
-    user?: string;
-    name?: string;
-    signed_at?: string;
-    signature_path?: string;
-  };
-  approved_by?: {
-    user?: string;
-    name?: string;
-    signed_at?: string;
-    signature_path?: string;
-  };
+  components: Array<{
+    component_type: IncomingInspectionComponentType;
+    details?: {
+      material_name?: string;
+      batch_lot_no?: string;
+      inward_date?: string;
+      inward_quantity?: number;
+      mpn_no?: string;
+      material_master_id?: string;
+      material_category?: string;
+    };
+    sampling?: {
+      total_sample_tested?: number;
+      sample_number?: string;
+    };
+    inspection_checklist?: IncomingInspectionChecklistRow[];
+    release_decision?: {
+      overall_result?: IncomingInspectionResult;
+      released?: boolean;
+    };
+    tested_by?: {
+      user?: string;
+      name?: string;
+      signed_at?: string;
+      signature_path?: string;
+    };
+    approved_by?: {
+      user?: string;
+      name?: string;
+      signed_at?: string;
+      signature_path?: string;
+    };
+  }>;
   status?: 'DRAFT' | 'FINALIZED';
   created_at?: string;
   updated_at?: string;
@@ -85,16 +84,7 @@ export interface IncomingInspectionListResponse {
 }
 
 export interface CreateIncomingInspectionPayload {
-  component_type: IncomingInspectionComponentType;
-  document_number?: string;
-  revision_number?: string;
-  effective_date?: string;
-  details?: IncomingInspection['details'];
-  sampling?: IncomingInspection['sampling'];
-  inspection_checklist?: IncomingInspectionChecklistRow[];
-  release_decision?: IncomingInspection['release_decision'];
-  tested_by?: IncomingInspection['tested_by'];
-  approved_by?: IncomingInspection['approved_by'];
+  components: IncomingInspection['components'];
   status?: 'DRAFT' | 'FINALIZED';
   custom_fields?: Record<string, unknown>;
 }

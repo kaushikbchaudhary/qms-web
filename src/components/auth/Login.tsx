@@ -419,10 +419,6 @@ const LoginCard = ({
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Default credentials for new accounts use{" "}
-                    <span className="font-semibold tracking-widest">000000</span>.
-                  </p>
                   <div className="text-right text-xs">
                     <Link href="/auth/forgot-password" className="text-primary hover:underline">
                       Forgot password?

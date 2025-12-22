@@ -59,25 +59,35 @@ export function IncomingInspectionTable() {
           </tr>
         </thead>
         <tbody>
-          {data.list.map((record) => (
-            <tr key={record._id} className="border-t">
-              <td className="px-4 py-3">
-                <Link className="font-medium text-primary hover:underline" href={`/dashboard/incoming-inspections/${record._id}`}>
-                  {COMPONENT_LABELS[record.component_type]}
-                </Link>
-              </td>
-              <td className="px-4 py-3">{record.details?.material_name ?? '—'}</td>
-              <td className="px-4 py-3">{record.details?.batch_lot_no ?? '—'}</td>
-              <td className="px-4 py-3">{record.details?.inward_date ? new Date(record.details.inward_date).toLocaleDateString() : '—'}</td>
-              <td className="px-4 py-3">{record.status ?? 'DRAFT'}</td>
-              <td className="px-4 py-3 text-right">
-                <Button variant="ghost" size="sm" onClick={() => handleDownload(record._id)}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-              </td>
-            </tr>
-          ))}
+          {data.list.map((record) => {
+            const primary = record.components?.[0];
+            const label = primary?.component_type ? COMPONENT_LABELS[primary.component_type] : '—';
+            const details = primary?.details;
+            return (
+              <tr key={record._id} className="border-t">
+                <td className="px-4 py-3">
+                  <Link
+                    className="font-medium text-primary hover:underline"
+                    href={`/dashboard/incoming-inspections/${record._id}`}
+                  >
+                    {label}
+                  </Link>
+                </td>
+                <td className="px-4 py-3">{details?.material_name ?? '—'}</td>
+                <td className="px-4 py-3">{details?.batch_lot_no ?? '—'}</td>
+                <td className="px-4 py-3">
+                  {details?.inward_date ? new Date(details.inward_date).toLocaleDateString() : '—'}
+                </td>
+                <td className="px-4 py-3">{record.status ?? 'DRAFT'}</td>
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="sm" onClick={() => handleDownload(record._id)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

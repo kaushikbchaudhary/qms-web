@@ -42,43 +42,47 @@ export default function IncomingInspectionDetailPage() {
   }
 
   const initialValues: Partial<IncomingInspectionFormInputs> = {
-    component_type: data.component_type as any,
-    details: {
-      material_name: data.details?.material_name ?? '',
-      batch_lot_no: data.details?.batch_lot_no ?? '',
-      inward_date: data.details?.inward_date ?? '',
-      inward_quantity: data.details?.inward_quantity ?? undefined,
-      mpn_no: data.details?.mpn_no ?? '',
-      material_master_id: data.details?.material_master_id ?? '',
-      material_category: data.details?.material_category ?? '',
-    },
-    sampling: {
-      total_sample_tested: data.sampling?.total_sample_tested ?? undefined,
-      sample_number: data.sampling?.sample_number ?? '',
-    },
-    inspection_checklist: (data.inspection_checklist ?? []).map((row) => ({
-      sr_no: row.sr_no,
-      test_name: row.test_name ?? '',
-      specification: row.specification ?? '',
-      observation: row.observation ?? '',
-      result: (row.result as 'PASS' | 'FAIL' | undefined) ?? 'PASS',
-    })),
-    release_decision: {
-      overall_result: (data.release_decision?.overall_result as 'PASS' | 'FAIL' | undefined) ?? 'PASS',
-      released: data.release_decision?.released ?? false,
-    },
-    tested_by: {
-      user: (data as any).tested_by?.user ?? '',
-      name: (data as any).tested_by?.name ?? '',
-      signed_at: (data as any).tested_by?.signed_at ?? '',
-      signature_path: (data as any).tested_by?.signature_path ?? '',
-    },
-    approved_by: {
-      user: (data as any).approved_by?.user ?? '',
-      name: (data as any).approved_by?.name ?? '',
-      signed_at: (data as any).approved_by?.signed_at ?? '',
-      signature_path: (data as any).approved_by?.signature_path ?? '',
-    },
+    components:
+      data.components?.map((comp) => ({
+        component_type: comp.component_type as any,
+        details: {
+          material_name: comp.details?.material_name ?? '',
+          batch_lot_no: comp.details?.batch_lot_no ?? '',
+          inward_date: comp.details?.inward_date ?? '',
+          inward_quantity: comp.details?.inward_quantity ?? undefined,
+          mpn_no: comp.details?.mpn_no ?? '',
+          material_master_id: comp.details?.material_master_id ?? '',
+          material_category: comp.details?.material_category ?? '',
+        },
+        sampling: {
+          total_sample_tested: comp.sampling?.total_sample_tested ?? undefined,
+          sample_number: comp.sampling?.sample_number ?? '',
+        },
+        inspection_checklist: (comp.inspection_checklist ?? []).map((row) => ({
+          sr_no: row.sr_no,
+          test_name: row.test_name ?? '',
+          specification: row.specification ?? '',
+          observation: row.observation ?? '',
+          result: (row.result as 'PASS' | 'FAIL' | undefined) ?? 'PASS',
+        })),
+        release_decision: {
+          overall_result: (comp.release_decision?.overall_result as 'PASS' | 'FAIL' | undefined) ?? 'PASS',
+          released: comp.release_decision?.released ?? false,
+        },
+        tested_by: {
+          user: (comp as any).tested_by?.user ?? '',
+          name: (comp as any).tested_by?.name ?? '',
+          signed_at: (comp as any).tested_by?.signed_at ?? '',
+          signature_path: (comp as any).tested_by?.signature_path ?? '',
+        },
+        approved_by: {
+          user: (comp as any).approved_by?.user ?? '',
+          name: (comp as any).approved_by?.name ?? '',
+          signed_at: (comp as any).approved_by?.signed_at ?? '',
+          signature_path: (comp as any).approved_by?.signature_path ?? '',
+        },
+      })) ?? [],
+    status: data.status,
   };
 
   return (
