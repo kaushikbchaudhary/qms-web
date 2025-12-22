@@ -19,10 +19,9 @@ import {
 import { useCreateIncomingInspection, useUpdateIncomingInspection } from '@/hooks/api/useIncomingInspections';
 import { useUsersByRole } from '@/hooks/api/useUsers';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import { apiClient } from '@/lib/api/client';
+import { toast } from 'sonner';
 
-const Required = () => <span className="ml-0.5 text-destructive">*</span>;
 
 const COMPONENT_ORDER: IncomingInspectionComponentType[] = [
   'CONNECTOR',
@@ -63,36 +62,36 @@ const checklistSchema = z.object({
   sr_no: z.number(),
   test_name: z.string().min(1),
   specification: z.string().min(1),
-  observation: z.string().min(1),
-  result: z.enum(['PASS', 'FAIL']),
+  observation: z.string().optional(),
+  result: z.enum(['PASS', 'FAIL']).optional(),
 });
 
 const signatureSchema = z.object({
-  user: z.string().trim().min(1),
-  name: z.string().trim().min(1),
-  signed_at: z.string().min(1),
+  user: z.string().trim().optional(),
+  name: z.string().trim().optional(),
+  signed_at: z.string().optional(),
   signature_path: z.string().trim().optional(),
 });
 
 const componentSchema = z.object({
   component_type: z.enum(COMPONENT_ORDER),
   details: z.object({
-    material_name: z.string().trim().min(1),
-    batch_lot_no: z.string().trim().min(1),
-    inward_date: z.string().min(1),
-    inward_quantity: z.coerce.number(),
-    mpn_no: z.string().trim().min(1),
-    material_master_id: z.string().trim().min(1),
-    material_category: z.string().trim().min(1),
+    material_name: z.string().trim().optional(),
+    batch_lot_no: z.string().trim().optional(),
+    inward_date: z.string().optional(),
+    inward_quantity: z.coerce.number().optional(),
+    mpn_no: z.string().trim().optional(),
+    material_master_id: z.string().trim().optional(),
+    material_category: z.string().trim().optional(),
   }),
   sampling: z.object({
-    total_sample_tested: z.coerce.number(),
-    sample_number: z.string().trim().min(1),
+    total_sample_tested: z.coerce.number().optional(),
+    sample_number: z.string().trim().optional(),
   }),
-  inspection_checklist: z.array(checklistSchema).min(1),
+  inspection_checklist: z.array(checklistSchema).optional(),
   release_decision: z.object({
-    overall_result: z.enum(['PASS', 'FAIL']),
-    released: z.boolean(),
+    overall_result: z.enum(['PASS', 'FAIL']).optional(),
+    released: z.boolean().optional(),
   }),
   tested_by: signatureSchema,
   approved_by: signatureSchema,
@@ -219,6 +218,7 @@ export function IncomingInspectionForm({
     replaceComponents(resolvedDefaults.components);
   }, [form, resolvedDefaults, replaceComponents]);
 
+
   // Material master lookup
   useEffect(() => {
     let isActive = true;
@@ -277,6 +277,7 @@ export function IncomingInspectionForm({
     return () => subscription.unsubscribe();
   }, [form, currentStep]);
 
+
   const handleSubmit = async (values: IncomingInspectionFormInputs) => {
     const parsed = inspectionSchema.parse(values);
     const payload: CreateIncomingInspectionPayload = parsed;
@@ -315,6 +316,7 @@ export function IncomingInspectionForm({
           form.getValues(`components.${idx}.release_decision.overall_result`) &&
             form.getValues(`components.${idx}.release_decision.released`) !== undefined,
         );
+        const hasErrors = Boolean(form.formState.errors?.components?.[idx]);
         return (
           <Button
             key={type}
@@ -323,7 +325,7 @@ export function IncomingInspectionForm({
             onClick={() => setCurrentStep(idx)}
             size="sm"
           >
-            {idx + 1}. {COMPONENT_LABELS[type]} {completed ? '✔' : ''}
+            {idx + 1}. {COMPONENT_LABELS[type]} {completed ? '✔' : hasErrors ? '⚠' : ''}
           </Button>
         );
       })}
@@ -342,7 +344,7 @@ export function IncomingInspectionForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Component type <Required />
+                    Component type
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
@@ -370,7 +372,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Material name <Required />
+                      Material name
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="Enter material name" {...field} />
@@ -385,7 +387,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Batch/Lot no. <Required />
+                      Batch/Lot no.
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="Enter batch or lot no." {...field} />
@@ -400,7 +402,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Inward date <Required />
+                      Inward date
                     </FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
@@ -415,7 +417,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Inward quantity <Required />
+                      Inward quantity
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -444,7 +446,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      MPN no. (if applicable) <Required />
+                      MPN no. (if applicable)
                     </FormLabel>
                     <div className="grid gap-2">
                       <FormControl>
@@ -500,7 +502,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Total sample tested <Required />
+                      Total sample tested
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -529,7 +531,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Sample number <Required />
+                      Sample number
                     </FormLabel>
                     <FormControl>
                       <Input placeholder="Sample number" {...field} />
@@ -555,7 +557,7 @@ export function IncomingInspectionForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Observation <Required />
+                          Observation
                         </FormLabel>
                         <FormControl>
                           <Input placeholder="Observation" {...field} />
@@ -570,7 +572,7 @@ export function IncomingInspectionForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          Result <Required />
+                          Result
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value ?? ''}>
                           <FormControl>
@@ -601,7 +603,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Overall result <Required />
+                      Overall result
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value ?? ''}>
                       <FormControl>
@@ -624,7 +626,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Released for further use <Required />
+                      Released for further use
                     </FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(value === 'true')}
@@ -653,7 +655,7 @@ export function IncomingInspectionForm({
                 render={() => (
                   <FormItem>
                     <FormLabel>
-                      Tested by (QC) <Required />
+                      Tested by (QC)
                     </FormLabel>
                     <Select
                       onValueChange={(value) => {
@@ -706,7 +708,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Tested date <Required />
+                      Tested date
                     </FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
@@ -721,7 +723,7 @@ export function IncomingInspectionForm({
                 render={() => (
                   <FormItem>
                     <FormLabel>
-                      Approved by (QA) <Required />
+                      Approved by (QA)
                     </FormLabel>
                     <Select
                       onValueChange={(value) => {
@@ -774,7 +776,7 @@ export function IncomingInspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Approved date <Required />
+                      Approved date
                     </FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
