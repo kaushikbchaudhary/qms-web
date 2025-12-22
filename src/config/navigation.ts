@@ -50,7 +50,7 @@ export const navSections: NavSection[] = [
         title: "Incoming Inspections",
         href: "/dashboard/incoming-inspections",
         icon: ScanSearch,
-        roles: allRoles,
+        roles: [roles.QA, roles.QC_TEAM, roles.SUPER_ADMIN],
       },
       // {
       //   title: "Device Lifecycle",
@@ -107,7 +107,7 @@ export const navSections: NavSection[] = [
         title: "New Incoming Inspection",
         href: "/dashboard/incoming-inspections/new",
         icon: ClipboardPlus,
-        roles: allRoles,
+        roles: [roles.QA, roles.QC_TEAM],
       },
       {
         title: "Device Lifecycle Lookup",

@@ -67,6 +67,9 @@ const UNIVERSAL_ROUTES = [
     '/dashboard/capa/new',
     '/dashboard/nc',
     '/dashboard/nc/new',
+];
+
+const INCOMING_INSPECTION_ROUTES = [
     '/dashboard/incoming-inspections',
     '/dashboard/incoming-inspections/new',
     '/dashboard/incoming-inspections/[id]',
@@ -74,7 +77,7 @@ const UNIVERSAL_ROUTES = [
 
 export const ROLE_ACCESS = {
     [roles.SUPER_ADMIN]: {
-        routes: [...UNIVERSAL_ROUTES, ...MANAGE_USER_ROUTES, ...SITE_CONFIGURATION_ROUTES],
+        routes: [...UNIVERSAL_ROUTES, ...MANAGE_USER_ROUTES, ...SITE_CONFIGURATION_ROUTES, ...INCOMING_INSPECTION_ROUTES],
         redirect: '/admin/dashboard',
     },
     [roles.SUPPORT]: {
@@ -82,7 +85,7 @@ export const ROLE_ACCESS = {
         redirect: '/admin/dashboard',
     },
     [roles.QA]: {
-        routes: UNIVERSAL_ROUTES,
+        routes: [...UNIVERSAL_ROUTES, ...INCOMING_INSPECTION_ROUTES],
         redirect: '/admin/dashboard',
     },
     [roles.PRODUCTION]: {
@@ -110,7 +113,7 @@ export const ROLE_ACCESS = {
         redirect: '/admin/dashboard',
     },
     [roles.QC_TEAM]: {
-        routes: UNIVERSAL_ROUTES,
+        routes: [...UNIVERSAL_ROUTES, ...INCOMING_INSPECTION_ROUTES],
         redirect: '/admin/dashboard',
     },
     [roles.QUALITY_ANALYST_SOFTWARE]: {
