@@ -38,6 +38,7 @@ import { useRequestOtp, useVerifyOtp, usePasswordLogin } from "@/hooks/api/useAu
 import { usePublicSiteConfig } from "@/hooks/api/useSiteConfig";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
+import appPackage from "../../../package.json";
 
 type OTPVerificationProps = {
   contactInfo: string;
@@ -419,10 +420,6 @@ const LoginCard = ({
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Default credentials for new accounts use{" "}
-                    <span className="font-semibold tracking-widest">000000</span>.
-                  </p>
                   <div className="text-right text-xs">
                     <Link href="/auth/forgot-password" className="text-primary hover:underline">
                       Forgot password?
@@ -706,6 +703,7 @@ export default function LoginPage() {
   };
 
   const contactInfo = otpContactInfo || "your contact";
+  const appVersion = appPackage.version;
 
   if (isSiteConfigLoading) {
     return (
@@ -745,6 +743,9 @@ export default function LoginPage() {
               <div className="h-px flex-1 bg-border" />
               <span className="whitespace-nowrap">Quality and compliance program in progress</span>
               <div className="h-px flex-1 bg-border" />
+            </div>
+            <div className="text-center text-[11px] text-muted-foreground">
+              Version v{appVersion}
             </div>
           </div>
         </div>

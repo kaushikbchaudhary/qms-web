@@ -74,14 +74,19 @@ const AttachmentViewer = ({ attachments }: { attachments: (string | null)[] }) =
         setZoom(1);
     };
 
+    // Track created object URLs so we can revoke them safely on unmount without breaking cached previews
+    const [trackedUrls] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        if (attachmentData?.url) {
+            trackedUrls.add(attachmentData.url);
+        }
+    }, [attachmentData, trackedUrls]);
     useEffect(() => {
         return () => {
-            // Clean up object URLs when component unmounts
-            if (attachmentData?.url) {
-                URL.revokeObjectURL(attachmentData.url);
-            }
+            trackedUrls.forEach((url) => URL.revokeObjectURL(url));
+            trackedUrls.clear();
         };
-    }, [attachmentData]);
+    }, [trackedUrls]);
     if (validAttachments.length === 0) {
         return <span className="text-muted-foreground">None</span>;
     }

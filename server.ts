@@ -8,7 +8,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3005;
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
