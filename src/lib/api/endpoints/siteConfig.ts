@@ -1,6 +1,7 @@
 import { apiClient } from '../client';
 import { SiteConfig, SiteConfigUpdatePayload } from '@/lib/api/types/siteConfig';
 
+/** REST client for site configuration endpoints. */
 export const siteConfigApi = {
     getPublicConfig: async (): Promise<{
         success: boolean;

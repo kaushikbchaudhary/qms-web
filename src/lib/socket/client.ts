@@ -16,6 +16,7 @@ const resolveBaseUrl = () => {
     return configured || window.location.origin;
 };
 
+/** Initialize or reuse the Socket.io client with an auth token. */
 export const initializeSocket = (options: InitializeSocketOptions = {}) => {
     const baseUrl = resolveBaseUrl();
 
@@ -59,8 +60,10 @@ export const initializeSocket = (options: InitializeSocketOptions = {}) => {
     return socketInstance;
 };
 
+/** Get the current Socket.io client instance. */
 export const getSocket = () => socketInstance;
 
+/** Disconnect and clear the Socket.io client instance. */
 export const disconnectSocket = () => {
     if (!socketInstance) return;
 

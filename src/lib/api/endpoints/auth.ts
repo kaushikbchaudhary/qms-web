@@ -8,6 +8,7 @@ import {
     SessionSummary
 } from "@/lib/api/types/authTypes";
 
+/** REST client for authentication and session endpoints. */
 export const authApi = {
     otpRequest: (data: AuthPayload):Promise<AuthResponse> =>
         apiClient.post('api/v1/auth/otp/request', data),

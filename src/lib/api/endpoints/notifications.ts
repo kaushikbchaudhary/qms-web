@@ -38,6 +38,7 @@ export interface NotificationItem {
   isResolved?: boolean;
 }
 
+/** REST client for notifications. */
 export const notificationsApi = {
   getNotifications: (params?: { status?: 'all' | 'unread'; limit?: number; scope?: 'all' | 'active' }) =>
     apiClient.get<NotificationItem[]>('/api/v1/notifications', { params }).then(res => res.data),

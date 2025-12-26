@@ -14,6 +14,7 @@ const extractData = <T>(response: any): T => {
   return response as T;
 };
 
+/** REST client for CAPA records. */
 export const capaApi = {
   create: (payload: CreateCapaPayload) =>
     apiClient.post('api/v1/capa', payload).then((response) => extractData<CreateCapaResponse>(response)),

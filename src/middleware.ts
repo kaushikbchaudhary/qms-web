@@ -9,6 +9,7 @@ const AUTH_ROUTES = ['/auth/login', '/auth/forgot-password', '/auth/reset-passwo
 const PUBLIC_ROUTES = ['/register', '/about'];
 const PUBLIC_ROUTE_PREFIXES = ['/uploads'];
 
+/** Gate routes based on auth cookie and role-based access. */
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     console.log('Middleware invoked for path:', pathname);

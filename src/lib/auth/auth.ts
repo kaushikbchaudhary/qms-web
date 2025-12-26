@@ -1,5 +1,6 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
+/** Decode JWT without verification and reject expired tokens for middleware gating. */
 export function verifyJwt(token: string) {
     try {
         const decoded = jwt.decode(token) as JwtPayload | string | null;

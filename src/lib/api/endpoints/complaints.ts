@@ -5,6 +5,7 @@ import {
     CreateComplaintPayload, MasterLookupItem,
 } from "@/lib/api/types/complaints";
 
+/** REST client for complaint workflows. */
 export const complaintsApi = {
     createComplaint: (data: CreateComplaintPayload):Promise<ComplaintCreateResponse> =>
         apiClient.post<ComplaintCreateResponse>('api/v1/complaint', data).then(response => response.data),

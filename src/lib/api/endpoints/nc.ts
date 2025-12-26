@@ -8,6 +8,7 @@ const extractData = <T>(response: any): T => {
   return response as T;
 };
 
+/** REST client for NC records. */
 export const ncApi = {
   create: (payload: CreateNcPayload) =>
     apiClient.post('api/v1/nc', payload).then((response) => extractData<CreateNcResponse>(response)),

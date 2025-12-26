@@ -14,6 +14,7 @@ const extractData = <T>(response: any): T => {
   return response as T;
 };
 
+/** REST client for incoming inspection workflows. */
 export const incomingInspectionsApi = {
   create: (payload: CreateIncomingInspectionPayload) =>
     apiClient

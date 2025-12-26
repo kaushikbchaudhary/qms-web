@@ -18,6 +18,7 @@ const extractData = <T>(response: any): T => {
   return response as T;
 };
 
+/** REST client for device/material issue requests. */
 export const deviceMaterialIssuesApi = {
   create: (payload: CreateDeviceMaterialIssuePayload) =>
     apiClient.post('api/v1/device-issue', payload).then((response) => extractData<DeviceMaterialIssue>(response)),

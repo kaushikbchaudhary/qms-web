@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
+/** Attempt to hydrate auth state from cookies on first load. */
 export default function AuthInitializer() {
     const { login, isAuthenticated } = useAuthStore();
 

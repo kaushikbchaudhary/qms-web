@@ -4,6 +4,7 @@ const ROLE_SYNONYMS: Record<string, UserRole> = {
   'store & inventory': roles.STORE_INVENTORY,
 };
 
+/** Normalize raw role labels into configured access keys. */
 export const resolveRoleKey = (role: string): UserRole | undefined => {
   if (!role) {
     return undefined;
@@ -15,6 +16,7 @@ export const resolveRoleKey = (role: string): UserRole | undefined => {
   return ROLE_SYNONYMS[normalized] ?? undefined;
 };
 
+/** Check whether any of the user's roles grants access to a route. */
 export function hasAccess(pathname: string, userRoles: string[]): boolean {
   return userRoles.some((role) => {
     const resolvedRole = resolveRoleKey(role);
@@ -33,6 +35,7 @@ export function hasAccess(pathname: string, userRoles: string[]): boolean {
   });
 }
 
+/** Resolve the first configured redirect path for the user's roles. */
 export function getRedirectPath(userRoles: string[]): string {
   for (const role of userRoles) {
     const resolvedRole = resolveRoleKey(role);

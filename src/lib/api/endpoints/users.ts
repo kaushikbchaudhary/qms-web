@@ -1,5 +1,6 @@
 import { apiClient, apiFileClient } from '../client';
 
+/** REST client for user management endpoints. */
 export const userApi = {
     createUser: (data: any):Promise<any> =>
         apiClient.post('api/v1/users', data),

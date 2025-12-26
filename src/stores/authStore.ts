@@ -24,6 +24,7 @@ type AuthState = {
     logout: () => void;
 };
 
+/** Global auth/session store with persisted token/session id. */
 export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({

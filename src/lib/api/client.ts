@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 const trimTrailingSlashes = (value?: string | null) => value?.replace(/\/+$/, '') ?? '';
 
+/** Resolve API base URL for server/client runtime. */
 const resolveBaseUrl = () => {
   const browserBaseUrl = trimTrailingSlashes(process.env.NEXT_PUBLIC_API_BASE_URL);
   if (typeof window === 'undefined') {
@@ -33,6 +34,7 @@ const apiFileClient = axios.create({
 });
 
 // Shared request interceptor
+/** Read auth token from localStorage or cookie (browser only). */
 const getAuthToken = () => {
     if (typeof window === 'undefined') return undefined;
     const storedToken = localStorage.getItem('token');
@@ -53,6 +55,7 @@ const shouldSkipUnauthorizedHandling = (error: any) => {
 
 let refreshPromise: Promise<string | null> | null = null;
 
+/** Refresh the access token using the stored session id. */
 const performRefresh = async () => {
     if (typeof window === 'undefined') return null;
     const { sessionId, setSession, logout } = useAuthStore.getState();
@@ -89,6 +92,7 @@ const performRefresh = async () => {
     return refreshPromise;
 };
 
+/** Attach auth headers and global error handling to an Axios client. */
 const setupInterceptors = ({client, directResponse = false
 }:{client:  AxiosInstance,directResponse?:boolean}) => {
     client.interceptors.request.use(
